@@ -98,6 +98,30 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(withRing.lightLevel, 55)
     }
 
+    func testTheSensorsOfTheHeadAreReadAndAnOlderNodeLeavesThemEmpty() throws {
+        let head = try parseHead(#"{"node":"aux","version":"0.0.5","camera":true,"laser":true,"rpm_sensor":true,"rpm":23890,"temp_c":41.5,"heat":"ok","protect_open":false,"uptime_s":99,"laser_last_mm":12.345,"laser_last_status":"signal_low","laser_age_ms":2500,"laser_cal_offset_mm":-1.5,"temp_roms":"28aa000000000001,28aa000000000002","temp_guess":true,"rpm_quality":"noisy","rpm_rejected":7}"#)
+        XCTAssertEqual(head.version, "0.0.5")
+        XCTAssertEqual(head.laserLastMm, 12.345)
+        XCTAssertEqual(head.laserStatus, "signal_low")
+        XCTAssertEqual(head.laserAgeMs, 2500)
+        XCTAssertEqual(head.laserOffsetMm, -1.5)
+        XCTAssertEqual(head.tempSensors, 2)
+        XCTAssertTrue(head.tempGuess)
+        XCTAssertEqual(head.rpmQuality, "noisy")
+        XCTAssertEqual(head.rpmRejected, 7)
+        XCTAssertEqual(laserStatusPhrase(head.laserStatus), "Láser: señal débil")
+        XCTAssertEqual(rpmQualityPhrase(head.rpmQuality), "Señal de rpm con ruido")
+        let old = try parseHead(#"{"node":"aux","camera":true,"laser":true,"rpm_sensor":true,"rpm":0,"temp_c":null,"heat":"ok","protect_open":false,"uptime_s":5}"#)
+        XCTAssertEqual(old.version, "")
+        XCTAssertEqual(old.laserStatus, "")
+        XCTAssertEqual(old.laserAgeMs, -1)
+        XCTAssertEqual(old.tempSensors, 0)
+        XCTAssertEqual(laserStatusPhrase(old.laserStatus), "")
+        XCTAssertEqual(rpmQualityPhrase(old.rpmQuality), "")
+        XCTAssertEqual(laserStatusPhrase("other"), "Láser: lectura no válida")
+        XCTAssertEqual(try parseHead(#"{"temp_roms":""}"#).tempSensors, 0)
+    }
+
     func testTheHeadAndAMeasureAreRead() throws {
         let head = try parseHead(#"{"node":"aux","camera":true,"camera_model":"ov5640","laser":true,"rpm_sensor":true,"rpm":23890,"temp_c":41.5,"heat":"warn","protect_open":false,"uptime_s":99}"#)
         XCTAssertTrue(head.camera)

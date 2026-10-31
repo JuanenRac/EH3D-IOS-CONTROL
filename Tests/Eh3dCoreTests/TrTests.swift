@@ -16,6 +16,14 @@ final class TrTests: XCTestCase {
         for code in codes { XCTAssertEqual(Set(try table(code).keys), first, code) }
     }
 
+    func testTheSensorPhrasesTheModelPicksAreInEveryTable() throws {
+        let phrases = ["valid", "signal_low", "sigma_high", "out_of_range", "sensor_fault", "none", "other"].map { laserStatusPhrase($0) } + ["good", "noisy", "none"].map { rpmQualityPhrase($0) }
+        for code in codes {
+            let t = try table(code)
+            for phrase in phrases { XCTAssertFalse((t[phrase] ?? "").isEmpty, "\(code): \(phrase)") }
+        }
+    }
+
     func testEveryPhraseOfTheScreensIsInEveryTable() throws {
         let used = try phrasesInSources()
         XCTAssertGreaterThan(used.count, 60)

@@ -209,7 +209,35 @@ struct HeadCard: View {
                         if let m = model.measure { Text(m.ok ? model.trf("%.3f mm (±%.3f)", m.distanceMm, m.sigmaMm) : model.trf("Sin medida: %s", m.why)).foregroundColor(m.ok ? Forge.green : Forge.orange) }
                     }
                 }
+                HeadSensors(model: model, head: head)
             } else { Text(model.tr("Sin datos del nodo del cabezal.")).foregroundColor(Forge.dim) }
+        }
+    }
+}
+
+/// What the sensors of the head say besides the tiles: the laser (how its last reading went and the offset it was calibrated with), the temperature sensors on the wire, how clean the pulses of the speed sensor are and the version of the node. Nothing for a node that does not say.
+struct HeadSensors: View {
+    @ObservedObject var model: AppModel
+    let head: HeadStatus
+    var body: some View {
+        let laser = head.laser ? laserStatusPhrase(head.laserStatus) : ""
+        let rpm = head.rpmSensor ? rpmQualityPhrase(head.rpmQuality) : ""
+        if !(laser.isEmpty && rpm.isEmpty && head.tempSensors == 0 && head.version.isEmpty) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(model.tr("Sensores del cabezal")).font(.subheadline).foregroundColor(Forge.text)
+                if !laser.isEmpty {
+                    Text(model.tr(laser)).font(.caption).foregroundColor(head.laserStatus == "valid" ? Forge.green : head.laserStatus == "none" ? Forge.dim : Forge.orange)
+                    if head.laserAgeMs >= 0 { Text(model.trf("Última lectura: %.1f mm (hace %d s)", head.laserLastMm, head.laserAgeMs / 1000)).font(.caption).foregroundColor(Forge.dim) }
+                    if head.laserOffsetMm != 0 { Text(model.trf("Desfase calibrado del láser: %.2f mm", head.laserOffsetMm)).font(.caption).foregroundColor(Forge.dim) }
+                }
+                if !rpm.isEmpty {
+                    Text(model.tr(rpm)).font(.caption).foregroundColor(head.rpmQuality == "good" ? Forge.green : head.rpmQuality == "none" ? Forge.dim : Forge.orange)
+                    if head.rpmRejected > 0 { Text(model.trf("Pulsos descartados por ruido: %d", head.rpmRejected)).font(.caption).foregroundColor(Forge.dim) }
+                }
+                if head.tempSensors > 0 { Text(model.trf("Sensores de temperatura en el hilo: %d", head.tempSensors)).font(.caption).foregroundColor(Forge.dim) }
+                if head.tempGuess { Text(model.tr("Hay varios sensores de temperatura y el nodo lee el primero que encontró: elija uno en el panel del nodo.")).font(.caption).foregroundColor(Forge.orange) }
+                if !head.version.isEmpty { Text(model.trf("Versión del nodo: %s", head.version)).font(.caption).foregroundColor(Forge.dim) }
+            }
         }
     }
 }

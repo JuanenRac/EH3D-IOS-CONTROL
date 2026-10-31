@@ -165,13 +165,50 @@ public struct HeadStatus: Equatable, Sendable {
     public var light: Bool = false
     public var lightOn: Bool = false
     public var lightLevel: Int = 0
+    /// The sensors of the head (older nodes do not say, and the members stay empty): the version of the node, the last reading of the laser with how it went (`valid`, `sigma_high`, `signal_low`, `out_of_range`, `sensor_fault`, `other` or `none`) and how long ago, the offset the laser was calibrated with, the temperature sensors found on the wire and whether one was only guessed, and how clean the pulses of the speed sensor are (`good`, `noisy` or `none`) and how many were refused as noise.
+    public var version: String = ""
+    public var laserLastMm: Double = 0
+    public var laserStatus: String = ""
+    public var laserAgeMs: Int = -1
+    public var laserOffsetMm: Double = 0
+    public var tempSensors: Int = 0
+    public var tempGuess: Bool = false
+    public var rpmQuality: String = ""
+    public var rpmRejected: Int = 0
+}
+
+/// The Spanish phrase (the key of the tables of languages) that says how the last reading of the laser went; empty when the node does not say.
+public func laserStatusPhrase(_ status: String) -> String {
+    switch status {
+    case "": return ""
+    case "valid": return "Láser: lectura válida"
+    case "signal_low": return "Láser: señal débil"
+    case "sigma_high": return "Láser: demasiada dispersión"
+    case "out_of_range": return "Láser: fuera de rango"
+    case "sensor_fault": return "Láser: fallo del sensor"
+    case "none": return "Láser: sin lecturas todavía"
+    default: return "Láser: lectura no válida"
+    }
+}
+
+/// The Spanish phrase that says how clean the pulses of the speed sensor are; empty when the node does not say.
+public func rpmQualityPhrase(_ quality: String) -> String {
+    switch quality {
+    case "good": return "Señal de rpm buena"
+    case "noisy": return "Señal de rpm con ruido"
+    case "none": return "Sin señal de rpm"
+    default: return ""
+    }
 }
 
 public func parseHead(_ text: String) throws -> HeadStatus {
     let j = try object(text)
     return HeadStatus(node: str(j, "node"), camera: (j["camera"] as? Bool) ?? false, laser: (j["laser"] as? Bool) ?? false, rpmSensor: (j["rpm_sensor"] as? Bool) ?? false, cameraModel: str(j, "camera_model"),
                       rpm: dbl(j, "rpm") ?? 0, tempC: dbl(j, "temp_c"), heat: str(j, "heat", "ok"), protectOpen: (j["protect_open"] as? Bool) ?? false, uptimeS: int(j, "uptime_s"),
-                      light: (j["light"] as? Bool) ?? false, lightOn: (j["light_on"] as? Bool) ?? false, lightLevel: int(j, "light_level"))
+                      light: (j["light"] as? Bool) ?? false, lightOn: (j["light_on"] as? Bool) ?? false, lightLevel: int(j, "light_level"),
+                      version: str(j, "version"), laserLastMm: dbl(j, "laser_last_mm") ?? 0, laserStatus: str(j, "laser_last_status"), laserAgeMs: int(j, "laser_age_ms", -1), laserOffsetMm: dbl(j, "laser_cal_offset_mm") ?? 0,
+                      tempSensors: str(j, "temp_roms").split(separator: ",").filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }.count, tempGuess: (j["temp_guess"] as? Bool) ?? false,
+                      rpmQuality: str(j, "rpm_quality"), rpmRejected: int(j, "rpm_rejected"))
 }
 
 /// One thing the analyser of the quality check found: a code (`hole_missing`, `mill_pinched`...), the hole it is about (from 0) and whether it makes the verdict not ok.
