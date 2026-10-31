@@ -12,7 +12,7 @@ let lightLevels = [0, 30, 60, 80]
 let holeWidths: [Double] = [0, 0.6, 0.8, 1.0, 1.2]
 
 /// A choice among a few: filled when it is the one in use.
-private struct Choice: View {
+struct Choice: View {
     let selected: Bool
     let label: String
     var enabled = true

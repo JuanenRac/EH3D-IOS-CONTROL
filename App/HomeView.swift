@@ -174,6 +174,7 @@ struct MachineView: View {
                 } else {
                     Card { Text(model.tr("La máquina está libre.")).foregroundColor(Forge.text); Text(model.tr("Los trabajos que están listos se arrancan desde la pestaña Trabajos.")).font(.caption).foregroundColor(Forge.dim) }
                 }
+                if model.spindle != nil { SpindleCard(model: model, machineId: id) }
                 if !model.noHead { HeadCard(model: model, machineId: id) }
                 if !model.noHead, model.head?.camera == true { QualityCard(model: model, machineId: id) }
                 Title(model.tr("Trabajos de esta máquina"))
@@ -271,6 +272,7 @@ struct JobDetailView: View {
                         Text(model.trf("%d de %d pasos · estimado %s", s.itemsDone, s.itemsTotal, formatDuration(s.estimateS))).font(.caption).foregroundColor(Forge.dim)
                         if !s.message.isEmpty { Text(s.message).foregroundColor(Forge.orange) }
                     }
+                    if !job.view.skippedTools.isEmpty || job.view.skipped > 0 || !job.view.spindleWarnings.isEmpty { JobNotes(model: model, view: job.view) }
                     Card { Title(model.tr("Visor")); JobViewer(model: model, job: job, itemsDone: s.itemsDone, itemsTotal: s.itemsTotal, live: s.state == "running") }
                     Card {
                         Title(model.tr("Herramientas"))

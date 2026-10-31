@@ -86,6 +86,17 @@ public final class Eh3dApi: @unchecked Sendable {
     public func confirm(_ id: String) async throws { _ = try await call("/jobs/\(q(id))/confirm", method: "POST", body: "{}") }
     public func cancel(_ id: String) async throws { _ = try await call("/jobs/\(q(id))/cancel", method: "POST", body: "{}") }
     public func delete(_ id: String) async throws { _ = try await call("/jobs/\(q(id))", method: "DELETE") }
+    /// The spindle of the machine, its limits and the switch that says what happens to a job that asks for more.
+    public func spindle(_ machine: String) async throws -> SpindleInfo { try parseSpindle(try await call("/machines/\(q(machine))/spindle")) }
+
+    /// Sets the spindle (`original`, `vfd` or empty for none) and/or the switch (`reject` or `warn`); what is nil stays as it was. Administrator only.
+    public func setSpindle(_ machine: String, spindle: String?, guardMode: String?) async throws -> SpindleInfo {
+        var body: [String: String] = [:]
+        if let spindle { body["spindle"] = spindle }
+        if let guardMode { body["guard"] = guardMode }
+        return try parseSpindle(try await call("/machines/\(q(machine))/spindle", method: "PUT", body: json(body)))
+    }
+
     public func head(_ machine: String) async throws -> HeadStatus { try parseHead(try await call("/machines/\(q(machine))/head/status")) }
     public func measure(_ machine: String, samples: Int = 7) async throws -> Measure { try parseMeasure(try await call("/machines/\(q(machine))/head/measure?samples=\(samples)", method: "POST", body: "{}")) }
 

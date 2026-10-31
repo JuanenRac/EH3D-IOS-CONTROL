@@ -65,6 +65,8 @@ Each line is one part of this repository and the light says how far it is today.
 
 The page of a machine also has the ring of LEDs of the head (off and three levels) and a Quality check card: it asks the server to look at the board with the camera of the drill head, judges the holes and the milled channels and shows the verdict as big as a sign (OK, NOT OK or cannot judge) with what was found, the profile (standard, fine pitch, prototype) and the calibration of the scale. The first screens (the splash with the mark, the wait while the session is restored and the sign-in with its icons, the eye for the password and the note on what is kept on the phone) follow the look of the other apps of the suite.
 
+The page of a machine also shows the spindle of the machine (the original one or the one with a variable-frequency drive), with its limits and the top speed the node should be set to; an administrator chooses it and chooses what the server does with a job that asks for more (refuse it, or let it through cut down to the top of the spindle). A job lists the excesses it was let through with, the tools that were switched off for it and the holes or paths already done that it leaves out. The app does not prepare jobs, so choosing a drilling job, a routing job or both, and switching tools off, stays in EH3D-STUDIO and BUNGARD-GUI.
+
 ## 🧩 Role in EH3D
 
 EH3D-IOS-CONTROL is the pocket screen of the EH3D workshop: it talks only to EH3D-SERVER, which runs the jobs on the machines (through EH3D-NODE-BUNGARD) and relays the camera of the drill head (EH3D-NODE-BUNGARD-AUX). Jobs are prepared in EH3D-STUDIO or BUNGARD-GUI; this app follows them, confirms the steps they wait for and stops them.
@@ -158,7 +160,7 @@ EH3D-IOS-CONTROL/
 │   ├── Eh3dApp.swift AppModel.swift                  the app and its state
 │   ├── RootView.swift HomeView.swift                 sign-in, machines, machine, jobs
 │   ├── Viewers.swift MoreView.swift Theme.swift      the 2D and 3D views, more, the Forge theme
-│   ├── QualityView.swift                             the ring of LEDs and the quality check
+│   ├── QualityView.swift SpindleView.swift           the ring of LEDs, the quality check and the spindle
 │   └── Platform/                                     the Keychain and the certificate pins
 ├── Tests/                                            the tests of the package
 ├── Package.swift                                     the Swift package

@@ -66,6 +66,20 @@ public final class Translator: @unchecked Sendable {
                 if index < args.count { out += String(describing: args[index]); index += 1 }
                 i += 2; continue
             }
+            // %.Nf: a number with N decimals, always with a point
+            if chars[i + 1] == "." {
+                var k = i + 2
+                var places = ""
+                while k < chars.count, chars[k].isASCII, chars[k].isNumber { places.append(chars[k]); k += 1 }
+                if !places.isEmpty, k < chars.count, chars[k] == "f", let n = Int(places), n <= 9 {
+                    if index < args.count {
+                        let value = (args[index] as? Double) ?? (args[index] as? Float).map { Double($0) } ?? (args[index] as? Int).map { Double($0) } ?? 0
+                        out += String(format: "%.\(n)f", locale: Locale(identifier: "en_US_POSIX"), value)
+                        index += 1
+                    }
+                    i = k + 1; continue
+                }
+            }
             // %N$s or %N$d
             var j = i + 1
             var digits = ""

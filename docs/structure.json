@@ -165,17 +165,17 @@
         },
         {
           "desc": {
-            "en": "the ring of LEDs and the quality check",
-            "es": "el aro de LEDs y la verificación de calidad",
-            "it": "l'anello di LED e il controllo qualità",
-            "de": "der LED-Ring und die Qualitätsprüfung",
-            "fr": "l'anneau de LED et le contrôle qualité",
-            "pt": "o anel de LEDs e a verificação de qualidade",
-            "zh": "LED 环形灯和质量检查",
-            "ja": "LED リングと品質チェック"
+            "en": "the ring of LEDs, the quality check and the spindle",
+            "es": "el aro de LEDs, la verificación de calidad y el husillo",
+            "it": "l'anello di LED, il controllo qualità e il mandrino",
+            "de": "der LED-Ring, die Qualitätsprüfung und die Spindel",
+            "fr": "l'anneau de LED, le contrôle qualité et la broche",
+            "pt": "o anel de LEDs, a verificação de qualidade e o fuso",
+            "zh": "LED 环形灯、质量检查和主轴",
+            "ja": "LED リング・品質チェック・スピンドル"
           },
-          "name": "QualityView.swift",
-          "tree_name": "QualityView.swift"
+          "name": "QualityView.swift  SpindleView.swift",
+          "tree_name": "QualityView.swift SpindleView.swift"
         },
         {
           "desc": {

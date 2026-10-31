@@ -98,7 +98,37 @@ public struct JobView: Equatable, Sendable {
     public let items: Int
     public let holeEnds: [Int]
     public let estimateS: Double, travelMm: Double
+    /// The tools that were switched off for this job and how many holes or paths were already done and left out (an older server says neither).
+    public var skippedTools: [Int] = []
+    public var skipped: Int = 0
+    /// What the spindle of the machine cannot give, when the switch of the machine lets the job through (`warn`).
+    public var spindleWarnings: [SpindleWarning] = []
     public static let empty = JobView(kind: "", name: "", tools: [], holes: [], paths: [], bounds: nil, items: 0, holeEnds: [], estimateS: 0, travelMm: 0)
+}
+
+/// One excess of a tool over the spindle: `rpm_above_max`, `rpm_below_min`, `feed_xy_above_max` or `feed_z_above_max`, the tool, the value asked for and the limit.
+public struct SpindleWarning: Equatable, Sendable { public let code: String; public let tool: Int; public let value: Int; public let limit: Int }
+
+/// The limits of one spindle.
+public struct SpindleLimits: Equatable, Sendable { public let minRpm: Int; public let maxRpm: Int; public let powerW: Int; public let maxXyMmMin: Int; public let maxZMmMin: Int; public let maxBitMm: Double }
+
+/// The spindle of a machine: `original`, `vfd` or empty (none), the switch (`reject` or `warn`), the limits of both, those in use (nil with none) and the top speed the node should be set to.
+public struct SpindleInfo: Equatable, Sendable {
+    public let spindle: String, guardMode: String
+    public let original: SpindleLimits?, vfd: SpindleLimits?, active: SpindleLimits?
+    public let nodeMaxRpm: Int?
+}
+
+private func limitsOf(_ j: JSON?) -> SpindleLimits? {
+    guard let j else { return nil }
+    return SpindleLimits(minRpm: int(j, "min_rpm"), maxRpm: int(j, "max_rpm"), powerW: int(j, "power_w"), maxXyMmMin: int(j, "max_xy_mm_min"), maxZMmMin: int(j, "max_z_mm_min"), maxBitMm: dbl(j, "max_bit_mm") ?? 0)
+}
+
+public func parseSpindle(_ text: String) throws -> SpindleInfo {
+    let j = try object(text)
+    let limits = j["limits"] as? JSON
+    return SpindleInfo(spindle: str(j, "spindle"), guardMode: str(j, "guard", "reject"), original: limitsOf(limits?["original"] as? JSON), vfd: limitsOf(limits?["vfd"] as? JSON),
+                       active: limitsOf(j["active"] as? JSON), nodeMaxRpm: (j["node_max_rpm"] as? NSNumber).map { $0.intValue })
 }
 
 public struct Job: Equatable, Sendable { public let summary: JobSummary; public let view: JobView }
@@ -114,8 +144,10 @@ public func parseJob(_ text: String) throws -> Job {
     }
     let b = (v["bounds_mm"] as? [NSNumber])?.map { $0.doubleValue }
     let ends = ((v["hole_ends"] as? [NSNumber]) ?? []).map { $0.intValue }
+    let skippedTools = ((v["skipped_tools"] as? [NSNumber]) ?? []).map { $0.intValue }
+    let warnings = ((v["spindle_warnings"] as? [JSON]) ?? []).map { SpindleWarning(code: str($0, "code"), tool: int($0, "tool"), value: int($0, "value"), limit: int($0, "limit")) }
     let view = JobView(kind: str(v, "kind"), name: str(v, "name"), tools: tools, holes: holes, paths: paths, bounds: (b?.count ?? 0) >= 4 ? Array(b!.prefix(4)) : nil, items: int(v, "items"), holeEnds: ends,
-                       estimateS: dbl(v, "estimate_s") ?? 0, travelMm: dbl(v, "travel_mm") ?? 0)
+                       estimateS: dbl(v, "estimate_s") ?? 0, travelMm: dbl(v, "travel_mm") ?? 0, skippedTools: skippedTools, skipped: int(v, "skipped"), spindleWarnings: warnings)
     return Job(summary: summaryOf(j), view: view)
 }
 
@@ -197,4 +229,8 @@ public func describeError(status: Int, body: String) -> (code: String, detail: S
 }
 
 /// What a role may do: an operator also plans, starts, confirms and cancels jobs; a viewer only watches.
-public enum Roles { public static func canOperate(_ role: String) -> Bool { role == "operator" || role == "admin" } }
+public enum Roles {
+    public static func canOperate(_ role: String) -> Bool { role == "operator" || role == "admin" }
+    /// Only an administrator sets the spindle of a machine.
+    public static func canAdmin(_ role: String) -> Bool { role == "admin" }
+}

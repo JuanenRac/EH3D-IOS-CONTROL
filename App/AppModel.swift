@@ -32,6 +32,9 @@ final class AppModel: ObservableObject {
     @Published var quality: Quality?
     @Published var qualityBusy = false
     private var qualityLooked = false
+    /// The spindle of the machine on screen (nil until the server has answered).
+    @Published var spindle: SpindleInfo?
+    private var spindleLooked = false
     @Published var stack: [Page] = []
     @Published var language: String
 
@@ -45,6 +48,7 @@ final class AppModel: ObservableObject {
 
     var page: Page { stack.last ?? .home }
     var canOperate: Bool { Roles.canOperate(login?.role ?? "") }
+    var canAdmin: Bool { Roles.canAdmin(login?.role ?? "") }
     func tr(_ s: String) -> String { _ = language; return translator.tr(s) }
     func trf(_ s: String, _ args: Any...) -> String { _ = language; return Translator.fill(translator.tr(s), args) }
 
@@ -141,13 +145,13 @@ final class AppModel: ObservableObject {
     func open(_ page: Page) {
         if page == self.page { return }
         stack.append(page)
-        job = nil; head = nil; measure = nil; quality = nil; qualityLooked = false; noHead = false
+        job = nil; head = nil; measure = nil; quality = nil; qualityLooked = false; spindle = nil; spindleLooked = false; noHead = false
         refreshNow()
     }
 
     func tab(_ page: Page) { stack = page == .home ? [] : [page]; job = nil; head = nil; refreshNow() }
 
-    func back() { if !stack.isEmpty { stack.removeLast(); job = nil; head = nil; measure = nil; quality = nil; qualityLooked = false; noHead = false; refreshNow() } }
+    func back() { if !stack.isEmpty { stack.removeLast(); job = nil; head = nil; measure = nil; quality = nil; qualityLooked = false; spindle = nil; spindleLooked = false; noHead = false; refreshNow() } }
 
     // ---- the watch: the fleet every second and a half while the app is in sight
     private func poll() {
@@ -172,6 +176,10 @@ final class AppModel: ObservableObject {
             case .machine(let id):
                 if let active = now.machine(id)?.job { job = try await api.job(active.id) } else if job?.summary.machine != id { job = nil }
                 if !noHead && !qualityLooked && !qualityBusy { qualityLooked = true; quality = try? await api.lastInspection(id) }
+                if !spindleLooked {
+                    spindleLooked = true
+                    do { spindle = try await api.spindle(id) } catch let e as ApiError where e.unauthorized { throw e } catch { spindle = nil }
+                }
                 if !noHead {
                     do { head = try await api.head(id) } catch let e as ApiError where e.code == "no_head" { noHead = true; head = nil } catch {}
                 }
@@ -241,6 +249,9 @@ final class AppModel: ObservableObject {
     func inspectPreset(_ machineId: String, index: Int) { act { try await self.api.inspectPreset(machineId, index: index) } }
     func inspectCalibrate(_ machineId: String) { act { try await self.api.inspectCalibrate(machineId); self.quality = nil; self.qualityLooked = true } }
 
+    /// Chooses the spindle of the machine (`original`, `vfd` or empty for none) and/or what the server does with a job that asks for more (`reject` or `warn`).
+    func setSpindle(_ machineId: String, spindle: String?, guardMode: String?) { act { self.spindle = try await self.api.setSpindle(machineId, spindle: spindle, guardMode: guardMode) } }
+
     func choose(language code: String) { translator.select(code); language = translator.language; prefs.put("language", code) }
 
     func requestNotices() { UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in } }
@@ -254,6 +265,9 @@ final class AppModel: ObservableObject {
         if e.code == "no_light" { return tr("Este nodo no tiene aro de luz.") }
         if e.code == "no_inspection" { return tr("Verifica primero un agujero: la escala sale de su ancho.") }
         if e.code == "no_hole" { return tr("La última verificación no encontró ningún agujero con el que medir la escala.") }
+        if e.code == "spindle_limit" { return tr("El trabajo pide más de lo que da el husillo de la máquina.") }
+        if e.code == "bad_spindle" { return tr("Husillo o límites no válidos.") }
+        if e.code == "no_work" { return tr("No queda nada por hacer: todas las herramientas están desactivadas o el trabajo ya está hecho.") }
         if e.code == "head_unreachable" { return tr("El nodo del cabezal no responde.") }
         if e.status == 403 { return tr("Su usuario solo puede ver: no puede hacer esto.") }
         return trf("El servidor respondió: %s", e.detail.isEmpty ? e.code : e.detail)

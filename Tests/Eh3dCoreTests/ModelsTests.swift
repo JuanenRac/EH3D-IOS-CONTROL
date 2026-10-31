@@ -131,4 +131,56 @@ final class ModelsTests: XCTestCase {
         XCTAssertFalse(SemanticVersion.isNewer("0.0.4-rc1", than: "0.0.3"))
         XCTAssertFalse(SemanticVersion.isNewer("junk", than: "0.0.3"))
     }
+
+    // ---- the spindle of a machine and what a job says about it (docs/API.md of EH3D-SERVER)
+
+    func testTheSpindleIsReadWithItsLimitsTheSwitchAndTheTopSpeedOfTheNode() throws {
+        let info = try parseSpindle("""
+        {"spindle":"vfd","guard":"warn","limits":{"original":{"min_rpm":10000,"max_rpm":60000,"power_w":300,"max_xy_mm_min":3000,"max_z_mm_min":4000,"max_bit_mm":3.2},
+         "vfd":{"min_rpm":6000,"max_rpm":24000,"power_w":800,"max_xy_mm_min":1500,"max_z_mm_min":1200,"max_bit_mm":6.0}},
+         "active":{"min_rpm":6000,"max_rpm":24000,"power_w":800,"max_xy_mm_min":1500,"max_z_mm_min":1200,"max_bit_mm":6.0},"node_max_rpm":24000}
+        """)
+        XCTAssertEqual(info.spindle, "vfd")
+        XCTAssertEqual(info.guardMode, "warn")
+        XCTAssertEqual(info.original?.maxRpm, 60000)
+        XCTAssertEqual(info.active?.maxRpm, 24000)
+        XCTAssertEqual(try XCTUnwrap(info.vfd).maxBitMm, 6.0, accuracy: 1e-9)
+        XCTAssertEqual(info.nodeMaxRpm, 24000)
+    }
+
+    func testAMachineWithNoSpindleHasNoActiveLimitsAndNoTopSpeed() throws {
+        let info = try parseSpindle(#"{"spindle":"","guard":"reject","limits":{},"active":null,"node_max_rpm":null}"#)
+        XCTAssertEqual(info.spindle, "")
+        XCTAssertNil(info.active)
+        XCTAssertNil(info.nodeMaxRpm)
+        XCTAssertEqual(info.guardMode, "reject")
+    }
+
+    func testAJobViewCarriesTheToolsSwitchedOffTheSkippedWorkAndTheWarnings() throws {
+        let job = try parseJob("""
+        {"id":"j1","machine":"m1","name":"board","kind":"drill","state":"ready","view":{"kind":"drill","name":"board","tools":[],"holes":[],"paths":[],"bounds_mm":null,"items":0,"hole_ends":[],
+         "skipped_tools":[2,3],"skipped":5,"spindle_warnings":[{"code":"rpm_above_max","tool":1,"value":30000,"limit":24000}]}}
+        """)
+        XCTAssertEqual(job.view.skippedTools, [2, 3])
+        XCTAssertEqual(job.view.skipped, 5)
+        XCTAssertEqual(job.view.spindleWarnings, [SpindleWarning(code: "rpm_above_max", tool: 1, value: 30000, limit: 24000)])
+    }
+
+    func testAServerThatSaysNothingOfThemLeavesThemEmpty() throws {
+        let job = try parseJob(#"{"id":"j1","machine":"m1","state":"ready","view":{"kind":"route","tools":[],"holes":[],"paths":[],"items":0,"hole_ends":[]}}"#)
+        XCTAssertTrue(job.view.skippedTools.isEmpty)
+        XCTAssertEqual(job.view.skipped, 0)
+        XCTAssertTrue(job.view.spindleWarnings.isEmpty)
+    }
+
+    func testOnlyAnAdministratorSetsTheSpindle() {
+        XCTAssertTrue(Roles.canAdmin("admin"))
+        XCTAssertFalse(Roles.canAdmin("operator"))
+        XCTAssertFalse(Roles.canAdmin("viewer"))
+    }
+
+    func testANumberWithDecimalsIsFilledWithAPointWhateverThePhonesLanguage() {
+        XCTAssertEqual(Translator.fill("%d a %d rpm · broca hasta %.1f mm", [6000, 24000, 6.0]), "6000 a 24000 rpm · broca hasta 6.0 mm")
+        XCTAssertEqual(Translator.fill("%.3f mm (±%.3f)", [1.5, 0.02]), "1.500 mm (±0.020)")
+    }
 }
