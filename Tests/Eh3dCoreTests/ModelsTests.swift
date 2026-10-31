@@ -66,6 +66,38 @@ final class ModelsTests: XCTestCase {
         XCTAssertTrue(JobStates.finished(list[0].state))
     }
 
+    func testTheQualityCheckIsReadWithItsHolesAndFindings() throws {
+        let good = try parseQuality(#"{"verdict":"ok","holes":[{"index":0,"ok":true},{"index":1,"ok":true}],"milling":{"width_mm":0.21,"samples":120,"ok":true},"findings":[]}"#)
+        XCTAssertEqual(good.verdict, "ok")
+        XCTAssertEqual(good.holesTotal, 2)
+        XCTAssertEqual(good.holesOk, 2)
+        XCTAssertEqual(good.channelMm ?? 0, 0.21, accuracy: 1e-9)
+        let bad = try parseQuality(#"{"verdict":"not_ok","holes":[{"ok":true},{"ok":false},{"ok":false}],"milling":null,"findings":[{"code":"hole_missing","hole":1,"fails":true},{"code":"hole_out_of_view","hole":2,"fails":false},{"code":"mill_pinched","hole":null,"fails":true}]}"#)
+        XCTAssertEqual(bad.holesOk, 1)
+        XCTAssertNil(bad.channelMm)
+        XCTAssertEqual(bad.findings.count, 3)
+        XCTAssertEqual(bad.findings[0], Finding(code: "hole_missing", hole: 1, fails: true))
+        XCTAssertFalse(bad.findings[1].fails)
+        XCTAssertNil(bad.findings[2].hole)
+        // the width of the channels counts only when channels were seen, and a verdict that is not one is unknown, not a pass
+        XCTAssertNil(try parseQuality(#"{"verdict":"ok","milling":{"samples":0,"width_mm":0.5}}"#).channelMm)
+        XCTAssertEqual(try parseQuality(#"{"holes":[]}"#).verdict, "unknown")
+    }
+
+    func testTheRingOfLedsIsReadAndAnOlderNodeWithoutOneIsNotBroken() throws {
+        let ring = try parseRingLight(#"{"light":true,"on":true,"level":60,"max_level":80,"tone":"white"}"#)
+        XCTAssertTrue(ring.on)
+        XCTAssertEqual(ring.level, 60)
+        XCTAssertEqual(ring.maxLevel, 80)
+        let old = try parseHead(#"{"node":"head-1","camera":true,"camera_model":"ov5640","laser":false,"rpm_sensor":false,"rpm":0,"temp_c":null,"heat":"ok","protect_open":false,"uptime_s":5}"#)
+        XCTAssertFalse(old.light)
+        XCTAssertFalse(old.lightOn)
+        XCTAssertEqual(old.lightLevel, 0)
+        let withRing = try parseHead(#"{"node":"head-1","camera":true,"light":true,"light_on":true,"light_level":55,"protect_open":false}"#)
+        XCTAssertTrue(withRing.light && withRing.lightOn)
+        XCTAssertEqual(withRing.lightLevel, 55)
+    }
+
     func testTheHeadAndAMeasureAreRead() throws {
         let head = try parseHead(#"{"node":"aux","camera":true,"camera_model":"ov5640","laser":true,"rpm_sensor":true,"rpm":23890,"temp_c":41.5,"heat":"warn","protect_open":false,"uptime_s":99}"#)
         XCTAssertTrue(head.camera)

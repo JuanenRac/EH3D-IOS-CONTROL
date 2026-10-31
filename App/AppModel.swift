@@ -28,6 +28,10 @@ final class AppModel: ObservableObject {
     @Published var head: HeadStatus?
     @Published var noHead = false
     @Published var measure: Measure?
+    /// The last quality check of the machine on screen, and whether one is running now.
+    @Published var quality: Quality?
+    @Published var qualityBusy = false
+    private var qualityLooked = false
     @Published var stack: [Page] = []
     @Published var language: String
 
@@ -137,13 +141,13 @@ final class AppModel: ObservableObject {
     func open(_ page: Page) {
         if page == self.page { return }
         stack.append(page)
-        job = nil; head = nil; measure = nil; noHead = false
+        job = nil; head = nil; measure = nil; quality = nil; qualityLooked = false; noHead = false
         refreshNow()
     }
 
     func tab(_ page: Page) { stack = page == .home ? [] : [page]; job = nil; head = nil; refreshNow() }
 
-    func back() { if !stack.isEmpty { stack.removeLast(); job = nil; head = nil; measure = nil; noHead = false; refreshNow() } }
+    func back() { if !stack.isEmpty { stack.removeLast(); job = nil; head = nil; measure = nil; quality = nil; qualityLooked = false; noHead = false; refreshNow() } }
 
     // ---- the watch: the fleet every second and a half while the app is in sight
     private func poll() {
@@ -167,6 +171,7 @@ final class AppModel: ObservableObject {
             switch page {
             case .machine(let id):
                 if let active = now.machine(id)?.job { job = try await api.job(active.id) } else if job?.summary.machine != id { job = nil }
+                if !noHead && !qualityLooked && !qualityBusy { qualityLooked = true; quality = try? await api.lastInspection(id) }
                 if !noHead {
                     do { head = try await api.head(id) } catch let e as ApiError where e.code == "no_head" { noHead = true; head = nil } catch {}
                 }
@@ -219,6 +224,23 @@ final class AppModel: ObservableObject {
     func measureTable(_ machineId: String) { act { self.measure = try await self.api.measure(machineId) } }
     func streamURL(_ machineId: String) -> URL? { api.streamURL(machineId) }
 
+    /// The ring of LEDs around the camera of the drill head: off (0) or on at a level.
+    func setLight(_ machineId: String, level: Int) { act { _ = try await self.api.setLight(machineId, level: level) } }
+
+    /// The quality check of the work through the camera: the verdict comes back and stays on screen until the next one.
+    func inspect(_ machineId: String, light: Int, holeMm: Double) {
+        if qualityBusy { return }
+        qualityBusy = true
+        Task {
+            do { quality = try await api.inspect(machineId, light: light, holeMm: holeMm); await refresh() }
+            catch let e as ApiError { if e.unauthorized { signOut() } else { message = text(e) } } catch { message = error.localizedDescription }
+            qualityBusy = false
+        }
+    }
+
+    func inspectPreset(_ machineId: String, index: Int) { act { try await self.api.inspectPreset(machineId, index: index) } }
+    func inspectCalibrate(_ machineId: String) { act { try await self.api.inspectCalibrate(machineId); self.quality = nil; self.qualityLooked = true } }
+
     func choose(language code: String) { translator.select(code); language = translator.language; prefs.put("language", code) }
 
     func requestNotices() { UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in } }
@@ -229,6 +251,10 @@ final class AppModel: ObservableObject {
         if e.code == "throttled" { return tr("Demasiados intentos: espere un momento.") }
         if e.code == "machine_busy" { return tr("La máquina ya está trabajando.") }
         if e.code == "no_head" { return tr("Esta máquina no tiene nodo de cabezal.") }
+        if e.code == "no_light" { return tr("Este nodo no tiene aro de luz.") }
+        if e.code == "no_inspection" { return tr("Verifica primero un agujero: la escala sale de su ancho.") }
+        if e.code == "no_hole" { return tr("La última verificación no encontró ningún agujero con el que medir la escala.") }
+        if e.code == "head_unreachable" { return tr("El nodo del cabezal no responde.") }
         if e.status == 403 { return tr("Su usuario solo puede ver: no puede hacer esto.") }
         return trf("El servidor respondió: %s", e.detail.isEmpty ? e.code : e.detail)
     }

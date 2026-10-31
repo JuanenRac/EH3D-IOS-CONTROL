@@ -63,6 +63,8 @@ Ogni riga è una parte di questo repository e il semaforo dice a che punto è og
 * La telecamera della testa di foratura (EH3D-NODE-BUNGARD-AUX) in MJPEG tramite il server, i suoi giri, la temperatura e l'uscita di protezione, e una misura del tavolo con il laser. Scritto, mai eseguito con un nodo reale.
 * Guarda l'ultima release di questo progetto su GitHub e lo dice con un link; un'app per iPhone non può aggiornarsi da sola fuori dall'App Store, quindi la nuova versione si installa dalla release come sceglie la persona.
 
+La pagina di una macchina ha anche l'anello di LED della testa (spento e tre livelli) e una scheda Controllo qualità: chiede al server di guardare la scheda con la telecamera della testa di foratura, giudica i fori e i canali fresati e mostra il verdetto grande come un cartello (CONFORME, NON CONFORME o non valutabile) con ciò che è stato trovato, il profilo (standard, passo fine, prototipo) e la calibrazione della scala. Le prime schermate (quella iniziale con il marchio, l'attesa mentre si ripristina la sessione e quella di accesso con le sue icone, l'occhio per la password e la nota su ciò che resta sul telefono) seguono l'aspetto delle altre app della suite.
+
 ## 🧩 Ruolo in EH3D
 
 EH3D-IOS-CONTROL è lo schermo tascabile dell'officina EH3D: parla solo con EH3D-SERVER, che esegue i lavori sulle macchine (tramite EH3D-NODE-BUNGARD) e inoltra la telecamera della testa di foratura (EH3D-NODE-BUNGARD-AUX). I lavori si preparano in EH3D-STUDIO o BUNGARD-GUI; questa app li segue, conferma i passi che attendono e li ferma.
@@ -156,6 +158,7 @@ EH3D-IOS-CONTROL/
 │   ├── Eh3dApp.swift AppModel.swift                  l'app e il suo stato
 │   ├── RootView.swift HomeView.swift                 accesso, macchine, macchina, lavori
 │   ├── Viewers.swift MoreView.swift Theme.swift      le viste 2D e 3D, altro, il tema Forge
+│   ├── QualityView.swift                             l'anello di LED e il controllo qualità
 │   └── Platform/                                     il portachiavi e i pin dei certificati
 ├── Tests/                                            i test del pacchetto
 ├── Package.swift                                     il pacchetto Swift

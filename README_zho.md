@@ -63,6 +63,8 @@
 * 钻孔头（EH3D-NODE-BUNGARD-AUX）的摄像头通过服务器以 MJPEG 显示，并显示转速、温度、保护输出，以及用激光测量一次工作台。已编写，从未与真实节点一起运行。
 * 它查看本项目在 GitHub 上的最新发布并用链接提示；iPhone 应用无法在 App Store 之外自行更新，因此新版本由用户自行选择方式从发布页安装。
 
+机床页面还包含钻头的 LED 环形灯（关和三档亮度）以及“质量检查”卡片：它请服务器通过钻头摄像头查看电路板，判断孔和铣削沟槽，并以招牌大小显示结论（合格、不合格或无法判定），同时显示发现的问题、配置（标准、细间距、原型）和比例校准。最初的几个界面（带标志的启动页、恢复会话时的等待页，以及带图标、密码可见开关和手机上保存内容说明的登录页）沿用套件中其他应用的外观。
+
 ## 🧩 在 EH3D 中的角色
 
 EH3D-IOS-CONTROL 是 EH3D 车间的口袋屏幕：它只与 EH3D-SERVER 通信，由服务器（经 EH3D-NODE-BUNGARD）在机器上执行作业，并转发钻孔头（EH3D-NODE-BUNGARD-AUX）的摄像头。作业在 EH3D-STUDIO 或 BUNGARD-GUI 中准备；本应用跟踪它们、确认它们所等待的步骤并停止它们。
@@ -156,6 +158,7 @@ EH3D-IOS-CONTROL/
 │   ├── Eh3dApp.swift AppModel.swift                  应用及其状态
 │   ├── RootView.swift HomeView.swift                 登录、机器、机器详情、作业
 │   ├── Viewers.swift MoreView.swift Theme.swift      2D 和 3D 视图、更多、Forge 主题
+│   ├── QualityView.swift                             LED 环形灯和质量检查
 │   └── Platform/                                     钥匙串和证书固定
 ├── Tests/                                            包的测试
 ├── Package.swift                                     Swift 包

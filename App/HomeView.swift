@@ -175,6 +175,7 @@ struct MachineView: View {
                     Card { Text(model.tr("La máquina está libre.")).foregroundColor(Forge.text); Text(model.tr("Los trabajos que están listos se arrancan desde la pestaña Trabajos.")).font(.caption).foregroundColor(Forge.dim) }
                 }
                 if !model.noHead { HeadCard(model: model, machineId: id) }
+                if !model.noHead, model.head?.camera == true { QualityCard(model: model, machineId: id) }
                 Title(model.tr("Trabajos de esta máquina"))
                 ForEach(model.jobs.prefix(6), id: \.id) { j in JobRow(model: model, j: j).onTapGesture { model.open(.job(j.id)) } }
             }.padding(.horizontal, 16)
@@ -195,6 +196,7 @@ struct HeadCard: View {
             if let head = model.head {
                 if head.camera, let url = model.streamURL(machineId) { MjpegView(url: url).aspectRatio(4.0 / 3.0, contentMode: .fit).clipShape(RoundedRectangle(cornerRadius: 6)) }
                 else { Text(model.tr("La cámara del cabezal está apagada.")).foregroundColor(Forge.dim) }
+                LightRow(model: model, machineId: machineId, head: head)
                 HStack(spacing: 8) {
                     Tile(value: head.rpmSensor ? String(format: "%.0f", head.rpm) : "-", name: model.tr("rpm"))
                     Tile(value: head.tempC.map { String(format: "%.1f °C", $0) } ?? "-", name: model.tr("temperatura"), color: head.heat == "critical" ? Forge.danger : head.heat != "ok" ? Forge.orange : Forge.text)

@@ -89,6 +89,34 @@ public final class Eh3dApi: @unchecked Sendable {
     public func head(_ machine: String) async throws -> HeadStatus { try parseHead(try await call("/machines/\(q(machine))/head/status")) }
     public func measure(_ machine: String, samples: Int = 7) async throws -> Measure { try parseMeasure(try await call("/machines/\(q(machine))/head/measure?samples=\(samples)", method: "POST", body: "{}")) }
 
+    /// The ring of LEDs around the camera: off (level 0) or on in the white of the camera at a level; the node keeps its own ceiling.
+    public func setLight(_ machine: String, level: Int) async throws -> RingLight {
+        let path = "/machines/\(q(machine))/head/light"
+        return try parseRingLight(try await call(level <= 0 ? "\(path)?on=0" : "\(path)?on=1&level=\(min(level, 100))&tone=white&sectors=all", method: "POST", body: "{}"))
+    }
+
+    /// A quality check: the ring is lit at `light` (0: left as it is), the picture is taken, the analyser of the shop judges it and the ring shows how it went. `holeMm` is the width of the hole of the job in the centre (0: none).
+    public func inspect(_ machine: String, light: Int, holeMm: Double) async throws -> Quality {
+        let holes = holeMm > 0 ? "[{\"x_mm\":0,\"y_mm\":0,\"dia_mm\":\(String(format: "%.3f", holeMm))}]" : "[]"
+        let lit = light > 0 ? ",\"light\":\(min(light, 100)),\"restore_light\":true" : ""
+        return try parseQuality(try await call("/machines/\(q(machine))/head/inspect", method: "POST", body: "{\"holes\":\(holes)\(lit)}"))
+    }
+
+    /// The last check of the machine (made from here or from another program), or nil when there has been none since the server started.
+    public func lastInspection(_ machine: String) async throws -> Quality? {
+        do { return try parseQuality(try await call("/machines/\(q(machine))/head/inspect")) }
+        catch let e as ApiError where e.code == "no_inspection" { return nil }
+    }
+
+    /// Makes the profile of the analyser one of the presets: 0 standard, 1 fine pitch, 2 prototype.
+    public func inspectPreset(_ machine: String, index: Int) async throws {
+        let name = ["standard", "fine_pitch", "prototype"][min(max(index, 0), 2)]
+        _ = try await call("/machines/\(q(machine))/head/inspect/profile", method: "PUT", body: "{\"preset\":\"\(name)\"}")
+    }
+
+    /// Sets the scale of the picture from the hole that was just measured.
+    public func inspectCalibrate(_ machine: String) async throws { _ = try await call("/machines/\(q(machine))/head/inspect/calibrate", method: "POST", body: "{}") }
+
     /// The address of the camera of the head, as the server hands it on; the token is in the address because a picture cannot carry a header.
     public func streamURL(_ machine: String) -> URL? { URL(string: origin + "/api/v1/machines/\(q(machine))/head/stream?token=\(q(token))") }
 }

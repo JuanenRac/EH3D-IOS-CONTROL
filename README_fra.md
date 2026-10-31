@@ -63,6 +63,8 @@ Chaque ligne est une partie de ce dépôt et le feu dit où elle en est aujourd'
 * La caméra de la tête de perçage (EH3D-NODE-BUNGARD-AUX) en MJPEG via le serveur, sa vitesse, sa température et sa sortie de protection, et une mesure de la table au laser. Écrit, jamais exécuté avec un vrai nœud.
 * Elle regarde la dernière release de ce projet sur GitHub et l'indique avec un lien ; une application iPhone ne peut pas se mettre à jour seule hors de l'App Store, la nouvelle version s'installe donc depuis la release comme la personne le choisit.
 
+La page d'une machine a aussi l'anneau de LED de la tête (éteint et trois niveaux) et une carte Contrôle qualité : elle demande au serveur de regarder la carte avec la caméra de la tête de perçage, juge les trous et les canaux fraisés et affiche le verdict grand comme un panneau (VALIDE, NON VALIDE ou non évaluable) avec ce qui a été trouvé, le profil (standard, pas fin, prototype) et l'étalonnage de l'échelle. Les premiers écrans (celui de démarrage avec la marque, l'attente pendant la restauration de la session et celui de connexion avec ses icônes, l'œil du mot de passe et la note sur ce qui reste sur le téléphone) suivent l'aspect des autres apps de la suite.
+
 ## 🧩 Rôle dans EH3D
 
 EH3D-IOS-CONTROL est l'écran de poche de l'atelier EH3D : elle ne parle qu'à EH3D-SERVER, qui exécute les travaux sur les machines (via EH3D-NODE-BUNGARD) et relaie la caméra de la tête de perçage (EH3D-NODE-BUNGARD-AUX). Les travaux se préparent dans EH3D-STUDIO ou BUNGARD-GUI ; cette application les suit, confirme les étapes qu'ils attendent et les arrête.
@@ -156,6 +158,7 @@ EH3D-IOS-CONTROL/
 │   ├── Eh3dApp.swift AppModel.swift                  l'application et son état
 │   ├── RootView.swift HomeView.swift                 connexion, machines, machine, travaux
 │   ├── Viewers.swift MoreView.swift Theme.swift      les vues 2D et 3D, plus, le thème Forge
+│   ├── QualityView.swift                             l'anneau de LED et le contrôle qualité
 │   └── Platform/                                     le trousseau et les empreintes de certificat
 ├── Tests/                                            les tests du paquet
 ├── Package.swift                                     le paquet Swift

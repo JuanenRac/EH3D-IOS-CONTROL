@@ -63,6 +63,8 @@ Jede Zeile ist ein Teil dieses Repositorys, und die Ampel sagt, wie weit er heut
 * Die Kamera des Bohrkopfes (EH3D-NODE-BUNGARD-AUX) als MJPEG über den Server, ihre Drehzahl, Temperatur und der Schutzausgang sowie eine Tischmessung mit dem Laser. Geschrieben, nie mit einem echten Knoten ausgeführt.
 * Sie sucht die neueste Release dieses Projekts auf GitHub und sagt es mit einem Link; eine iPhone-App kann sich außerhalb des App Stores nicht selbst aktualisieren, die neue Version wird also aus der Release installiert, wie die Person es wählt.
 
+Die Seite einer Maschine hat außerdem den LED-Ring des Kopfes (aus und drei Stufen) und eine Karte Qualitätsprüfung: Sie lässt den Server die Platine mit der Kamera des Bohrkopfes ansehen, beurteilt die Bohrungen und die gefrästen Kanäle und zeigt das Urteil so groß wie ein Schild (IN ORDNUNG, NICHT IN ORDNUNG oder nicht beurteilbar) mit den Befunden, dem Profil (Standard, Feinraster, Prototyp) und der Kalibrierung des Maßstabs. Die ersten Bildschirme (der Startbildschirm mit dem Zeichen, das Warten beim Wiederherstellen der Sitzung und die Anmeldung mit ihren Symbolen, dem Auge für das Passwort und dem Hinweis, was auf dem Telefon bleibt) folgen dem Aussehen der anderen Apps der Suite.
+
 ## 🧩 Rolle in EH3D
 
 EH3D-IOS-CONTROL ist der Taschenbildschirm der EH3D-Werkstatt: Sie spricht nur mit EH3D-SERVER, der die Aufträge auf den Maschinen ausführt (über EH3D-NODE-BUNGARD) und die Kamera des Bohrkopfes (EH3D-NODE-BUNGARD-AUX) weiterreicht. Aufträge werden in EH3D-STUDIO oder BUNGARD-GUI vorbereitet; diese App verfolgt sie, bestätigt die Schritte, auf die sie warten, und hält sie an.
@@ -156,6 +158,7 @@ EH3D-IOS-CONTROL/
 │   ├── Eh3dApp.swift AppModel.swift                  die App und ihr Zustand
 │   ├── RootView.swift HomeView.swift                 Anmeldung, Maschinen, Maschine, Aufträge
 │   ├── Viewers.swift MoreView.swift Theme.swift      die 2D- und 3D-Ansichten, Mehr, das Forge-Design
+│   ├── QualityView.swift                             der LED-Ring und die Qualitätsprüfung
 │   └── Platform/                                     der Schlüsselbund und die Zertifikat-Pins
 ├── Tests/                                            die Tests des Pakets
 ├── Package.swift                                     das Swift-Paket

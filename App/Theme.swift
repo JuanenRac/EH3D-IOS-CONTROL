@@ -89,3 +89,29 @@ struct Tile: View {
         .background(Forge.raised, in: RoundedRectangle(cornerRadius: 6))
     }
 }
+
+/// The mark of the program: an amber tile with the first letter, as the apps of the other programs have theirs.
+struct Eh3dLogo: View {
+    var size: CGFloat = 40
+    var body: some View {
+        RoundedRectangle(cornerRadius: size * 0.28)
+            .fill(LinearGradient(colors: [Color(red: 1.0, green: 0.824, blue: 0.353), Color(red: 0.851, green: 0.541, blue: 0.0)], startPoint: .topLeading, endPoint: .bottomTrailing))
+            .overlay(RoundedRectangle(cornerRadius: size * 0.28).stroke(Forge.amber.opacity(0.4), lineWidth: max(1, size * 0.03)))
+            .overlay(Text("E").font(.system(size: size * 0.55, weight: .black, design: .monospaced)).foregroundColor(Color(red: 0.102, green: 0.067, blue: 0.0)))
+            .frame(width: size, height: size)
+    }
+}
+
+/// A raised panel with a thin amber edge and a faint wash on its top: the container of the sign-in.
+struct Panel<Content: View>: View {
+    let content: Content
+    init(@ViewBuilder _ content: () -> Content) { self.content = content() }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) { content }
+            .padding(18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(LinearGradient(colors: [Forge.amber.opacity(0.05), .clear], startPoint: .top, endPoint: .bottom))
+            .background(Forge.raised, in: RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Forge.amber.opacity(0.35), lineWidth: 1))
+    }
+}

@@ -165,6 +165,20 @@
         },
         {
           "desc": {
+            "en": "the ring of LEDs and the quality check",
+            "es": "el aro de LEDs y la verificación de calidad",
+            "it": "l'anello di LED e il controllo qualità",
+            "de": "der LED-Ring und die Qualitätsprüfung",
+            "fr": "l'anneau de LED et le contrôle qualité",
+            "pt": "o anel de LEDs e a verificação de qualidade",
+            "zh": "LED 环形灯和质量检查",
+            "ja": "LED リングと品質チェック"
+          },
+          "name": "QualityView.swift",
+          "tree_name": "QualityView.swift"
+        },
+        {
+          "desc": {
             "en": "the Keychain and the certificate pins",
             "es": "el llavero y los pines de certificado",
             "it": "il portachiavi e i pin dei certificati",

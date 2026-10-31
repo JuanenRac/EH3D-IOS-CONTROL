@@ -63,6 +63,8 @@ Cada linha é uma parte deste repositório e a luz diz até onde chega hoje. É 
 * A câmara do cabeçote de furação (EH3D-NODE-BUNGARD-AUX) em MJPEG através do servidor, as suas rotações, temperatura e saída de proteção, e uma medição da mesa com o laser. Escrito, nunca executado com um nó real.
 * Consulta a última release deste projeto no GitHub e di-lo com uma ligação; uma aplicação de iPhone não se pode atualizar sozinha fora da App Store, por isso a versão nova instala-se a partir da release como a pessoa escolher.
 
+A página de uma máquina também tem o anel de LEDs da cabeça (desligado e três níveis) e um cartão Verificação de qualidade: pede ao servidor que olhe para a placa com a câmara da cabeça de furação, julga os furos e os canais fresados e mostra o veredicto grande como um cartaz (APROVADO, REPROVADO ou não avaliável) com o que se encontrou, o perfil (padrão, passo fino, protótipo) e a calibração da escala. Os primeiros ecrãs (o de arranque com a marca, a espera enquanto a sessão é restaurada e o de entrada com os seus ícones, o olho da palavra-passe e a nota sobre o que fica no telemóvel) seguem o aspeto das outras apps da suite.
+
 ## 🧩 Papel no EH3D
 
 EH3D-IOS-CONTROL é o ecrã de bolso da oficina EH3D: só fala com o EH3D-SERVER, que executa os trabalhos nas máquinas (através do EH3D-NODE-BUNGARD) e retransmite a câmara do cabeçote de furação (EH3D-NODE-BUNGARD-AUX). Os trabalhos preparam-se no EH3D-STUDIO ou no BUNGARD-GUI; esta aplicação segue-os, confirma os passos que esperam e para-os.
@@ -156,6 +158,7 @@ EH3D-IOS-CONTROL/
 │   ├── Eh3dApp.swift AppModel.swift                  a aplicação e o seu estado
 │   ├── RootView.swift HomeView.swift                 início de sessão, máquinas, máquina, trabalhos
 │   ├── Viewers.swift MoreView.swift Theme.swift      as vistas 2D e 3D, mais, o tema Forge
+│   ├── QualityView.swift                             o anel de LEDs e a verificação de qualidade
 │   └── Platform/                                     a chave e os pins de certificado
 ├── Tests/                                            os testes do pacote
 ├── Package.swift                                     o pacote Swift

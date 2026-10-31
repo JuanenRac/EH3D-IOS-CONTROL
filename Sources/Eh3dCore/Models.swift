@@ -129,12 +129,49 @@ public struct HeadStatus: Equatable, Sendable {
     public let heat: String
     public let protectOpen: Bool
     public let uptimeS: Int
+    /// The ring of LEDs around the camera: the node has one, it shines, and at what level (older nodes do not say).
+    public var light: Bool = false
+    public var lightOn: Bool = false
+    public var lightLevel: Int = 0
 }
 
 public func parseHead(_ text: String) throws -> HeadStatus {
     let j = try object(text)
     return HeadStatus(node: str(j, "node"), camera: (j["camera"] as? Bool) ?? false, laser: (j["laser"] as? Bool) ?? false, rpmSensor: (j["rpm_sensor"] as? Bool) ?? false, cameraModel: str(j, "camera_model"),
-                      rpm: dbl(j, "rpm") ?? 0, tempC: dbl(j, "temp_c"), heat: str(j, "heat", "ok"), protectOpen: (j["protect_open"] as? Bool) ?? false, uptimeS: int(j, "uptime_s"))
+                      rpm: dbl(j, "rpm") ?? 0, tempC: dbl(j, "temp_c"), heat: str(j, "heat", "ok"), protectOpen: (j["protect_open"] as? Bool) ?? false, uptimeS: int(j, "uptime_s"),
+                      light: (j["light"] as? Bool) ?? false, lightOn: (j["light_on"] as? Bool) ?? false, lightLevel: int(j, "light_level"))
+}
+
+/// One thing the analyser of the quality check found: a code (`hole_missing`, `mill_pinched`...), the hole it is about (from 0) and whether it makes the verdict not ok.
+public struct Finding: Equatable, Sendable { public let code: String; public let hole: Int?; public let fails: Bool }
+
+/// The answer of a quality check: `ok`, `not_ok` or `unknown` (the picture was too poor to judge), how many holes were right, how wide the milled channels are and what was found.
+public struct Quality: Equatable, Sendable {
+    public let verdict: String
+    public let holesTotal: Int
+    public let holesOk: Int
+    public let channelMm: Double?
+    public let findings: [Finding]
+}
+
+public func parseQuality(_ text: String) throws -> Quality {
+    let j = try object(text)
+    let holes = (j["holes"] as? [[String: Any]]) ?? []
+    let ok = holes.filter { ($0["ok"] as? Bool) ?? false }.count
+    var width: Double?
+    if let m = j["milling"] as? [String: Any], int(m, "samples") > 0 { width = dbl(m, "width_mm") }
+    let findings = ((j["findings"] as? [[String: Any]]) ?? []).map { f in
+        Finding(code: str(f, "code"), hole: (f["hole"] as? NSNumber).map { $0.intValue }, fails: (f["fails"] as? Bool) ?? true)
+    }
+    return Quality(verdict: str(j, "verdict", "unknown"), holesTotal: holes.count, holesOk: ok, channelMm: width, findings: findings)
+}
+
+/// The ring of LEDs as the node says it.
+public struct RingLight: Equatable, Sendable { public let on: Bool; public let level: Int; public let maxLevel: Int }
+
+public func parseRingLight(_ text: String) throws -> RingLight {
+    let j = try object(text)
+    return RingLight(on: (j["on"] as? Bool) ?? false, level: int(j, "level"), maxLevel: j["max_level"] == nil ? 80 : int(j, "max_level"))
 }
 
 public struct Measure: Equatable, Sendable { public let ok: Bool; public let why: String; public let distanceMm: Double; public let sigmaMm: Double; public let used: Int; public let asked: Int }
