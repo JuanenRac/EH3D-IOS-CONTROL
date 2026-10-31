@@ -3,7 +3,7 @@
   "ecosystem": "EH3D",
   "name": "EH3D-IOS-CONTROL",
   "version": "0.0.1",
-  "role": "client",
+  "role": "ui",
   "stack": "Swift / SwiftUI",
   "technologies": [
     "Swift",
