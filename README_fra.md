@@ -49,6 +49,7 @@ Chaque ligne est une partie de ce dépôt et le feu dit où elle en est aujourd'
 | Tests | 🟡 | tests du paquet Swift : ce que dit le serveur de la flotte, des travaux et de la tête, la position de la tête, la géométrie 2D et isométrique, les langues et les contrôles d'adresse et de version. |
 | Surveillance | 🟠 | Chaque machine de l'atelier avec son état, son travail, la progression, les étapes faites et le temps restant, lu depuis le serveur toutes les secondes et demie ; un avis quand une machine attend l'opérateur ou s'arrête. Écrit, non exécuté contre un vrai serveur. |
 | Arrêt d'urgence | 🟠 | Un bouton rouge qui demande deux fois et annule le travail en cours via le serveur (une machine ou toutes) ; la confirmation des étapes qu'attend un travail. Seulement opérateurs et administrateurs. Il n'a jamais arrêté une vraie machine et ne remplace pas son arrêt physique. |
+| Préparer des travaux | 🟠 | Choisir perçage, fraisage, les deux ou un programme G-code et le fichier du téléphone ; les outils du fichier avec leur nombre (et leur diamètre quand le fichier le déclare), désactiver des outils, commencer par l'un d'eux ; mettre en pause, reprendre, annuler et continuer un programme G-code à partir de la ligne où il s'est arrêté. Le serveur n'a pas de liste de fichiers : le fichier est envoyé depuis le téléphone. Écrit, jamais exécuté contre un vrai serveur ni une vraie machine. |
 | Visionneuse 2D et 3D | 🟠 | La carte, les trous (un anneau jusqu'au perçage), les trajets (pâles jusqu'à la coupe) et la tête, en 2D et dans une vue isométrique qui tourne au doigt ; la position de la tête est une estimation à partir des étapes faites. Testé comme géométrie, jamais vu sur un téléphone. |
 | Caméra de la tête | 🟠 | La caméra de la tête de perçage (EH3D-NODE-BUNGARD-AUX) en MJPEG via le serveur, sa vitesse, sa température et sa sortie de protection, et une mesure de la table au laser. Écrit, jamais exécuté avec un vrai nœud. |
 | Mises à jour | 🟠 | Elle regarde la dernière release de ce projet sur GitHub et l'indique avec un lien ; une application iPhone ne peut pas se mettre à jour seule hors de l'App Store, la nouvelle version s'installe donc depuis la release comme la personne le choisit. |
@@ -59,19 +60,20 @@ Chaque ligne est une partie de ce dépôt et le feu dit où elle en est aujourd'
 
 * Chaque machine de l'atelier avec son état, son travail, la progression, les étapes faites et le temps restant, lu depuis le serveur toutes les secondes et demie ; un avis quand une machine attend l'opérateur ou s'arrête. Écrit, non exécuté contre un vrai serveur.
 * Un bouton rouge qui demande deux fois et annule le travail en cours via le serveur (une machine ou toutes) ; la confirmation des étapes qu'attend un travail. Seulement opérateurs et administrateurs. Il n'a jamais arrêté une vraie machine et ne remplace pas son arrêt physique.
+* Choisir perçage, fraisage, les deux ou un programme G-code et le fichier du téléphone ; les outils du fichier avec leur nombre (et leur diamètre quand le fichier le déclare), désactiver des outils, commencer par l'un d'eux ; mettre en pause, reprendre, annuler et continuer un programme G-code à partir de la ligne où il s'est arrêté. Le serveur n'a pas de liste de fichiers : le fichier est envoyé depuis le téléphone. Écrit, jamais exécuté contre un vrai serveur ni une vraie machine.
 * La carte, les trous (un anneau jusqu'au perçage), les trajets (pâles jusqu'à la coupe) et la tête, en 2D et dans une vue isométrique qui tourne au doigt ; la position de la tête est une estimation à partir des étapes faites. Testé comme géométrie, jamais vu sur un téléphone.
 * La caméra de la tête de perçage (EH3D-NODE-BUNGARD-AUX) en MJPEG via le serveur, sa vitesse, sa température et sa sortie de protection, et une mesure de la table au laser. Écrit, jamais exécuté avec un vrai nœud.
 * Elle regarde la dernière release de ce projet sur GitHub et l'indique avec un lien ; une application iPhone ne peut pas se mettre à jour seule hors de l'App Store, la nouvelle version s'installe donc depuis la release comme la personne le choisit.
 
 La page d'une machine a aussi l'anneau de LED de la tête (éteint et trois niveaux) et une carte Contrôle qualité : elle demande au serveur de regarder la carte avec la caméra de la tête de perçage, juge les trous et les canaux fraisés et affiche le verdict grand comme un panneau (VALIDE, NON VALIDE ou non évaluable) avec ce qui a été trouvé, le profil (standard, pas fin, prototype) et l'étalonnage de l'échelle. Les premiers écrans (celui de démarrage avec la marque, l'attente pendant la restauration de la session et celui de connexion avec ses icônes, l'œil du mot de passe et la note sur ce qui reste sur le téléphone) suivent l'aspect des autres apps de la suite.
 
-La page d’une machine montre aussi la broche de la machine (l’originale ou celle avec variateur de fréquence), avec ses limites et la vitesse maximale à laquelle le nœud doit être réglé ; un administrateur la choisit et choisit ce que fait le serveur d’un travail qui demande plus (le refuser, ou le laisser passer réduit au maximum de la broche). Un travail liste les dépassements avec lesquels il a été accepté, les outils désactivés pour lui et les trous ou tracés déjà faits qu’il laisse de côté. L’application ne prépare pas de travaux : choisir perçage, fraisage ou les deux et désactiver des outils reste l’affaire d’EH3D-STUDIO et de BUNGARD-GUI.
+La page d’une machine montre aussi la broche de la machine (l’originale ou celle avec variateur de fréquence), avec ses limites et la vitesse maximale à laquelle le nœud doit être réglé ; un administrateur la choisit et choisit ce que fait le serveur d’un travail qui demande plus (le refuser, ou le laisser passer réduit au maximum de la broche). Un travail liste les dépassements avec lesquels il a été accepté, les outils désactivés pour lui et les trous ou tracés déjà faits qu’il laisse de côté. La page d’une machine libre propose aussi Préparer le travail : on choisit ce qui est fait (perçage, fraisage, les deux ou un programme G-code libre) et le fichier du téléphone ; le serveur le planifie, et l’application liste les outils du fichier avec leur nombre, permet de désactiver des outils ou de commencer par l’un d’eux (les précédents dans l’ordre du travail sont omis) et lance le travail après une confirmation. Avec les deux, deux travaux sont créés et le second reste prêt. Un programme G-code peut être mis en pause, repris, annulé et continué à partir de la ligne où il s’est arrêté ; la broche et le liquide de refroidissement ne sont rallumés que si l’on active cette option (désactivée par défaut).
 
 La carte de la tête de perçage montre aussi ce que disent ses capteurs : comment s’est passée la dernière mesure du laser (valide, signal faible, trop de dispersion, hors plage, défaut du capteur) avec la distance, il y a combien de temps elle a été prise et le décalage avec lequel le laser a été étalonné ; si les impulsions du capteur de rotation sont propres ou bruitées et combien ont été rejetées comme bruit ; combien de capteurs de température le nœud a trouvés sur le fil (et un avertissement quand il devine seulement lequel lire) ; et la version du nœud. Un nœud qui ne le dit pas n’affiche rien de tout cela. Les réglages de l’image de la caméra, l’étalonnage du laser et le choix du capteur de température se font dans le panneau du nœud : le serveur ne les transmet pas encore.
 
 ## 🧩 Rôle dans EH3D
 
-EH3D-IOS-CONTROL est l'écran de poche de l'atelier EH3D : elle ne parle qu'à EH3D-SERVER, qui exécute les travaux sur les machines (via EH3D-NODE-BUNGARD) et relaie la caméra de la tête de perçage (EH3D-NODE-BUNGARD-AUX). Les travaux se préparent dans EH3D-STUDIO ou BUNGARD-GUI ; cette application les suit, confirme les étapes qu'ils attendent et les arrête.
+EH3D-IOS-CONTROL est l'écran de poche de l'atelier EH3D : elle ne parle qu'à EH3D-SERVER, qui exécute les travaux sur les machines (via EH3D-NODE-BUNGARD) et relaie la caméra de la tête de perçage (EH3D-NODE-BUNGARD-AUX). Les travaux se préparent dans EH3D-STUDIO, BUNGARD-GUI ou cette application avec Préparer le travail ; cette application les suit, confirme les étapes qu'ils attendent et les arrête.
 
 ## 🏛️ Architecture
 
@@ -153,7 +155,7 @@ La version vit dans `eh3d.project.json` et dans `project.yml`, et chaque version
 ```text
 EH3D-IOS-CONTROL/
 ├── Sources/Eh3dCore/
-│   ├── Models.swift Geometry.swift                   ce que dit le serveur ; les règles du dessin
+│   ├── Models.swift Prepare.swift Geometry.swift     ce que dit le serveur ; les règles du dessin
 │   ├── Eh3dApi.swift                                 le client de l'API du serveur
 │   ├── ServerEndpoint.swift SessionVault.swift       les contrôles d'adresse et la session chiffrée
 │   ├── Tr.swift Resources/i18n/                      les huit langues
@@ -162,6 +164,7 @@ EH3D-IOS-CONTROL/
 │   ├── Eh3dApp.swift AppModel.swift                  l'application et son état
 │   ├── RootView.swift HomeView.swift                 connexion, machines, machine, travaux
 │   ├── Viewers.swift MoreView.swift Theme.swift      les vues 2D et 3D, plus, le thème Forge
+│   ├── PrepareView.swift                             la page qui prépare un travail
 │   ├── QualityView.swift SpindleView.swift           l'anneau de LED, le contrôle qualité et la broche
 │   └── Platform/                                     le trousseau et les empreintes de certificat
 ├── Tests/                                            les tests du paquet
@@ -195,7 +198,7 @@ EH3D-IOS-CONTROL/
 * Se connecter au EH3D-SERVER de l'atelier et suivre un vrai travail.
 * Montrer la vraie position de la tête quand le serveur la signalera.
 * Des avis avec l'application fermée (un canal push du serveur).
-* Une page pour préparer et lancer des travaux depuis le téléphone.
+* Choisir le fichier parmi ceux gardés sur le serveur plutôt que sur le téléphone (le serveur n'a pas encore de liste de fichiers).
 
 ## 🌍 Langues
 

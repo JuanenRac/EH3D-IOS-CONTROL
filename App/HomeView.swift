@@ -99,8 +99,19 @@ func jobStateColor(_ state: String) -> Color {
     }
 }
 
+/// The words of a kind of job.
+func jobKindText(_ kind: String, _ tr: (String) -> String) -> String {
+    switch kind {
+    case "drill": return tr("Taladrado")
+    case "gcode": return tr("G-code")
+    default: return tr("Fresado")
+    }
+}
+
 func pauseText(_ p: Pause, _ model: AppModel) -> String {
     switch p.kind {
+    case "hold": return model.tr("Trabajo en pausa: pulse Reanudar para que siga.")
+    case "resume": return model.tr("El trabajo sigue tras una parada: compruebe la máquina y pulse Reanudar antes del primer movimiento.")
     case "tool_change": return model.trf("Ponga la herramienta %d y confirme.", p.tool ?? 0)
     case "spindle_start": return model.tr("Compruebe que el husillo gira y confirme.")
     default: return model.tr("La máquina espera una confirmación.")
@@ -156,9 +167,11 @@ struct MachineView: View {
                         Card(accent: Forge.orange) {
                             Title(model.tr("La máquina espera"))
                             Text(pauseText(p, model)).foregroundColor(Forge.text)
-                            Button(model.tr("Confirmar")) { model.confirm(a.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate)
+                            if a.kind == "gcode" { Button(model.tr("Reanudar")) { model.resume(a.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
+                            else { Button(model.tr("Confirmar")) { model.confirm(a.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
                         }
                     }
+                    if a.kind == "gcode" && a.state == "running" { Button(model.tr("Pausar")) { model.pause(a.id) }.buttonStyle(.bordered).frame(maxWidth: .infinity).disabled(!model.canOperate) }
                     Card(accent: color) {
                         Title(model.tr("Trabajo en curso"))
                         Text(a.name.isEmpty ? a.kind : a.name).font(.headline).foregroundColor(Forge.text)
@@ -170,9 +183,13 @@ struct MachineView: View {
                         }
                         Text(model.trf("Lanzado por %s", a.by)).font(.caption).foregroundColor(Forge.dim)
                     }
-                    if let job { Card { Title(model.tr("Visor en directo")); JobViewer(model: model, job: job, itemsDone: a.itemsDone, itemsTotal: a.itemsTotal, live: a.state == "running") } }
+                    if let job, a.kind != "gcode" { Card { Title(model.tr("Visor en directo")); JobViewer(model: model, job: job, itemsDone: a.itemsDone, itemsTotal: a.itemsTotal, live: a.state == "running") } }
                 } else {
-                    Card { Text(model.tr("La máquina está libre.")).foregroundColor(Forge.text); Text(model.tr("Los trabajos que están listos se arrancan desde la pestaña Trabajos.")).font(.caption).foregroundColor(Forge.dim) }
+                    Card {
+                        Text(model.tr("La máquina está libre.")).foregroundColor(Forge.text)
+                        Text(model.tr("Los trabajos que están listos se arrancan desde la pestaña Trabajos.")).font(.caption).foregroundColor(Forge.dim)
+                        Button(model.tr("Preparar trabajo")) { model.openPrepare(id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate)
+                    }
                 }
                 if model.spindle != nil { SpindleCard(model: model, machineId: id) }
                 if !model.noHead { HeadCard(model: model, machineId: id) }
@@ -251,7 +268,7 @@ struct JobRow: View {
             HStack {
                 VStack(alignment: .leading) {
                     Text(j.name.isEmpty ? j.kind : j.name).font(.headline).foregroundColor(Forge.text)
-                    Text([j.kind == "drill" ? model.tr("Taladrado") : model.tr("Fresado"), j.by].joined(separator: " · ")).font(.caption).foregroundColor(Forge.dim)
+                    Text([jobKindText(j.kind, model.tr), j.by].joined(separator: " · ")).font(.caption).foregroundColor(Forge.dim)
                 }
                 Spacer()
                 Pill(text: jobStateText(j.state, model.tr), color: color)
@@ -291,30 +308,37 @@ struct JobDetailView: View {
                     HStack {
                         VStack(alignment: .leading) {
                             Text(s.name.isEmpty ? s.kind : s.name).font(.title2.weight(.bold)).foregroundColor(Forge.text)
-                            Text(s.kind == "drill" ? model.tr("Taladrado") : model.tr("Fresado")).font(.caption).foregroundColor(Forge.dim)
+                            Text(jobKindText(s.kind, model.tr)).font(.caption).foregroundColor(Forge.dim)
                         }
                         Spacer(); Pill(text: jobStateText(s.state, model.tr), color: color)
                     }
                     Card(accent: color) {
                         ProgressBar(percent: s.percent, color: color)
                         Text(model.trf("%d de %d pasos · estimado %s", s.itemsDone, s.itemsTotal, formatDuration(s.estimateS))).font(.caption).foregroundColor(Forge.dim)
+                        if s.kind == "gcode" { Text(model.trf("Línea del programa: %d", s.line)).font(.caption).foregroundColor(Forge.dim) }
                         if !s.message.isEmpty { Text(s.message).foregroundColor(Forge.orange) }
                     }
                     if !job.view.skippedTools.isEmpty || job.view.skipped > 0 || !job.view.spindleWarnings.isEmpty { JobNotes(model: model, view: job.view) }
-                    Card { Title(model.tr("Visor")); JobViewer(model: model, job: job, itemsDone: s.itemsDone, itemsTotal: s.itemsTotal, live: s.state == "running") }
-                    Card {
-                        Title(model.tr("Herramientas"))
-                        ForEach(job.view.tools, id: \.number) { t in
-                            HStack { Circle().fill(Forge.tool(t.number)).frame(width: 10, height: 10); Text("T\(t.number)  \(t.spindleRpm) rpm  \(t.feedMmMin) mm/min" + (t.depthMm.map { String(format: "  %.2f mm", $0) } ?? "") + "  ×\(t.count)").foregroundColor(Forge.text).font(.subheadline) }
+                    if s.kind != "gcode" { Card { Title(model.tr("Visor")); JobViewer(model: model, job: job, itemsDone: s.itemsDone, itemsTotal: s.itemsTotal, live: s.state == "running") } }
+                    if !job.view.tools.isEmpty {
+                        Card {
+                            Title(model.tr("Herramientas"))
+                            ForEach(job.view.tools, id: \.number) { t in
+                                HStack { Circle().fill(Forge.tool(t.number)).frame(width: 10, height: 10); Text("T\(t.number)  \(t.spindleRpm) rpm  \(t.feedMmMin) mm/min" + (t.depthMm.map { String(format: "  %.2f mm", $0) } ?? "") + "  ×\(t.count)").foregroundColor(Forge.text).font(.subheadline) }
+                            }
                         }
                     }
                     HStack(spacing: 8) {
                         if s.state == "ready" { Button(model.tr("Empezar")) { model.start(s.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
                         if JobStates.active(s.state) { Button(model.tr("PARAR")) { askStop = true }.buttonStyle(.borderedProminent).tint(Forge.danger).disabled(!model.canOperate) }
-                        if s.state == "waiting_operator" { Button(model.tr("Confirmar")) { model.confirm(s.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
+                        if s.kind == "gcode" && s.state == "running" { Button(model.tr("Pausar")) { model.pause(s.id) }.buttonStyle(.bordered).disabled(!model.canOperate) }
+                        if s.state == "waiting_operator" && s.kind == "gcode" { Button(model.tr("Reanudar")) { model.resume(s.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
+                        else if s.state == "waiting_operator" { Button(model.tr("Confirmar")) { model.confirm(s.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
+                        if s.kind == "gcode" && (s.state == "failed" || s.state == "cancelled") { Button(model.trf("Continuar desde la línea %d", s.line)) { model.openResume(s) }.buttonStyle(.bordered).disabled(!model.canOperate) }
                         if !JobStates.active(s.state) { Button(model.tr("Borrar")) { askDelete = true }.buttonStyle(.bordered).disabled(!model.canOperate) }
                     }
                     if let p = s.pause { Text(pauseText(p, model)).foregroundColor(Forge.orange) }
+                    if s.kind == "gcode" && (s.state == "failed" || s.state == "cancelled") { Text(model.knowsProgram(s.id) ? model.tr("Se vuelve a preparar el mismo programa desde esa línea; la máquina espera su confirmación antes de moverse.") : model.tr("Se pedirá el mismo archivo de G-code otra vez; el trabajo seguirá desde esa línea y la máquina esperará su confirmación antes de moverse.")).font(.caption).foregroundColor(Forge.dim) }
                     if s.state == "ready" { Text(model.tr("Un trabajo nunca arranca solo: pulse Empezar con la máquina preparada.")).font(.caption).foregroundColor(Forge.dim) }
                 } else { Text(model.tr("Cargando…")).foregroundColor(Forge.dim) }
             }.padding(.horizontal, 16)

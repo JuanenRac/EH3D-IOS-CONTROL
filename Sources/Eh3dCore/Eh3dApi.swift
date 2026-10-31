@@ -86,6 +86,15 @@ public final class Eh3dApi: @unchecked Sendable {
     public func confirm(_ id: String) async throws { _ = try await call("/jobs/\(q(id))/confirm", method: "POST", body: "{}") }
     public func cancel(_ id: String) async throws { _ = try await call("/jobs/\(q(id))/cancel", method: "POST", body: "{}") }
     public func delete(_ id: String) async throws { _ = try await call("/jobs/\(q(id))", method: "DELETE") }
+    /// Holds a running G-code job, and lets a held one (or one that goes on after a stop) go on.
+    public func pause(_ id: String) async throws { _ = try await call("/jobs/\(q(id))/pause", method: "POST", body: "{}") }
+    public func resume(_ id: String) async throws { _ = try await call("/jobs/\(q(id))/resume", method: "POST", body: "{}") }
+
+    /// Plans a job and answers its view, creating nothing: the tools of the file, the holes, the lines of a G-code program.
+    public func preview(_ machine: String, body: String) async throws -> JobView { try parsePreview(try await call("/machines/\(q(machine))/preview", method: "POST", body: body)) }
+
+    /// Plans a job and keeps it ready (it never starts by itself); the answer is the job.
+    public func createJob(_ machine: String, body: String) async throws -> Job { try parseJob(try await call("/machines/\(q(machine))/jobs", method: "POST", body: body)) }
     /// The spindle of the machine, its limits and the switch that says what happens to a job that asks for more.
     public func spindle(_ machine: String) async throws -> SpindleInfo { try parseSpindle(try await call("/machines/\(q(machine))/spindle")) }
 

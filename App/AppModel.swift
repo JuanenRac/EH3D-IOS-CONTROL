@@ -9,6 +9,22 @@ enum Page: Hashable {
     case home, jobs, more, help, about, languages
     case machine(String)
     case job(String)
+    /// The page that prepares a job on a machine: what to do, the file, its tools and where to start.
+    case prepare(String)
+}
+
+/// What the page that prepares a job holds: the work chosen, the file of each side with what the server planned from it, and the free G-code program.
+struct PrepareUi {
+    var work: Work = .drill
+    var drill = SideState(), route = SideState()
+    var gcodeName = "", gcode = "", skip = 0
+    /// Start the spindle and the coolant again when a program goes on after a stop: off unless the person turns it on.
+    var restoreOutputs = false
+    var gcodeView: JobView?
+    var gcodeError = ""
+    var loading = false, busy = false
+    func side(_ side: Side) -> SideState { side == .drill ? drill : route }
+    mutating func set(_ side: Side, _ state: SideState) { if side == .drill { drill = state } else { route = state } }
 }
 
 enum Phase { case booting, signedOut, firstSetup, signedIn }
@@ -35,6 +51,10 @@ final class AppModel: ObservableObject {
     /// The spindle of the machine on screen (nil until the server has answered).
     @Published var spindle: SpindleInfo?
     private var spindleLooked = false
+    /// The job being prepared, and the text of the G-code programs started from here (to go on from the line where one stopped without choosing the file again).
+    @Published var prepare = PrepareUi()
+    private var gcodeSources: [String: (name: String, text: String)] = [:]
+    private var previewing: Task<Void, Never>?
     @Published var stack: [Page] = []
     @Published var language: String
 
@@ -229,6 +249,167 @@ final class AppModel: ObservableObject {
     /// The emergency stop of one machine: its running job is cancelled, which stops the machine and switches the drivers off.
     func emergencyStop(_ machineId: String) { if let id = fleet.machine(machineId)?.job?.id { cancel(id) } }
     func emergencyStopAll() { for id in fleet.machines.compactMap({ $0.job?.id }) { cancel(id) } }
+    func pause(_ id: String) { act { try await self.api.pause(id) } }
+    func resume(_ id: String) { act { try await self.api.resume(id) } }
+
+    // ---- preparing a job
+    /// True when the text of the program that `id` ran is still known, so it can go on from its line without choosing the file again.
+    func knowsProgram(_ id: String) -> Bool { gcodeSources[id] != nil }
+
+    /// Opens the page that prepares a job on a machine, with the first work its connection takes.
+    func openPrepare(_ machineId: String) {
+        open(.prepare(machineId))
+        prepare = PrepareUi(work: Prepare.works(fleet.machine(machineId)?.connection ?? "").first ?? .drill)
+    }
+
+    /// Goes on with a G-code job that failed or was stopped: the same program from the line it says (the text is asked for again when this session does not have it).
+    func openResume(_ summary: JobSummary) {
+        let source = gcodeSources[summary.id]
+        let text = source?.text ?? ""
+        open(.prepare(summary.machine))
+        prepare = PrepareUi(work: .gcode, gcodeName: source?.name ?? "", gcode: text, skip: Prepare.resumeSkip(line: summary.line, total: text.isEmpty ? summary.line : Prepare.lineCount(text)))
+        if !text.isEmpty { previewGcode(summary.machine) }
+    }
+
+    func setWork(_ work: Work) { prepare.work = work }
+    func setSkip(_ machineId: String, _ skip: Int) { prepare.skip = max(skip, 0); if !prepare.gcode.isEmpty { previewGcode(machineId) } }
+    func setRestoreOutputs(_ value: Bool) { prepare.restoreOutputs = value }
+
+    func toggleToolOff(_ side: Side, _ tool: Int) {
+        var st = prepare.side(side)
+        st.off = Prepare.toggleOff(st.off, tool: tool)
+        if st.off.contains(tool) && st.startAt == tool { st.startAt = nil }
+        prepare.set(side, st)
+    }
+
+    func toggleStartAt(_ side: Side, _ tool: Int) {
+        var st = prepare.side(side)
+        st.startAt = Prepare.toggleStartAt(current: st.startAt, tool: tool, off: st.off)
+        prepare.set(side, st)
+    }
+
+    private func read(_ url: URL) throws -> (name: String, text: String) {
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        let data = try Data(contentsOf: url)
+        if data.count > Prepare.maxFileBytes { throw ApiError(status: 0, code: "too_big", detail: "too_big") }
+        return (url.lastPathComponent, String(decoding: data, as: UTF8.self).replacingOccurrences(of: "\r\n", with: "\n"))
+    }
+
+    /// The file of drilling (`.NCD`) or routing (`.PLT`): it is read, sent to the server to plan (nothing is created) and the tools it uses come back with their count.
+    func pickFile(_ machineId: String, _ side: Side, _ url: URL) {
+        Task {
+            prepare.loading = true; defer { prepare.loading = false }
+            do {
+                let picked = try read(url)
+                let old = prepare.side(side)
+                prepare.set(side, SideState(fileName: picked.name, text: picked.text, tableName: old.tableName, tableText: old.tableText))
+                await planSide(machineId, side)
+            } catch let e as ApiError { var st = prepare.side(side); st.error = prepareError(e); prepare.set(side, st) }
+            catch { var st = prepare.side(side); st.error = tr("No se pudo leer el archivo."); prepare.set(side, st) }
+        }
+    }
+
+    /// The tool table of a side (`.DTD` or `.RTD`), optional.
+    func pickTable(_ machineId: String, _ side: Side, _ url: URL) {
+        Task {
+            prepare.loading = true; defer { prepare.loading = false }
+            do {
+                let picked = try read(url)
+                var st = prepare.side(side)
+                st.tableName = picked.name; st.tableText = picked.text
+                prepare.set(side, st)
+                if st.hasFile { await planSide(machineId, side) }
+            } catch let e as ApiError { var st = prepare.side(side); st.error = prepareError(e); prepare.set(side, st) }
+            catch { var st = prepare.side(side); st.error = tr("No se pudo leer el archivo."); prepare.set(side, st) }
+        }
+    }
+
+    private func planSide(_ machineId: String, _ side: Side) async {
+        let st = prepare.side(side)
+        do {
+            let view = try await api.preview(machineId, body: Prepare.fileBody(side: side, name: Prepare.jobName(st.fileName), text: st.text, tableText: st.tableText, skipTools: []))
+            var now = prepare.side(side); now.view = view; now.error = ""; prepare.set(side, now)
+        } catch let e as ApiError {
+            if e.unauthorized { signOut() }
+            var now = prepare.side(side); now.view = nil; now.error = prepareError(e); prepare.set(side, now)
+        } catch { var now = prepare.side(side); now.view = nil; now.error = error.localizedDescription; prepare.set(side, now) }
+    }
+
+    /// The G-code program: its text is read and planned from the line `prepare.skip`.
+    func pickProgram(_ machineId: String, _ url: URL) {
+        Task {
+            prepare.loading = true; defer { prepare.loading = false }
+            do {
+                let picked = try read(url)
+                prepare.gcodeName = picked.name; prepare.gcode = picked.text; prepare.gcodeView = nil; prepare.gcodeError = ""
+                previewGcode(machineId)
+            } catch let e as ApiError { prepare.gcodeError = prepareError(e) }
+            catch { prepare.gcodeError = tr("No se pudo leer el archivo.") }
+        }
+    }
+
+    private func previewGcode(_ machineId: String) {
+        previewing?.cancel()
+        let p = prepare
+        previewing = Task {
+            do {
+                let view = try await api.preview(machineId, body: Prepare.gcodeBody(name: Prepare.jobName(p.gcodeName), gcode: p.gcode, skip: p.skip, restoreOutputs: p.restoreOutputs))
+                if Task.isCancelled { return }
+                prepare.gcodeView = view; prepare.gcodeError = ""
+            } catch let e as ApiError {
+                if Task.isCancelled { return }
+                if e.unauthorized { signOut() }
+                prepare.gcodeView = nil; prepare.gcodeError = prepareError(e)
+            } catch {}
+        }
+    }
+
+    /// Creates the job (or the two of a drilling and routing pair) with the tools switched off and the tool to start at, and starts the first one. The second stays ready: a job never starts by itself.
+    func startPrepared(_ machineId: String) {
+        let p = prepare
+        if p.busy { return }
+        Task {
+            prepare.busy = true; defer { prepare.busy = false }
+            var made = 0
+            do {
+                var jobs: [Job] = []
+                if p.work == .gcode {
+                    let job = try await api.createJob(machineId, body: Prepare.gcodeBody(name: Prepare.jobName(p.gcodeName), gcode: p.gcode, skip: p.skip, restoreOutputs: p.restoreOutputs))
+                    gcodeSources[job.summary.id] = (p.gcodeName, p.gcode)
+                    jobs.append(job); made += 1
+                } else {
+                    let sides: [Side] = p.work == .drill ? [.drill] : p.work == .route ? [.route] : [.drill, .route]
+                    for side in sides {
+                        let st = p.side(side)
+                        let skipTools = Prepare.skipTools(order: st.view.map { Prepare.toolOrder($0) } ?? [], off: st.off, startAt: st.startAt)
+                        jobs.append(try await api.createJob(machineId, body: Prepare.fileBody(side: side, name: Prepare.jobName(st.fileName), text: st.text, tableText: st.tableText, skipTools: skipTools)))
+                        made += 1
+                    }
+                }
+                try await api.start(jobs[0].summary.id)
+                message = jobs.count > 1 ? tr("El primer trabajo está en marcha. El segundo queda listo: arránquelo desde la pestaña Trabajos cuando termine.") : nil
+                if case .prepare = page { back() }
+                await refresh()
+            } catch let e as ApiError {
+                if e.unauthorized { signOut() } else { message = prepareError(e) + (made > 0 ? " " + tr("Lo que ya se creó queda listo en la pestaña Trabajos.") : "") }
+            } catch { message = error.localizedDescription }
+        }
+    }
+
+    private func prepareError(_ e: ApiError) -> String {
+        switch e.code {
+        case "too_big": return tr("El archivo es demasiado grande.")
+        case "bad_gcode": return trf("Hay una línea que no es G-code válido: %s", e.detail)
+        case "bad_ncd": return tr("El archivo de taladrado no se entiende.")
+        case "unknown_tool": return trf("Una herramienta del archivo no está en la tabla de herramientas de la máquina: %s", e.detail)
+        case "bad_tool": return trf("Herramienta no válida: %s", e.detail)
+        case "out_of_table": return tr("Un agujero o un punto queda fuera del recorrido de la máquina.")
+        case "wrong_machine": return tr("Esta máquina no admite esa clase de trabajo.")
+        default: return text(e)
+        }
+    }
+
     func measureTable(_ machineId: String) { act { self.measure = try await self.api.measure(machineId) } }
     func streamURL(_ machineId: String) -> URL? { api.streamURL(machineId) }
 
@@ -267,6 +448,8 @@ final class AppModel: ObservableObject {
         if e.code == "no_hole" { return tr("La última verificación no encontró ningún agujero con el que medir la escala.") }
         if e.code == "spindle_limit" { return tr("El trabajo pide más de lo que da el husillo de la máquina.") }
         if e.code == "bad_spindle" { return tr("Husillo o límites no válidos.") }
+        if e.code == "not_pausable" { return tr("Solo se puede pausar un trabajo de G-code.") }
+        if e.code == "not_in_state" { return tr("El trabajo ya no está en un estado que permita eso.") }
         if e.code == "no_work" { return tr("No queda nada por hacer: todas las herramientas están desactivadas o el trabajo ya está hecho.") }
         if e.code == "head_unreachable" { return tr("El nodo del cabezal no responde.") }
         if e.status == 403 { return tr("Su usuario solo puede ver: no puede hacer esto.") }

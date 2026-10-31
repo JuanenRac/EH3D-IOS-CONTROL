@@ -47,6 +47,7 @@ private struct Frame: View {
                 case .languages: LanguageView(model: model)
                 case .machine(let id): MachineView(model: model, id: id)
                 case .job(let id): JobDetailView(model: model, id: id)
+                case .prepare(let id): PrepareView(model: model, machineId: id)
                 }
             }.frame(maxWidth: .infinity, maxHeight: .infinity)
             Tabs(model: model)
@@ -64,7 +65,7 @@ private struct Tabs: View {
     var body: some View {
         let p = model.page
         var machines = false, jobs = false, more = false
-        switch p { case .home, .machine: machines = true; case .jobs, .job: jobs = true; default: more = true }
+        switch p { case .home, .machine, .prepare: machines = true; case .jobs, .job: jobs = true; default: more = true }
         return HStack {
             item(model.tr("Máquinas"), "house", machines, .home)
             item(model.tr("Trabajos"), "briefcase", jobs, .jobs)

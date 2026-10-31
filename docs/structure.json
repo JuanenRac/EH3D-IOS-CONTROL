@@ -45,8 +45,8 @@
             "zh": "服务器的数据；绘图规则",
             "ja": "サーバーの内容・描画ルール"
           },
-          "name": "Models.swift  Geometry.swift",
-          "tree_name": "Models.swift Geometry.swift"
+          "name": "Models.swift  Prepare.swift  Geometry.swift",
+          "tree_name": "Models.swift Prepare.swift Geometry.swift"
         },
         {
           "desc": {
@@ -162,6 +162,20 @@
           },
           "name": "Viewers.swift  MoreView.swift  Theme.swift",
           "tree_name": "Viewers.swift MoreView.swift Theme.swift"
+        },
+        {
+          "desc": {
+            "en": "the page that prepares a job",
+            "es": "la página que prepara un trabajo",
+            "it": "la pagina che prepara un lavoro",
+            "de": "die Seite, die einen Auftrag vorbereitet",
+            "fr": "la page qui prépare un travail",
+            "pt": "a página que prepara um trabalho",
+            "zh": "准备作业的页面",
+            "ja": "ジョブを準備するページ"
+          },
+          "name": "PrepareView.swift",
+          "tree_name": "PrepareView.swift"
         },
         {
           "desc": {

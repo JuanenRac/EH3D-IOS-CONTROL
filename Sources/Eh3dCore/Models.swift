@@ -2,7 +2,7 @@
 // Copyright (C) 2026 JuanenRac (Electro Hobby 3D). GPL-3.0-or-later.
 import Foundation
 
-/// What a job waits for: put the tool of this number in (`tool_change`) or confirm that the spindle runs (`spindle_start`).
+/// What a job waits for: put the tool of this number in (`tool_change`), confirm that the spindle runs (`spindle_start`), or, for a G-code job, `hold` (the operator paused it) and `resume` (it goes on after a stop and waits before its first move).
 public struct Pause: Equatable, Sendable {
     public let kind: String
     public let tool: Int?
@@ -71,12 +71,14 @@ public struct JobSummary: Equatable, Sendable {
     public let message: String
     public let pause: Pause?
     public let estimateS: Double
+    /// For a G-code job, the line of the program it has got to (where a job that goes on starts from); 0 for the others and for an older server.
+    public var line: Int = 0
     public var percent: Int { itemsTotal <= 0 ? 0 : min(max(itemsDone * 100 / itemsTotal, 0), 100) }
 }
 
 private func summaryOf(_ j: JSON) -> JobSummary {
     JobSummary(id: str(j, "id"), machine: str(j, "machine"), name: str(j, "name"), kind: str(j, "kind"), state: str(j, "state"), by: str(j, "by"), itemsTotal: int(j, "items_total"), itemsDone: int(j, "items_done"),
-               holesTotal: int(j, "holes_total"), holesDone: int(j, "holes_done"), message: str(j, "message"), pause: pauseOf(j["pause"] as? JSON), estimateS: dbl(j, "estimate_s") ?? 0)
+               holesTotal: int(j, "holes_total"), holesDone: int(j, "holes_done"), message: str(j, "message"), pause: pauseOf(j["pause"] as? JSON), estimateS: dbl(j, "estimate_s") ?? 0, line: int(j, "line"))
 }
 
 public func parseJobs(_ text: String) throws -> [JobSummary] {
@@ -133,9 +135,8 @@ public func parseSpindle(_ text: String) throws -> SpindleInfo {
 
 public struct Job: Equatable, Sendable { public let summary: JobSummary; public let view: JobView }
 
-public func parseJob(_ text: String) throws -> Job {
-    let j = try object(text)
-    guard let v = j["view"] as? JSON else { return Job(summary: summaryOf(j), view: .empty) }
+/// The view of a job as the server writes it (`tools`, `holes`, `paths`, `bounds_mm`, `items`...).
+func viewOf(_ v: JSON) -> JobView {
     let tools = ((v["tools"] as? [JSON]) ?? []).map { ToolView(number: int($0, "number"), spindleRpm: int($0, "spindle_rpm"), count: int($0, "count"), feedMmMin: int($0, "feed_mm_min"), depthMm: dbl($0, "depth_mm"), iterations: ($0["iterations"] as? NSNumber)?.intValue) }
     let holes = ((v["holes"] as? [JSON]) ?? []).map { Hole(tool: int($0, "tool"), x: dbl($0, "x_mm") ?? 0, y: dbl($0, "y_mm") ?? 0) }
     let paths = ((v["paths"] as? [JSON]) ?? []).map { p -> PathView in
@@ -148,7 +149,19 @@ public func parseJob(_ text: String) throws -> Job {
     let warnings = ((v["spindle_warnings"] as? [JSON]) ?? []).map { SpindleWarning(code: str($0, "code"), tool: int($0, "tool"), value: int($0, "value"), limit: int($0, "limit")) }
     let view = JobView(kind: str(v, "kind"), name: str(v, "name"), tools: tools, holes: holes, paths: paths, bounds: (b?.count ?? 0) >= 4 ? Array(b!.prefix(4)) : nil, items: int(v, "items"), holeEnds: ends,
                        estimateS: dbl(v, "estimate_s") ?? 0, travelMm: dbl(v, "travel_mm") ?? 0, skippedTools: skippedTools, skipped: int(v, "skipped"), spindleWarnings: warnings)
-    return Job(summary: summaryOf(j), view: view)
+    return view
+}
+
+public func parseJob(_ text: String) throws -> Job {
+    let j = try object(text)
+    guard let v = j["view"] as? JSON else { return Job(summary: summaryOf(j), view: .empty) }
+    return Job(summary: summaryOf(j), view: viewOf(v))
+}
+
+/// The answer of a preview: the view itself, or a job that carries it in `view`.
+public func parsePreview(_ text: String) throws -> JobView {
+    let j = try object(text)
+    return viewOf((j["view"] as? JSON) ?? j)
 }
 
 /// What the node of the drill head says (the server hands it on).
