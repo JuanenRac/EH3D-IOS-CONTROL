@@ -1,0 +1,12 @@
+.build/
+.swiftpm/
+*.xcodeproj
+Generated/
+DerivedData/
+*.ipa
+*.xcarchive
+.DS_Store
+
+# private data and local files: never in the repository
+__pycache__/
+*.pyc

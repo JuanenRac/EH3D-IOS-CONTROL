@@ -1,0 +1,43 @@
+# EH3D-IOS-CONTROL - the Xcode project, described for XcodeGen (https://github.com/yonaskolb/XcodeGen).
+# On a Mac:  brew install xcodegen && xcodegen generate && open EH3D-IOS-CONTROL.xcodeproj
+# The rules of the app live in the Swift package of this folder (Eh3dCore); the app target only holds the screens and what needs the phone (Keychain, certificates).
+name: EH3D-IOS-CONTROL
+options:
+  bundleIdPrefix: es.electrohobby3d
+  deploymentTarget:
+    iOS: "16.0"
+  developmentLanguage: es
+  createIntermediateGroups: true
+packages:
+  Eh3dCore:
+    path: .
+targets:
+  EH3D:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+    dependencies:
+      - package: Eh3dCore
+        product: Eh3dCore
+    info:
+      path: Generated/Info.plist
+      properties:
+        CFBundleDisplayName: EH3D Control
+        CFBundleShortVersionString: "0.0.1"
+        CFBundleVersion: "1"
+        CFBundleDevelopmentRegion: es
+        CFBundleLocalizations: [en, es, de, fr, it, ja, zh-Hans, pt-PT]
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+        NSLocalNetworkUsageDescription: Reaches your EH3D server on your workshop network.
+        NSAppTransportSecurity:
+          # plain http is allowed only for addresses of the local network; the app itself refuses http to anything else
+          NSAllowsLocalNetworking: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: es.electrohobby3d.eh3d.ios
+        MARKETING_VERSION: "0.0.1"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1,2"
