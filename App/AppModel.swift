@@ -262,8 +262,9 @@ final class AppModel: ObservableObject {
     func delete(_ id: String) { act { try await self.api.delete(id); if case .job = self.page { self.back() } } }
 
     /// The emergency stop of one machine: its running job is cancelled, which stops the machine and switches the drivers off.
-    func emergencyStop(_ machineId: String) { if let id = fleet.machine(machineId)?.job?.id { cancel(id) } }
-    func emergencyStopAll() { for id in fleet.machines.compactMap({ $0.job?.id }) { cancel(id) } }
+    /// The server ends whatever is active on the machine at once, without waiting for the line it is sending; a stop that did not get there shows its error.
+    func emergencyStop(_ machineId: String) { act { try await self.api.stopMachine(machineId) } }
+    func emergencyStopAll() { for m in fleet.machines where m.job != nil { let id = m.id; act { try await self.api.stopMachine(id) } } }
     func pause(_ id: String) { act { try await self.api.pause(id) } }
     func resume(_ id: String) { act { try await self.api.resume(id) } }
 
@@ -439,6 +440,8 @@ final class AppModel: ObservableObject {
 
     func measureTable(_ machineId: String) { act { self.measure = try await self.api.measure(machineId) } }
     func streamURL(_ machineId: String) -> URL? { api.streamURL(machineId) }
+    /// The camera address with a ticket in it, asked just before the stream is opened.
+    func ticketURL(_ url: URL) async -> URL? { try? await api.withTicket(url) }
 
     /// The ring of LEDs around the camera of the drill head: off (0) or on at a level.
     func setLight(_ machineId: String, level: Int) { act { _ = try await self.api.setLight(machineId, level: level) } }

@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The emergency stop asks the server to stop the machine** (`POST /machines/:id/stop`) and the camera asks for a one-use ticket instead of putting the token of the session in the address. Not built or run yet: there is no Xcode here.
+
 - **The pin of the certificate is used:** every request goes through a session whose delegate keeps the key of the server (or of its authority) the first time and refuses a certificate that does not match it afterwards, saying so in the eight languages. Not built or run yet: there is no Xcode here.
 - The README says that notices work only while the app is in sight (iOS does not allow useful background polling and the server has no push channel).
 

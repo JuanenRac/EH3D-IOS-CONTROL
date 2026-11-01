@@ -3,6 +3,12 @@ import XCTest
 
 /// What the server says (docs/API.md of EH3D-SERVER), read into the data the screens show: the same checks as the Android app.
 final class ModelsTests: XCTestCase {
+    func testTheAddressOfTheCameraCarriesATicketAndNeverTheToken() {
+        let url = URL(string: "http://h:18200/api/v1/machines/m/head/stream")!
+        XCTAssertEqual(Eh3dApi.ticketURL(url, ticket: "t_ab").absoluteString, "http://h:18200/api/v1/machines/m/head/stream?ticket=t_ab")
+        XCTAssertFalse(Eh3dApi(origin: "http://h:18200", token: "secret").streamURL("m")!.absoluteString.contains("secret"))
+    }
+
     private let fleetText = """
     {"stations":[{"id":"bench","machines":["bungard","spare"]}],
      "machines":[

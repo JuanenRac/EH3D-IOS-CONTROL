@@ -144,5 +144,25 @@ public final class Eh3dApi: @unchecked Sendable {
     public func inspectCalibrate(_ machine: String) async throws { _ = try await call("/machines/\(q(machine))/head/inspect/calibrate", method: "POST", body: "{}") }
 
     /// The address of the camera of the head, as the server hands it on; the token is in the address because a picture cannot carry a header.
-    public func streamURL(_ machine: String) -> URL? { URL(string: origin + "/api/v1/machines/\(q(machine))/head/stream?token=\(q(token))") }
+    /// The address of the camera without any credential: `withTicket` adds a one-use ticket just before it is opened.
+    public func streamURL(_ machine: String) -> URL? { URL(string: origin + "/api/v1/machines/\(q(machine))/head/stream") }
+
+    /// `url` with a new ticket in it (good for one use within half a minute): the token of the session never goes in an address.
+    public func withTicket(_ url: URL) async throws -> URL {
+        let j = try JSONSerialization.jsonObject(with: Data(try await call("/tickets", method: "POST", body: "{}").utf8)) as? [String: Any]
+        let ticket = (j?["ticket"] as? String) ?? ""
+        return Eh3dApi.ticketURL(url, ticket: ticket)
+    }
+
+    /// `url` with `ticket` as its query.
+    public static func ticketURL(_ url: URL, ticket: String) -> URL {
+        var parts = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        var items = parts?.queryItems ?? []
+        items.append(URLQueryItem(name: "ticket", value: ticket))
+        parts?.queryItems = items
+        return parts?.url ?? url
+    }
+
+    /// The stop button of a machine: whatever job is active on it is ended at once (the server reaches the machine without waiting for the line it is sending).
+    public func stopMachine(_ machine: String) async throws { _ = try await call("/machines/\(q(machine))/stop", method: "POST", body: "{}") }
 }

@@ -7,6 +7,8 @@ import Eh3dCore
 /// The camera of the drill head: the stream is read as it comes and cut into pictures; a dropped stream is asked for again after 1, 2, 4... seconds (30 at most).
 struct MjpegView: View {
     let url: URL
+    /// Turns the plain address into one with a one-use ticket (asked again at every try).
+    var resolve: ((URL) async -> URL?)? = nil
     @State private var image: UIImage?
     @State private var failed = false
 
@@ -24,7 +26,7 @@ struct MjpegView: View {
         var backoff = Backoff()
         while !Task.isCancelled {
             do {
-                var request = URLRequest(url: url)
+                var request = URLRequest(url: await resolve?(url) ?? url)
                 request.timeoutInterval = 20
                 let (bytes, response) = try await URLSession.shared.bytes(for: request)
                 guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
