@@ -51,6 +51,8 @@ final class AppModel: ObservableObject {
     /// The spindle of the machine on screen (nil until the server has answered).
     @Published var spindle: SpindleInfo?
     private var spindleLooked = false
+    /// Whether the machine on screen lets its G-code jobs carry the `$` lines of GRBL (nil until the server has answered).
+    @Published var dollarAllowed: Bool?
     /// The job being prepared, and the text of the G-code programs started from here (to go on from the line where one stopped without choosing the file again).
     @Published var prepare = PrepareUi()
     private var gcodeSources: [String: (name: String, text: String)] = [:]
@@ -165,13 +167,13 @@ final class AppModel: ObservableObject {
     func open(_ page: Page) {
         if page == self.page { return }
         stack.append(page)
-        job = nil; head = nil; measure = nil; quality = nil; qualityLooked = false; spindle = nil; spindleLooked = false; noHead = false
+        job = nil; head = nil; measure = nil; quality = nil; qualityLooked = false; spindle = nil; spindleLooked = false; dollarAllowed = nil; noHead = false
         refreshNow()
     }
 
     func tab(_ page: Page) { stack = page == .home ? [] : [page]; job = nil; head = nil; refreshNow() }
 
-    func back() { if !stack.isEmpty { stack.removeLast(); job = nil; head = nil; measure = nil; quality = nil; qualityLooked = false; spindle = nil; spindleLooked = false; noHead = false; refreshNow() } }
+    func back() { if !stack.isEmpty { stack.removeLast(); job = nil; head = nil; measure = nil; quality = nil; qualityLooked = false; spindle = nil; spindleLooked = false; dollarAllowed = nil; noHead = false; refreshNow() } }
 
     // ---- the watch: the fleet every second and a half while the app is in sight
     private func poll() {
@@ -199,6 +201,7 @@ final class AppModel: ObservableObject {
                 if !spindleLooked {
                     spindleLooked = true
                     do { spindle = try await api.spindle(id) } catch let e as ApiError where e.unauthorized { throw e } catch { spindle = nil }
+                    do { dollarAllowed = try await api.allowDollar(id) } catch let e as ApiError where e.unauthorized { throw e } catch { dollarAllowed = nil }
                 }
                 if !noHead {
                     do { head = try await api.head(id) } catch let e as ApiError where e.code == "no_head" { noHead = true; head = nil } catch {}
@@ -251,6 +254,18 @@ final class AppModel: ObservableObject {
     func emergencyStopAll() { for id in fleet.machines.compactMap({ $0.job?.id }) { cancel(id) } }
     func pause(_ id: String) { act { try await self.api.pause(id) } }
     func resume(_ id: String) { act { try await self.api.resume(id) } }
+
+    /// Goes on from a job that failed or was cancelled: the server made a new job from the request it kept (no file is asked for again), and it waits ready for a person to start it.
+    func goOn(_ summary: JobSummary) {
+        Task {
+            do {
+                let next = try await api.resumeFrom(summary.id)
+                message = tr("Se creó un trabajo nuevo a partir de este. Empiécelo cuando la máquina esté lista.")
+                await refresh()
+                open(.job(next.summary.id))
+            } catch let e as ApiError { if e.unauthorized { signOut() } else { message = text(e) } } catch { message = error.localizedDescription }
+        }
+    }
 
     // ---- preparing a job
     /// True when the text of the program that `id` ran is still known, so it can go on from its line without choosing the file again.
@@ -450,6 +465,7 @@ final class AppModel: ObservableObject {
         if e.code == "bad_spindle" { return tr("Husillo o límites no válidos.") }
         if e.code == "not_pausable" { return tr("Solo se puede pausar un trabajo de G-code.") }
         if e.code == "not_in_state" { return tr("El trabajo ya no está en un estado que permita eso.") }
+        if e.code == "not_stopped" { return tr("Solo se puede seguir desde un trabajo cancelado o fallido.") }
         if e.code == "no_work" { return tr("No queda nada por hacer: todas las herramientas están desactivadas o el trabajo ya está hecho.") }
         if e.code == "head_unreachable" { return tr("El nodo del cabezal no responde.") }
         if e.status == 403 { return tr("Su usuario solo puede ver: no puede hacer esto.") }

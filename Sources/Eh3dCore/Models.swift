@@ -9,6 +9,8 @@ public struct Pause: Equatable, Sendable {
 }
 
 public enum JobStates {
+    /// A job that stopped before the end (cancelled or failed): a new one can go on from it, with the work done left out.
+    public static func canGoOn(_ state: String) -> Bool { state == "cancelled" || state == "failed" }
     public static func active(_ state: String) -> Bool { state == "connecting" || state == "running" || state == "waiting_operator" }
     public static func finished(_ state: String) -> Bool { state == "done" || state == "cancelled" || state == "failed" }
 }
@@ -73,12 +75,14 @@ public struct JobSummary: Equatable, Sendable {
     public let estimateS: Double
     /// For a G-code job, the line of the program it has got to (where a job that goes on starts from); 0 for the others and for an older server.
     public var line: Int = 0
+    /// The job this one goes on from (made by `resume-from`); empty for the others and for an older server.
+    public var resumedFrom: String = ""
     public var percent: Int { itemsTotal <= 0 ? 0 : min(max(itemsDone * 100 / itemsTotal, 0), 100) }
 }
 
 private func summaryOf(_ j: JSON) -> JobSummary {
     JobSummary(id: str(j, "id"), machine: str(j, "machine"), name: str(j, "name"), kind: str(j, "kind"), state: str(j, "state"), by: str(j, "by"), itemsTotal: int(j, "items_total"), itemsDone: int(j, "items_done"),
-               holesTotal: int(j, "holes_total"), holesDone: int(j, "holes_done"), message: str(j, "message"), pause: pauseOf(j["pause"] as? JSON), estimateS: dbl(j, "estimate_s") ?? 0, line: int(j, "line"))
+               holesTotal: int(j, "holes_total"), holesDone: int(j, "holes_done"), message: str(j, "message"), pause: pauseOf(j["pause"] as? JSON), estimateS: dbl(j, "estimate_s") ?? 0, line: int(j, "line"), resumedFrom: str(j, "resumed_from"))
 }
 
 public func parseJobs(_ text: String) throws -> [JobSummary] {
@@ -151,6 +155,9 @@ func viewOf(_ v: JSON) -> JobView {
                        estimateS: dbl(v, "estimate_s") ?? 0, travelMm: dbl(v, "travel_mm") ?? 0, skippedTools: skippedTools, skipped: int(v, "skipped"), spindleWarnings: warnings)
     return view
 }
+
+/// Whether the server lets the G-code jobs of a machine carry the `$` lines of GRBL (`allow_dollar` of the machine; an older server does not say, which is the same as no).
+public func parseAllowDollar(_ text: String) throws -> Bool { (try object(text))["allow_dollar"] as? Bool ?? false }
 
 public func parseJob(_ text: String) throws -> Job {
     let j = try object(text)

@@ -90,6 +90,12 @@ public final class Eh3dApi: @unchecked Sendable {
     public func pause(_ id: String) async throws { _ = try await call("/jobs/\(q(id))/pause", method: "POST", body: "{}") }
     public func resume(_ id: String) async throws { _ = try await call("/jobs/\(q(id))/resume", method: "POST", body: "{}") }
 
+    /// Makes a new job, ready and not started, from the request the server kept for a cancelled or failed one, with the work already done left out: the file is not asked for again.
+    public func resumeFrom(_ id: String) async throws -> Job { try parseJob(try await call("/jobs/\(q(id))/resume-from", method: "POST", body: "{}")) }
+
+    /// The switch of the machine for the `$` lines of GRBL (read only here: an administrator changes it in Studio).
+    public func allowDollar(_ machine: String) async throws -> Bool { try parseAllowDollar(try await call("/machines/\(q(machine))")) }
+
     /// Plans a job and answers its view, creating nothing: the tools of the file, the holes, the lines of a G-code program.
     public func preview(_ machine: String, body: String) async throws -> JobView { try parsePreview(try await call("/machines/\(q(machine))/preview", method: "POST", body: body)) }
 

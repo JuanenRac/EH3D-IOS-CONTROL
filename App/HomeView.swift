@@ -192,6 +192,10 @@ struct MachineView: View {
                     }
                 }
                 if model.spindle != nil { SpindleCard(model: model, machineId: id) }
+                if let allowed = model.dollarAllowed, model.fleet.machine(id)?.connection != "node" {
+                    Text(allowed ? model.tr("Líneas $ de GRBL en los trabajos de G-code: permitidas en esta máquina.") : model.tr("Líneas $ de GRBL en los trabajos de G-code: no permitidas en esta máquina (las permite un administrador desde Studio)."))
+                        .font(.caption).foregroundColor(allowed ? Forge.orange : Forge.dim)
+                }
                 if !model.noHead { HeadCard(model: model, machineId: id) }
                 if !model.noHead, model.head?.camera == true { QualityCard(model: model, machineId: id) }
                 Title(model.tr("Trabajos de esta máquina"))
@@ -334,11 +338,12 @@ struct JobDetailView: View {
                         if s.kind == "gcode" && s.state == "running" { Button(model.tr("Pausar")) { model.pause(s.id) }.buttonStyle(.bordered).disabled(!model.canOperate) }
                         if s.state == "waiting_operator" && s.kind == "gcode" { Button(model.tr("Reanudar")) { model.resume(s.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
                         else if s.state == "waiting_operator" { Button(model.tr("Confirmar")) { model.confirm(s.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
-                        if s.kind == "gcode" && (s.state == "failed" || s.state == "cancelled") { Button(model.trf("Continuar desde la línea %d", s.line)) { model.openResume(s) }.buttonStyle(.bordered).disabled(!model.canOperate) }
+                        if JobStates.canGoOn(s.state) { Button(model.tr("Seguir desde donde se detuvo")) { model.goOn(s) }.buttonStyle(.bordered).disabled(!model.canOperate) }
                         if !JobStates.active(s.state) { Button(model.tr("Borrar")) { askDelete = true }.buttonStyle(.bordered).disabled(!model.canOperate) }
                     }
                     if let p = s.pause { Text(pauseText(p, model)).foregroundColor(Forge.orange) }
-                    if s.kind == "gcode" && (s.state == "failed" || s.state == "cancelled") { Text(model.knowsProgram(s.id) ? model.tr("Se vuelve a preparar el mismo programa desde esa línea; la máquina espera su confirmación antes de moverse.") : model.tr("Se pedirá el mismo archivo de G-code otra vez; el trabajo seguirá desde esa línea y la máquina esperará su confirmación antes de moverse.")).font(.caption).foregroundColor(Forge.dim) }
+                    if JobStates.canGoOn(s.state) { Text(model.tr("El servidor guardó lo que se pidió: se crea un trabajo nuevo que deja fuera lo ya hecho, sin elegir el archivo otra vez. Espera a que lo empiece y nada se mueve solo.")).font(.caption).foregroundColor(Forge.dim) }
+                    if !s.resumedFrom.isEmpty { Text(model.trf("Continúa el trabajo %s", s.resumedFrom)).font(.caption).foregroundColor(Forge.dim) }
                     if s.state == "ready" { Text(model.tr("Un trabajo nunca arranca solo: pulse Empezar con la máquina preparada.")).font(.caption).foregroundColor(Forge.dim) }
                 } else { Text(model.tr("Cargando…")).foregroundColor(Forge.dim) }
             }.padding(.horizontal, 16)

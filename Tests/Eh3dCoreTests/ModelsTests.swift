@@ -207,4 +207,24 @@ final class ModelsTests: XCTestCase {
         XCTAssertEqual(Translator.fill("%d a %d rpm · broca hasta %.1f mm", [6000, 24000, 6.0]), "6000 a 24000 rpm · broca hasta 6.0 mm")
         XCTAssertEqual(Translator.fill("%.3f mm (±%.3f)", [1.5, 0.02]), "1.500 mm (±0.020)")
     }
+
+    func testAJobThatStoppedCanBeGoneOnFromAndSaysWhichJobItGoesOnFrom() throws {
+        XCTAssertTrue(JobStates.canGoOn("failed"))
+        XCTAssertTrue(JobStates.canGoOn("cancelled"))
+        for state in ["ready", "connecting", "running", "waiting_operator", "done"] { XCTAssertFalse(JobStates.canGoOn(state), state) }
+        let made = try parseJob("""
+        {"id":"j2","machine":"m1","name":"board","kind":"drill","state":"ready","by":"ana","items_total":10,"items_done":0,"holes_total":2,"holes_done":0,
+         "line":0,"resumed_from":"j1","message":"","pause":null,"estimate_s":5.0,"created":1,"finished":null,"view":{"kind":"drill","items":10,"skipped":1}}
+        """)
+        XCTAssertEqual(made.summary.resumedFrom, "j1")
+        XCTAssertEqual(try parseJobs("""
+        [{"id":"j3","machine":"m1","name":"a","kind":"gcode","state":"failed","by":"x"}]
+        """).first?.resumedFrom, "")
+    }
+
+    func testTheSwitchOfTheDollarLinesIsReadAndIsOffWhenTheServerDoesNotSay() throws {
+        XCTAssertTrue(try parseAllowDollar(#"{"id":"m1","allow_dollar":true}"#))
+        XCTAssertFalse(try parseAllowDollar(#"{"id":"m1","allow_dollar":false}"#))
+        XCTAssertFalse(try parseAllowDollar(#"{"id":"m1"}"#))
+    }
 }
