@@ -166,13 +166,13 @@ final class ModelsTests: XCTestCase {
 
     func testTheSpindleIsReadWithItsLimitsTheSwitchAndTheTopSpeedOfTheNode() throws {
         let info = try parseSpindle("""
-        {"spindle":"vfd","guard":"warn","limits":{"original":{"min_rpm":10000,"max_rpm":60000,"power_w":300,"max_xy_mm_min":3000,"max_z_mm_min":4000,"max_bit_mm":3.2},
+        {"spindle":"vfd","guard":"warn","limits":{"original":{"min_rpm":5000,"max_rpm":63000,"power_w":300,"max_xy_mm_min":3000,"max_z_mm_min":4000,"max_bit_mm":3.2},
          "vfd":{"min_rpm":6000,"max_rpm":24000,"power_w":800,"max_xy_mm_min":1500,"max_z_mm_min":1200,"max_bit_mm":6.0}},
          "active":{"min_rpm":6000,"max_rpm":24000,"power_w":800,"max_xy_mm_min":1500,"max_z_mm_min":1200,"max_bit_mm":6.0},"node_max_rpm":24000}
         """)
         XCTAssertEqual(info.spindle, "vfd")
         XCTAssertEqual(info.guardMode, "warn")
-        XCTAssertEqual(info.original?.maxRpm, 60000)
+        XCTAssertEqual(info.original?.maxRpm, 63000)
         XCTAssertEqual(info.active?.maxRpm, 24000)
         XCTAssertEqual(try XCTUnwrap(info.vfd).maxBitMm, 6.0, accuracy: 1e-9)
         XCTAssertEqual(info.nodeMaxRpm, 24000)
