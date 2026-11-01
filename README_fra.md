@@ -197,7 +197,7 @@ EH3D-IOS-CONTROL/
 
 * Se connecter au EH3D-SERVER de l'atelier et suivre un vrai travail.
 * Montrer la vraie position de la tête quand le serveur la signalera.
-* Des avis avec l'application fermée (un canal push du serveur).
+* Les avis ne fonctionnent que lorsque l'appli est visible : iOS ne laisse pas une appli interroger le serveur en arrière-plan à un rythme utile et le serveur n'a pas encore de canal push, donc une machine qui attend l'opérateur n'est signalée qu'à l'ouverture de l'appli.
 * Choisir le fichier parmi ceux gardés sur le serveur plutôt que sur le téléphone (le serveur n'a pas encore de liste de fichiers).
 
 ## 🌍 Langues

@@ -197,7 +197,7 @@ EH3D-IOS-CONTROL/
 
 * Sich am EH3D-SERVER der Werkstatt anmelden und einen echten Auftrag verfolgen.
 * Die wahre Position des Kopfes zeigen, sobald der Server sie meldet.
-* Meldungen bei geschlossener App (ein Push-Kanal des Servers).
+* Hinweise funktionieren nur, solange die App sichtbar ist: iOS erlaubt einer App nicht, den Server im Hintergrund in sinnvollem Takt abzufragen, und der Server hat noch keinen Push-Kanal; eine Maschine, die auf den Bediener wartet, wird also erst beim Öffnen der App gemeldet.
 * Die Datei aus den auf dem Server gespeicherten wählen statt vom Telefon (der Server hat noch keine Dateiliste).
 
 ## 🌍 Sprachen

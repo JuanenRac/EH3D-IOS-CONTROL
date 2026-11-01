@@ -197,7 +197,7 @@ EH3D-IOS-CONTROL/
 
 * Entrar no EH3D-SERVER da oficina e seguir um trabalho real.
 * Mostrar a posição verdadeira do cabeçote quando o servidor a informar.
-* Avisos com a aplicação fechada (um canal push do servidor).
+* Os avisos só funcionam com a app à vista: o iOS não deixa uma app consultar o servidor em segundo plano a um ritmo útil e o servidor ainda não tem canal push, pelo que uma máquina que espera pelo operador só é assinalada quando a app é aberta.
 * Escolher o ficheiro entre os guardados no servidor em vez do telemóvel (o servidor ainda não tem lista de ficheiros).
 
 ## 🌍 Idiomas

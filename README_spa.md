@@ -197,7 +197,7 @@ EH3D-IOS-CONTROL/
 
 * Entrar en el EH3D-SERVER del taller y seguir un trabajo real.
 * Mostrar la posición real del cabezal cuando el servidor la informe.
-* Avisos con la app cerrada (un canal push del servidor).
+* Los avisos funcionan solo con la app a la vista: iOS no deja que una app consulte al servidor en segundo plano a un ritmo útil y el servidor aún no tiene canal push, así que una máquina que espera al operario se avisa solo al abrir la app.
 * Elegir el archivo entre los guardados en el servidor en vez de en el teléfono (el servidor aún no tiene lista de archivos).
 
 ## 🌍 Idiomas

@@ -313,5 +313,6 @@
  "El código de alta no es correcto.": "Il codice di configurazione non è corretto.",
  "La contraseña debe tener de 8 a 128 caracteres.": "La password deve avere da 8 a 128 caratteri.",
  "El nombre no es válido: letras, dígitos, punto, guion bajo y guion, hasta 32 caracteres.": "Il nome non è valido: lettere, cifre, punto, trattino basso e trattino, fino a 32 caratteri.",
- "El servidor no respondió con JSON: compruebe que la dirección es la de EH3D-SERVER.": "Il server non ha risposto con JSON: controlla che l'indirizzo sia quello di EH3D-SERVER."
+ "El servidor no respondió con JSON: compruebe que la dirección es la de EH3D-SERVER.": "Il server non ha risposto con JSON: controlla che l'indirizzo sia quello di EH3D-SERVER.",
+ "El certificado del servidor no es el que se guardó la primera vez: no se conecta.": "Il certificato del server non è quello salvato la prima volta: nessuna connessione."
 }

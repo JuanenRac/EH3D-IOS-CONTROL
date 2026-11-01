@@ -197,7 +197,7 @@ EH3D-IOS-CONTROL/
 
 * Accedere all'EH3D-SERVER dell'officina e seguire un lavoro reale.
 * Mostrare la posizione vera della testa quando il server la riporterà.
-* Avvisi con l'app chiusa (un canale push del server).
+* Gli avvisi funzionano solo con l'app in vista: iOS non permette a un'app di interrogare il server in background a un ritmo utile e il server non ha ancora un canale push, quindi una macchina che attende l'operatore viene segnalata solo all'apertura dell'app.
 * Scegliere il file tra quelli conservati sul server invece che dal telefono (il server non ha ancora un elenco di file).
 
 ## 🌍 Lingue

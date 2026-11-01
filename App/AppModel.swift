@@ -64,6 +64,9 @@ final class AppModel: ObservableObject {
     private let prefs = PreferencesStore()
     private let vault: SessionVault
     private var api: Eh3dApi
+    /// The certificate of an https server is judged by the system and by the pin kept the first time (or paired from Studio); plain http to the local network never gets here.
+    private let trust: TrustDelegate
+    private let pinnedSession: URLSession
     private var poller: Task<Void, Never>?
     private var visible = true
     private var lastStates: [String: String] = [:]
@@ -81,7 +84,10 @@ final class AppModel: ObservableObject {
         language = chosen
         origin = prefs.get("origin") ?? ""
         vault = SessionVault(secrets: KeychainSecrets(), prefs: prefs)
-        api = Eh3dApi(origin: prefs.get("origin") ?? "")
+        let delegate = TrustDelegate(pins: PinStore(prefs))
+        trust = delegate
+        pinnedSession = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
+        api = Eh3dApi(origin: prefs.get("origin") ?? "", session: pinnedSession)
         rememberMe = vault.rememberedLogin(origin: origin) != nil
         Task { await start() }
     }
@@ -91,7 +97,7 @@ final class AppModel: ObservableObject {
 
     private func start() async {
         if origin.isEmpty { phase = .signedOut; return }
-        api = Eh3dApi(origin: origin)
+        api = Eh3dApi(origin: origin, session: pinnedSession)
         if let kept = vault.loadSession(origin: origin) {
             api.token = kept.value
             if let me = try? await api.session() { login = me; phase = .signedIn; poll(); return }
@@ -108,7 +114,7 @@ final class AppModel: ObservableObject {
         Task {
             busy = true; defer { busy = false }
             do {
-                let probe = Eh3dApi(origin: endpoint.origin)
+                let probe = Eh3dApi(origin: endpoint.origin, session: pinnedSession)
                 let needed = try await probe.setupNeeded()
                 api = probe; origin = endpoint.origin; prefs.put("origin", origin)
                 phase = needed ? .firstSetup : .signedOut
@@ -134,7 +140,7 @@ final class AppModel: ObservableObject {
     }
 
     private func doSignIn(origin address: String, name: String, password: String, remember: Bool) async throws -> Login {
-        if api.token.isEmpty && origin != address { api = Eh3dApi(origin: address); origin = address }
+        if api.token.isEmpty && origin != address { api = Eh3dApi(origin: address, session: pinnedSession); origin = address }
         let result = try await api.login(name: name.trimmingCharacters(in: .whitespaces), password: password)
         api.token = result.token
         login = result
@@ -152,7 +158,7 @@ final class AppModel: ObservableObject {
     func signOut() {
         poller?.cancel()
         // the call that ends the session goes with the token that is being closed, not with the empty one set just below
-        let closing = Eh3dApi(origin: origin, token: api.token)
+        let closing = Eh3dApi(origin: origin, token: api.token, session: pinnedSession)
         Task { await closing.logout() }
         vault.forgetAll()
         rememberMe = false
@@ -459,6 +465,7 @@ final class AppModel: ObservableObject {
     func requestNotices() { UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in } }
 
     private func text(_ e: ApiError) -> String {
+        if e.status == 0 && trust.takeMismatch() { return tr("El certificado del servidor no es el que se guardó la primera vez: no se conecta.") }
         if e.status == 0 { return tr("No se alcanza el servidor. Compruebe la dirección y que el teléfono está en la misma red.") }
         if e.code == "bad_credentials" || e.code == "invalid_credentials" || e.status == 401 { return tr("Usuario o contraseña incorrectos.") }
         if e.code == "bad_setup" { return tr("El código de alta no es correcto.") }

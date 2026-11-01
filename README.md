@@ -197,7 +197,7 @@ EH3D-IOS-CONTROL/
 
 * Sign in to the EH3D-SERVER of the workshop and follow a real job.
 * Show the true position of the head when the server reports it.
-* Notices when the app is closed (a push channel of the server).
+* Notices work only while the app is in sight: iOS does not let an app ask the server in the background at a useful rhythm, and the server has no push channel yet, so a machine that waits for the operator is told only when the app is opened.
 * Choose the file from the files kept on the server instead of the phone (the server has no list of files yet).
 
 ## 🌍 Languages

@@ -4,6 +4,9 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The pin of the certificate is used:** every request goes through a session whose delegate keeps the key of the server (or of its authority) the first time and refuses a certificate that does not match it afterwards, saying so in the eight languages. Not built or run yet: there is no Xcode here.
+- The README says that notices work only while the app is in sight (iOS does not allow useful background polling and the server has no push channel).
+
 - **Signing out closes the session on the server** (the call goes with the token that is being closed), and a slow refresh of another machine no longer paints its spindle or sensors on the page of this one.
 - Clearer messages for a wrong setup code, a weak password and a bad name, in the eight languages.
 
