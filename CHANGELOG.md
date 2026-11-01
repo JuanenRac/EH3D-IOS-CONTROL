@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.0.6] - Starting a job asks once more, the emergency stop asks the server to stop the machine and the pin of the certificate is used
+
 - **Starting a job from its page asks once more** (check that the machine is prepared and clear), as it does from Prepare, with the same words in every language; a touch by mistake no longer sets the machine going.
 - **The emergency stop asks the server to stop the machine** (`POST /machines/:id/stop`) and the camera asks for a one-use ticket instead of putting the token of the session in the address. Not built or run yet: there is no Xcode here.
 
