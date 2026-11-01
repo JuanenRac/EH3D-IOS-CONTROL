@@ -300,6 +300,7 @@ struct JobDetailView: View {
     @ObservedObject var model: AppModel
     let id: String
     @State private var askStop = false
+    @State private var askStart = false
     @State private var askDelete = false
 
     var body: some View {
@@ -333,7 +334,7 @@ struct JobDetailView: View {
                         }
                     }
                     HStack(spacing: 8) {
-                        if s.state == "ready" { Button(model.tr("Empezar")) { model.start(s.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
+                        if s.state == "ready" { Button(model.tr("Empezar")) { askStart = true }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
                         if JobStates.active(s.state) { Button(model.tr("PARAR")) { askStop = true }.buttonStyle(.borderedProminent).tint(Forge.danger).disabled(!model.canOperate) }
                         if s.kind == "gcode" && s.state == "running" { Button(model.tr("Pausar")) { model.pause(s.id) }.buttonStyle(.bordered).disabled(!model.canOperate) }
                         if s.state == "waiting_operator" && s.kind == "gcode" { Button(model.tr("Reanudar")) { model.resume(s.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
@@ -352,6 +353,10 @@ struct JobDetailView: View {
             Button(model.tr("PARAR AHORA"), role: .destructive) { model.cancel(id) }
             Button(model.tr("No parar"), role: .cancel) {}
         } message: { Text(model.trf("Se cancelará %s.", job?.summary.name ?? "")) }
+        .confirmationDialog(model.tr("Empezar el trabajo"), isPresented: $askStart, titleVisibility: .visible) {
+            Button(model.tr("Empezar")) { model.start(id) }
+            Button(model.tr("Cancelar"), role: .cancel) {}
+        } message: { Text(model.tr("Compruebe que la máquina está preparada y despejada. El trabajo empieza ahora.")) }
         .confirmationDialog(model.tr("Borrar el trabajo"), isPresented: $askDelete, titleVisibility: .visible) {
             Button(model.tr("Borrar"), role: .destructive) { model.delete(id) }
             Button(model.tr("Cancelar"), role: .cancel) {}
