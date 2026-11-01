@@ -192,6 +192,12 @@ def main() -> int:
     top = re.search(r"(?m)^## \[(\d[^\]]*)\]", changelog)
     if not top or top.group(1) != version:
         problems.append(f"the newest CHANGELOG entry ({top.group(1) if top else 'none'}) is not the version {version}")
+    project_yml = (ROOT / "project.yml").read_text(encoding="utf-8") if (ROOT / "project.yml").is_file() else ""
+    marketing = re.search(r'MARKETING_VERSION:\s*"([^"]+)"', project_yml)
+    if not marketing or marketing.group(1) != version:
+        problems.append(f"project.yml MARKETING_VERSION ({marketing.group(1) if marketing else 'none'}) is not the version {version}")
+    if 'CFBundleShortVersionString: "$(MARKETING_VERSION)"' not in project_yml:
+        problems.append("project.yml must give CFBundleShortVersionString as $(MARKETING_VERSION), not a literal")
     english = headings((ROOT / "README.md").read_text(encoding="utf-8"))
     english_lights = status_lights((ROOT / "README.md").read_text(encoding="utf-8"))
     for name in LANGUAGES:

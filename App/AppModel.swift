@@ -151,8 +151,9 @@ final class AppModel: ObservableObject {
 
     func signOut() {
         poller?.cancel()
-        let a = api
-        Task { await a.logout() }
+        // the call that ends the session goes with the token that is being closed, not with the empty one set just below
+        let closing = Eh3dApi(origin: origin, token: api.token)
+        Task { await closing.logout() }
         vault.forgetAll()
         rememberMe = false
         api.token = ""
@@ -196,17 +197,22 @@ final class AppModel: ObservableObject {
             offline = false
             switch page {
             case .machine(let id):
-                if let active = now.machine(id)?.job { job = try await api.job(active.id) } else if job?.summary.machine != id { job = nil }
-                if !noHead && !qualityLooked && !qualityBusy { qualityLooked = true; quality = try? await api.lastInspection(id) }
+                // every answer is kept only if the page is still this machine: a slow refresh of another one must not paint its data here
+                let here = page
+                if let active = now.machine(id)?.job { let j = try await api.job(active.id); if page == here { job = j } } else if job?.summary.machine != id { job = nil }
+                if !noHead && !qualityLooked && !qualityBusy { let q = try? await api.lastInspection(id); if page == here { qualityLooked = true; quality = q } }
                 if !spindleLooked {
-                    spindleLooked = true
-                    do { spindle = try await api.spindle(id) } catch let e as ApiError where e.unauthorized { throw e } catch { spindle = nil }
-                    do { dollarAllowed = try await api.allowDollar(id) } catch let e as ApiError where e.unauthorized { throw e } catch { dollarAllowed = nil }
+                    var s: SpindleInfo? = nil
+                    var d: Bool? = nil
+                    do { s = try await api.spindle(id) } catch let e as ApiError where e.unauthorized { throw e } catch { s = nil }
+                    do { d = try await api.allowDollar(id) } catch let e as ApiError where e.unauthorized { throw e } catch { d = nil }
+                    if page == here { spindleLooked = true; spindle = s; dollarAllowed = d }
                 }
                 if !noHead {
-                    do { head = try await api.head(id) } catch let e as ApiError where e.code == "no_head" { noHead = true; head = nil } catch {}
+                    do { let h = try await api.head(id); if page == here { head = h } } catch let e as ApiError where e.code == "no_head" { if page == here { noHead = true; head = nil } } catch {}
                 }
-                jobs = try await api.jobs(machine: id)
+                let list = try await api.jobs(machine: id)
+                if page == here { jobs = list }
             case .job(let id): job = try await api.job(id)
             case .jobs: jobs = try await api.jobs()
             default: break
@@ -454,7 +460,10 @@ final class AppModel: ObservableObject {
 
     private func text(_ e: ApiError) -> String {
         if e.status == 0 { return tr("No se alcanza el servidor. Compruebe la dirección y que el teléfono está en la misma red.") }
-        if e.code == "invalid_credentials" || e.status == 401 { return tr("Usuario o contraseña incorrectos.") }
+        if e.code == "bad_credentials" || e.code == "invalid_credentials" || e.status == 401 { return tr("Usuario o contraseña incorrectos.") }
+        if e.code == "bad_setup" { return tr("El código de alta no es correcto.") }
+        if e.code == "weak_password" { return tr("La contraseña debe tener de 8 a 128 caracteres.") }
+        if e.code == "bad_name" { return tr("El nombre no es válido: letras, dígitos, punto, guion bajo y guion, hasta 32 caracteres.") }
         if e.code == "throttled" { return tr("Demasiados intentos: espere un momento.") }
         if e.code == "machine_busy" { return tr("La máquina ya está trabajando.") }
         if e.code == "no_head" { return tr("Esta máquina no tiene nodo de cabezal.") }

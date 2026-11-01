@@ -24,8 +24,9 @@ targets:
       path: Generated/Info.plist
       properties:
         CFBundleDisplayName: EH3D Control
-        CFBundleShortVersionString: "0.0.1"
-        CFBundleVersion: "1"
+        # the version of the app is the one of the settings below: a literal here would win over it and the app would report another
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleDevelopmentRegion: es
         CFBundleLocalizations: [en, es, de, fr, it, ja, zh-Hans, pt-PT]
         UILaunchScreen: {}
