@@ -138,7 +138,7 @@ Abra a aplicação, escreva o endereço do servidor (e a porta 18200), prima Lig
 
 ## 🧪 Testes
 
-`swift test` executa os testes do pacote Eh3dCore: os leitores do JSON do servidor (frota, trabalhos, cabeçote, medição), a posição do cabeçote e a geometria das duas vistas, a verificação do endereço, a conservação cifrada da sessão, a comparação de versões e os idiomas (as sete tabelas têm as mesmas frases e cada frase dos ecrãs está nelas). Os ecrãs compilam-se com o Xcode e não são cobertos por testes.
+`swift test` executa os testes do pacote Eh3dCore: os leitores do JSON do servidor (frota, trabalhos, cabeçote, medição), a posição do cabeçote e a geometria das duas vistas, a verificação do endereço, a conservação cifrada da sessão, a comparação de versões e os idiomas (as sete tabelas têm as mesmas frases e cada frase dos ecrãs está nelas). Os ecrãs compilam-se com o Xcode e não são cobertos por testes. A CI também compila o alvo da app para o simulador com o XcodeGen e verifica que a app compilada mostra a versão e o número de compilação do projeto; essa compilação só pode ser verificada no GitHub.
 
 ## 🏗️ Compilação e publicação
 

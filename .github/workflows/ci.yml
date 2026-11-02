@@ -26,6 +26,11 @@ jobs:
           python -I tools/make_architecture.py --check
           python -I tools/make_structure.py --check --readmes
 
+      - name: Versions of the app project
+        run: |
+          python -I tools/test_check_ios_build.py
+          python -I tools/check_ios_build.py
+
   tests:
     name: Tests of the Swift package
     runs-on: macos-latest
@@ -33,3 +38,19 @@ jobs:
       - uses: actions/checkout@v5
       - name: Test
         run: swift test
+
+  app:
+    name: Build the app target
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: XcodeGen
+        run: brew install xcodegen
+      - name: Make the Xcode project
+        run: xcodegen generate
+      - name: Build the app for the simulator
+        run: |
+          set -o pipefail
+          xcodebuild build -project EH3D-IOS-CONTROL.xcodeproj -scheme EH3D -destination 'generic/platform=iOS Simulator' -configuration Debug -derivedDataPath build/derived CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO | tail -n 60
+      - name: The built app shows the version of the project
+        run: python3 tools/check_ios_build.py "$(find build/derived/Build/Products -name 'EH3D.app' -type d | head -n 1)"

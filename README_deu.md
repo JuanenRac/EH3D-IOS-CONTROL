@@ -138,7 +138,7 @@ App öffnen, die Adresse des Servers (und Port 18200) eingeben, Verbinden drück
 
 ## 🧪 Tests
 
-`swift test` führt die Tests des Pakets Eh3dCore aus: die Leser des Server-JSON (Flotte, Aufträge, Kopf, Messung), die Position des Kopfes und die Geometrie der beiden Ansichten, die Adressprüfung, die verschlüsselte Sitzungsspeicherung, der Versionsvergleich und die Sprachen (die sieben Tabellen haben dieselben Sätze, und jeder Satz der Bildschirme steht darin). Die Bildschirme werden mit Xcode gebaut und nicht von Tests abgedeckt.
+`swift test` führt die Tests des Pakets Eh3dCore aus: die Leser des Server-JSON (Flotte, Aufträge, Kopf, Messung), die Position des Kopfes und die Geometrie der beiden Ansichten, die Adressprüfung, die verschlüsselte Sitzungsspeicherung, der Versionsvergleich und die Sprachen (die sieben Tabellen haben dieselben Sätze, und jeder Satz der Bildschirme steht darin). Die Bildschirme werden mit Xcode gebaut und nicht von Tests abgedeckt. Die CI baut außerdem das App-Target für den Simulator mit XcodeGen und prüft, dass die gebaute App die Version und die Build-Nummer des Projekts zeigt; dieser Build lässt sich nur auf GitHub prüfen.
 
 ## 🏗️ Build und Veröffentlichung
 

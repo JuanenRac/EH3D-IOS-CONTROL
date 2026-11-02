@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The CI builds the app target:** besides the package tests, a job makes the Xcode project with XcodeGen, builds the app for the simulator without signing and checks that the built app shows the version and the build number of the project (`tools/check_ios_build.py`, which also runs on every push before the app is built).
+
 ## [0.0.6] - Starting a job asks once more, the emergency stop asks the server to stop the machine and the pin of the certificate is used
 
 - **Starting a job from its page asks once more** (check that the machine is prepared and clear), as it does from Prepare, with the same words in every language; a touch by mistake no longer sets the machine going.
