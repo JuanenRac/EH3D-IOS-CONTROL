@@ -108,6 +108,7 @@ func jobKindText(_ kind: String, _ tr: (String) -> String) -> String {
     }
 }
 
+@MainActor
 func pauseText(_ p: Pause, _ model: AppModel) -> String {
     switch p.kind {
     case "hold": return model.tr("Trabajo en pausa: pulse Reanudar para que siga.")
