@@ -6,6 +6,7 @@ All notable changes to this project are documented here.
 
 - **The answers of the server are read in the tests from its own examples:** the fleet, the jobs, a job, the preview, the spindle and an error are the files that the tests of the server make, so a change in the answers that the app does not follow fails here. Not run yet: there is no Xcode here.
 - **The CI builds the app target:** besides the package tests, a job makes the Xcode project with XcodeGen, builds the app for the simulator without signing and checks that the built app shows the version and the build number of the project (`tools/check_ios_build.py`, which also runs on every push before the app is built).
+- **Issue forms and a pull-request template:** the repository now has the bug report (it asks for the versions that `eh3d-updater --cli status --offline` lists), documentation, improvement and hardware validation forms (with the machine used) and the pull-request template of the suite.
 
 ## [0.0.6] - Starting a job asks once more, the emergency stop asks the server to stop the machine and the pin of the certificate is used
 
