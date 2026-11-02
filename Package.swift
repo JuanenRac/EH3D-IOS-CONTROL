@@ -8,6 +8,6 @@ let package = Package(
     products: [.library(name: "Eh3dCore", targets: ["Eh3dCore"])],
     targets: [
         .target(name: "Eh3dCore", resources: [.copy("Resources/i18n")]),
-        .testTarget(name: "Eh3dCoreTests", dependencies: ["Eh3dCore"]),
+        .testTarget(name: "Eh3dCoreTests", dependencies: ["Eh3dCore"], resources: [.copy("Examples")]),
     ]
 )

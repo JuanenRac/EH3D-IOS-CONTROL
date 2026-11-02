@@ -138,7 +138,7 @@ Abra la app, escriba la dirección del servidor (y el puerto 18200), pulse Conec
 
 ## 🧪 Pruebas
 
-`swift test` ejecuta las pruebas del paquete Eh3dCore: los lectores del JSON del servidor (flota, trabajos, cabezal, medida), la posición del cabezal y la geometría de las dos vistas, la comprobación de la dirección, la conservación cifrada de la sesión, la comparación de versiones y los idiomas (las siete tablas tienen las mismas frases y cada frase de las pantallas está en ellas). Las pantallas se compilan con Xcode y no las cubren las pruebas. La CI también compila el target de la app para el simulador con XcodeGen y comprueba que la app compilada muestra la versión y el número de compilación del proyecto; esa compilación solo se puede comprobar en GitHub.
+`swift test` ejecuta las pruebas del paquete Eh3dCore: los lectores del JSON del servidor (flota, trabajos, cabezal, medida), la posición del cabezal y la geometría de las dos vistas, la comprobación de la dirección, la conservación cifrada de la sesión, la comparación de versiones y los idiomas (las siete tablas tienen las mismas frases y cada frase de las pantallas está en ellas). Las pantallas se compilan con Xcode y no las cubren las pruebas. También leen los ejemplos de respuestas que hacen las pruebas del servidor, de modo que una respuesta que cambia sin que la app la siga falla aquí. La CI también compila el target de la app para el simulador con XcodeGen y comprueba que la app compilada muestra la versión y el número de compilación del proyecto; esa compilación solo se puede comprobar en GitHub.
 
 ## 🏗️ Compilación y publicación
 
