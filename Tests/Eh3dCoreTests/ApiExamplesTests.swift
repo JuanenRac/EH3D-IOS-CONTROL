@@ -72,13 +72,13 @@ final class ApiExamplesTests: XCTestCase {
         XCTAssertEqual(job.summary.finished == nil, raw["finished"] is NSNull)
         // the dry run and the warnings the server sends with every drilling or routing view
         let dry = try XCTUnwrap(view["dry_run"] as? [String: Any])
-        let read = try XCTUnwrap(job.view.dryRun)
-        XCTAssertEqual(read.maxMm[2], try XCTUnwrap((dry["max_mm"] as? [Double])?[2]), accuracy: 1e-9)
-        XCTAssertEqual(read.minMm.count, (dry["min_mm"] as? [Any])?.count)
-        XCTAssertEqual(read.endMm.count, (dry["end_mm"] as? [Any])?.count)
-        XCTAssertEqual(read.steps, dry["steps"] as? Int)
-        XCTAssertEqual(read.seconds, try XCTUnwrap(dry["seconds"] as? Double), accuracy: 1e-9)
-        XCTAssertEqual(read.withinCourse, dry["within_course"] as? Bool)
+        let dryRead = try XCTUnwrap(job.view.dryRun)
+        XCTAssertEqual(dryRead.maxMm[2], try XCTUnwrap((dry["max_mm"] as? [Double])?[2]), accuracy: 1e-9)
+        XCTAssertEqual(dryRead.minMm.count, (dry["min_mm"] as? [Any])?.count)
+        XCTAssertEqual(dryRead.endMm.count, (dry["end_mm"] as? [Any])?.count)
+        XCTAssertEqual(dryRead.steps, dry["steps"] as? Int)
+        XCTAssertEqual(dryRead.seconds, try XCTUnwrap(dry["seconds"] as? Double), accuracy: 1e-9)
+        XCTAssertEqual(dryRead.withinCourse, dry["within_course"] as? Bool)
         XCTAssertEqual(job.view.warnings.count, (view["warnings"] as? [Any])?.count)
     }
 
