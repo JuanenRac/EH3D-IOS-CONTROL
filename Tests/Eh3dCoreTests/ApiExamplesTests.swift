@@ -5,8 +5,8 @@ import XCTest
 /// read the answers of a real server, and what comes out is compared with the example itself, so an answer that changes and that the app does not follow fails here.
 final class ApiExamplesTests: XCTestCase {
     private func example(_ name: String) throws -> String {
-        let url = try XCTUnwrap(Bundle.module.url(forResource: name, withExtension: "json", subdirectory: "Examples"), "Examples/\(name).json is missing: tools/sync_api_examples.py of EH3D-SERVER copies it")
-        return try String(contentsOf: url, encoding: .utf8)
+        let url = URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("Examples").appendingPathComponent("\(name).json")
+        return try String(contentsOf: url, encoding: .utf8)  // read from the folder of this file: a resource bundle on the test target would take the place of the one of the package
     }
 
     private func object(_ text: String) throws -> [String: Any] {
