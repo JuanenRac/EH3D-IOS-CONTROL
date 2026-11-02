@@ -68,6 +68,18 @@ final class ApiExamplesTests: XCTestCase {
         let bounds = try XCTUnwrap(view["bounds_mm"] as? [Double])
         XCTAssertEqual(try XCTUnwrap(job.view.bounds)[2], bounds[2], accuracy: 1e-9)
         XCTAssertEqual(job.view.estimateS, try XCTUnwrap(view["estimate_s"] as? Double), accuracy: 1e-9)
+        XCTAssertEqual(job.summary.created, raw["created"] as? Int)
+        XCTAssertEqual(job.summary.finished == nil, raw["finished"] is NSNull)
+        // the dry run and the warnings the server sends with every drilling or routing view
+        let dry = try XCTUnwrap(view["dry_run"] as? [String: Any])
+        let read = try XCTUnwrap(job.view.dryRun)
+        XCTAssertEqual(read.maxMm[2], try XCTUnwrap((dry["max_mm"] as? [Double])?[2]), accuracy: 1e-9)
+        XCTAssertEqual(read.minMm.count, (dry["min_mm"] as? [Any])?.count)
+        XCTAssertEqual(read.endMm.count, (dry["end_mm"] as? [Any])?.count)
+        XCTAssertEqual(read.steps, dry["steps"] as? Int)
+        XCTAssertEqual(read.seconds, try XCTUnwrap(dry["seconds"] as? Double), accuracy: 1e-9)
+        XCTAssertEqual(read.withinCourse, dry["within_course"] as? Bool)
+        XCTAssertEqual(job.view.warnings.count, (view["warnings"] as? [Any])?.count)
     }
 
     func testThePreviewIsTheViewThatTheJobCarries() throws {
@@ -78,6 +90,8 @@ final class ApiExamplesTests: XCTestCase {
         XCTAssertEqual(preview.items, inJob.items)
         XCTAssertEqual(preview.tools.map(\.number), inJob.tools.map(\.number))
         XCTAssertTrue(preview.spindleWarnings.isEmpty)
+        XCTAssertNotNil(preview.dryRun)
+        XCTAssertEqual(preview.dryRun, inJob.dryRun)
     }
 
     func testTheSpindleIsReadWithItsLimitsAndTheOneInForce() throws {
