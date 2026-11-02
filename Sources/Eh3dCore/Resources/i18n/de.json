@@ -342,5 +342,6 @@
  "Parada enviada a %s. Esperando que la máquina lo confirme.": "Stopp an %s gesendet. Warten auf die Bestätigung der Maschine.",
  "Parada confirmada: %s ya no trabaja.": "Stopp bestätigt: %s arbeitet nicht mehr.",
  "%s sigue trabajando. Use la parada física de la máquina.": "%s arbeitet weiter. Den physischen Stopp der Maschine benutzen.",
- "Aviso del servidor: %s": "Hinweis des Servers: %s"
+ "Aviso del servidor: %s": "Hinweis des Servers: %s",
+ "Detenido por %s": "Angehalten von %s"
 }

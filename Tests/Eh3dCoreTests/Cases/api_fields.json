@@ -40,7 +40,9 @@
     "name",
     "pause",
     "resumed_from",
-    "state"
+    "state",
+    "started_by",
+    "stopped_by"
    ],
    "ignored": [
     "started"
@@ -93,7 +95,9 @@
     "warnings",
     "within_course",
     "x_mm",
-    "y_mm"
+    "y_mm",
+    "started_by",
+    "stopped_by"
    ],
    "ignored": [
     "started"

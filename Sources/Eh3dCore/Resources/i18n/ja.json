@@ -342,5 +342,6 @@
  "Parada enviada a %s. Esperando que la máquina lo confirme.": "%s に停止を送信しました。機械の確認を待っています。",
  "Parada confirmada: %s ya no trabaja.": "停止を確認しました：%s は動作していません。",
  "%s sigue trabajando. Use la parada física de la máquina.": "%s はまだ動作中です。機械の物理的な停止を使ってください。",
- "Aviso del servidor: %s": "サーバーからの警告：%s"
+ "Aviso del servidor: %s": "サーバーからの警告：%s",
+ "Detenido por %s": "停止者：%s"
 }

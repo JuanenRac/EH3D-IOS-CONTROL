@@ -342,5 +342,6 @@
  "Parada enviada a %s. Esperando que la máquina lo confirme.": "已向 %s 发送停止指令。等待机器确认。",
  "Parada confirmada: %s ya no trabaja.": "停止已确认：%s 已不再工作。",
  "%s sigue trabajando. Use la parada física de la máquina.": "%s 仍在工作。请使用机器上的物理急停。",
- "Aviso del servidor: %s": "服务器警告：%s"
+ "Aviso del servidor: %s": "服务器警告：%s",
+ "Detenido por %s": "停止者：%s"
 }

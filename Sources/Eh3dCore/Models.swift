@@ -110,12 +110,15 @@ public struct JobSummary: Equatable, Sendable {
     /// When the job was made and when it ended (seconds since 1970; nil while it has not ended), as the server writes them.
     public var created: Int = 0
     public var finished: Int? = nil
+    /// Who started the job and who stopped it (empty while it has not been, and for an older server).
+    public var startedBy: String = ""
+    public var stoppedBy: String = ""
     public var percent: Int { itemsTotal <= 0 ? 0 : min(max(itemsDone * 100 / itemsTotal, 0), 100) }
 }
 
 private func summaryOf(_ j: JSON) -> JobSummary {
     JobSummary(id: str(j, "id"), machine: str(j, "machine"), name: str(j, "name"), kind: str(j, "kind"), state: str(j, "state"), by: str(j, "by"), itemsTotal: int(j, "items_total"), itemsDone: int(j, "items_done"),
-               holesTotal: int(j, "holes_total"), holesDone: int(j, "holes_done"), message: str(j, "message"), pause: pauseOf(j["pause"] as? JSON), estimateS: dbl(j, "estimate_s") ?? 0, line: int(j, "line"), resumedFrom: str(j, "resumed_from"), created: int(j, "created"), finished: (j["finished"] as? NSNumber)?.intValue)
+               holesTotal: int(j, "holes_total"), holesDone: int(j, "holes_done"), message: str(j, "message"), pause: pauseOf(j["pause"] as? JSON), estimateS: dbl(j, "estimate_s") ?? 0, line: int(j, "line"), resumedFrom: str(j, "resumed_from"), created: int(j, "created"), finished: (j["finished"] as? NSNumber)?.intValue, startedBy: str(j, "started_by"), stoppedBy: str(j, "stopped_by"))
 }
 
 public func parseJobs(_ text: String) throws -> [JobSummary] {

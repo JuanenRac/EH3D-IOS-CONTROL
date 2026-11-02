@@ -342,5 +342,6 @@
  "Parada enviada a %s. Esperando que la máquina lo confirme.": "Paragem enviada a %s. A aguardar a confirmação da máquina.",
  "Parada confirmada: %s ya no trabaja.": "Paragem confirmada: %s já não está a trabalhar.",
  "%s sigue trabajando. Use la parada física de la máquina.": "%s continua a trabalhar. Use a paragem física da máquina.",
- "Aviso del servidor: %s": "Aviso do servidor: %s"
+ "Aviso del servidor: %s": "Aviso do servidor: %s",
+ "Detenido por %s": "Parado por %s"
 }
