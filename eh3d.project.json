@@ -2,7 +2,7 @@
   "schema_version": "1.0",
   "ecosystem": "EH3D",
   "name": "EH3D-IOS-CONTROL",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "role": "ui",
   "stack": "Swift / SwiftUI",
   "technologies": [
@@ -18,7 +18,7 @@
   "family": "CNC Workflow Tools",
   "parent": "EH3D-SERVER",
   "build": "swift test",
-  "notes": "Scaffolding v0.0.6: the iPhone client of the EH3D programs, the twin of EH3D-ANDROID-CONTROL, in the Forge theme. It signs in to EH3D-SERVER and follows the Bungard machines of the workshop in real time, stops them with an emergency stop that asks twice, confirms the steps a job waits for, shows the job in a 2D and a 3D view with the place of the head, and shows the camera and the sensors of the drill head through the server. The rules are in the Swift package Eh3dCore (the readers of the server's JSON, the geometry, the address checks, the session, the languages) and are tested without a phone; the screens are built with Xcode and have not been compiled or run on a device.",
+  "notes": "Scaffolding v0.0.7: the iPhone client of the EH3D programs, the twin of EH3D-ANDROID-CONTROL, in the Forge theme. It signs in to EH3D-SERVER and follows the Bungard machines of the workshop in real time, stops them with an emergency stop that asks twice, confirms the steps a job waits for, shows the job in a 2D and a 3D view with the place of the head, and shows the camera and the sensors of the drill head through the server. The rules are in the Swift package Eh3dCore (the readers of the server's JSON, the geometry, the address checks, the session, the languages) and are tested without a phone; the screens are built with Xcode and have not been compiled or run on a device.",
   "native_version": {
     "file": "eh3d.project.json",
     "pattern": "\"version\"\\s*:\\s*\"(\\d+\\.\\d+\\.\\d+)\""
