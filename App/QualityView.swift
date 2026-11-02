@@ -47,6 +47,7 @@ struct LightRow: View {
 }
 
 /// What a finding of the analyser says, in the language of the app.
+@MainActor
 func findingText(_ model: AppModel, _ f: Finding) -> String {
     let words: String
     switch f.code {

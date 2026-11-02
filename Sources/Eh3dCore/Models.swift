@@ -275,6 +275,7 @@ public struct ApiError: Error, Equatable, Sendable {
     public let status: Int
     public let code: String
     public let detail: String
+    public init(status: Int, code: String, detail: String) { self.status = status; self.code = code; self.detail = detail }
     public var unauthorized: Bool { status == 401 }
 }
 

@@ -7,6 +7,7 @@ import Eh3dCore
 /// The spindle choices the server knows: none (empty), the original one and the one with a variable-frequency drive.
 let spindleIds = ["", "original", "vfd"]
 
+@MainActor
 func spindleName(_ model: AppModel, _ id: String) -> String {
     switch id {
     case "original": return model.tr("Original")
@@ -15,14 +16,17 @@ func spindleName(_ model: AppModel, _ id: String) -> String {
     }
 }
 
+@MainActor
 func guardName(_ model: AppModel, _ guardMode: String) -> String { guardMode == "warn" ? model.tr("Avisar y recortar") : model.tr("Rechazarlo") }
 
 /// The limits of a spindle in a line.
+@MainActor
 func limitsText(_ model: AppModel, _ l: SpindleLimits) -> String {
     model.trf("De %d a %d rpm · corte hasta %d mm/min · penetración hasta %d mm/min · broca hasta %.1f mm", l.minRpm, l.maxRpm, l.maxXyMmMin, l.maxZMmMin, l.maxBitMm)
 }
 
 /// One excess of a tool over the spindle, in a sentence.
+@MainActor
 func warningText(_ model: AppModel, _ w: SpindleWarning) -> String {
     switch w.code {
     case "rpm_above_max": return model.trf("Herramienta %d: %d rpm, el husillo da hasta %d.", w.tool, w.value, w.limit)
