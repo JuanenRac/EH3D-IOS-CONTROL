@@ -36,7 +36,16 @@ final class AppModel: ObservableObject {
     @Published var origin: String
     @Published var login: Login?
     @Published var fleet: Fleet = .empty
-    @Published var offline = false
+    /// How the link to the server is: the failures in a row and when the last good answer came. What is on the screen is the last that was known.
+    @Published var link = ServerLink()
+    let linkPolicy = LinkPolicy()
+    var linkState: LinkState { link.state(linkPolicy) }
+    /// True while the server does not answer (or answers as another service): what is on the screen is the last that was known.
+    var offline: Bool { linkState == .offline || linkState == .wrongServer }
+    /// The stops that were sent and what the fleet says of them since.
+    @Published var stopNotes: [StopNote] = []
+    /// Whether the summary of a job is shown before it starts (on by default; the person can turn it off in the settings).
+    @Published var confirmStart = true
     @Published var message: String?
     @Published var rememberMe = false
     @Published var jobs: [JobSummary] = []
@@ -83,6 +92,7 @@ final class AppModel: ObservableObject {
         translator = Translator(language: chosen)
         language = chosen
         origin = prefs.get("origin") ?? ""
+        confirmStart = prefs.get("confirm_start") != "0"
         vault = SessionVault(secrets: KeychainSecrets(), prefs: prefs)
         let delegate = TrustDelegate(pins: PinStore(prefs))
         trust = delegate
@@ -168,6 +178,11 @@ final class AppModel: ObservableObject {
     }
 
     func dismissMessage() { message = nil }
+    func setConfirmStart(_ value: Bool) { confirmStart = value; prefs.put("confirm_start", value ? "1" : "0") }
+    /// Asks the server now instead of waiting for the next try (the waits grow while the server is away).
+    func retryNow() { if phase == .signedIn { poll() } }
+    func dismissStopNote(_ machineId: String) { stopNotes.removeAll { $0.machineId == machineId } }
+    private func clock() -> Int64 { Int64(DispatchTime.now().uptimeNanoseconds / 1_000_000) }
     func setVisible(_ value: Bool) { visible = value; if value && phase == .signedIn { poll() } }
 
     // ---- the pages
@@ -188,7 +203,7 @@ final class AppModel: ObservableObject {
         poller = Task { [weak self] in
             while let self, self.phase == .signedIn, !Task.isCancelled {
                 if self.visible { await self.refresh() }
-                try? await Task.sleep(nanoseconds: self.visible ? 1_500_000_000 : 10_000_000_000)
+                try? await Task.sleep(nanoseconds: self.visible ? UInt64(self.linkPolicy.retryDelayMs(self.link.failures)) * 1_000_000 : 10_000_000_000)
             }
         }
     }
@@ -196,11 +211,12 @@ final class AppModel: ObservableObject {
     private func refreshNow() { if phase == .signedIn { Task { await refresh() } } }
 
     private func refresh() async {
+        let asked = clock()
         do {
             let now = try await api.fleet()
             raise(now)
             fleet = now
-            offline = false
+            if !stopNotes.isEmpty { stopNotes = followStops(stopNotes, fleet: now, askedMs: asked, nowMs: clock()) }
             switch page {
             case .machine(let id):
                 // every answer is kept only if the page is still this machine: a slow refresh of another one must not paint its data here
@@ -223,23 +239,20 @@ final class AppModel: ObservableObject {
             case .jobs: jobs = try await api.jobs()
             default: break
             }
+            link = link.succeeded(nowMs: clock())
         } catch let e as ApiError {
-            if e.unauthorized { vault.dropSession(); api.token = ""; login = nil; phase = .signedOut; poller?.cancel() } else { offline = true }
-        } catch { offline = true }
+            if e.unauthorized { vault.dropSession(); api.token = ""; login = nil; phase = .signedOut; poller?.cancel() }
+            else if let why = classifyFailure(status: e.status, code: e.code) { link = link.failed(why, nowMs: clock()) }
+            else { link = link.succeeded(nowMs: clock()) }   // an answer of the server itself (a job that is gone) is a link that works
+        } catch { link = link.failed(.unreachable, nowMs: clock()) }
     }
 
     /// A machine that stops, finishes or waits for the operator is told in a notice, once.
     private func raise(_ now: Fleet) {
-        var current: [String: String] = [:]
-        for m in now.machines { current[m.id] = m.job?.state ?? m.state }
-        if !lastStates.isEmpty {
-            for m in now.machines {
-                guard let before = lastStates[m.id], let after = current[m.id], before != after else { continue }
-                if after == "waiting_operator" { notify(m.name, tr("Espera al operario: confirme el paso en la máquina.")) }
-                if m.job == nil && JobStates.active(before) { notify(m.name, tr("El trabajo ha terminado o se ha detenido.")) }
-            }
+        for n in fleetNotices(before: lastStates, now: now) {
+            notify(n.machineName, n.kind == .waiting ? tr("Espera al operario: confirme el paso en la máquina.") : tr("El trabajo ha terminado o se ha detenido."))
         }
-        lastStates = current
+        lastStates = fleetStates(now)
     }
 
     private func notify(_ title: String, _ body: String) {
@@ -258,13 +271,29 @@ final class AppModel: ObservableObject {
 
     func start(_ id: String) { act { try await self.api.start(id) } }
     func confirm(_ id: String) { act { try await self.api.confirm(id) } }
-    func cancel(_ id: String) { act { try await self.api.cancel(id) } }
+    func cancel(_ id: String) { stopping(job.flatMap { $0.summary.id == id ? $0.summary.machine : nil }) { try await self.api.cancel(id) } }
     func delete(_ id: String) { act { try await self.api.delete(id); if case .job = self.page { self.back() } } }
 
     /// The emergency stop of one machine: its running job is cancelled, which stops the machine and switches the drivers off.
     /// The server ends whatever is active on the machine at once, without waiting for the line it is sending; a stop that did not get there shows its error.
-    func emergencyStop(_ machineId: String) { act { try await self.api.stopMachine(machineId) } }
-    func emergencyStopAll() { for m in fleet.machines where m.job != nil { let id = m.id; act { try await self.api.stopMachine(id) } } }
+    func emergencyStop(_ machineId: String) { stopping(machineId) { try await self.api.stopMachine(machineId) } }
+    func emergencyStopAll() { for m in fleet.machines where m.job != nil { let id = m.id; stopping(id) { try await self.api.stopMachine(id) } } }
+
+    /// A stop: when the server takes it a note follows what the fleet says next; when it does not get there the person is told plainly that the machine was NOT stopped.
+    private func stopping(_ machineId: String?, _ work: @escaping () async throws -> Void) {
+        Task {
+            do {
+                try await work()
+                if let machineId {
+                    stopNotes.removeAll { $0.machineId == machineId }
+                    stopNotes.append(StopNote(machineId: machineId, machineName: fleet.machine(machineId)?.name ?? machineId, atMs: clock()))
+                }
+                await refresh()
+            } catch let e as ApiError {
+                if e.unauthorized { signOut() } else { message = (e.status == 0 || e.status >= 500) ? tr("La orden de parada NO ha llegado al servidor. Use la parada física de la máquina.") : text(e) }
+            } catch { message = tr("La orden de parada NO ha llegado al servidor. Use la parada física de la máquina.") }
+        }
+    }
     func pause(_ id: String) { act { try await self.api.pause(id) } }
     func resume(_ id: String) { act { try await self.api.resume(id) } }
 
@@ -480,6 +509,7 @@ final class AppModel: ObservableObject {
         if e.code == "no_light" { return tr("Este nodo no tiene aro de luz.") }
         if e.code == "no_inspection" { return tr("Verifica primero un agujero: la escala sale de su ancho.") }
         if e.code == "no_hole" { return tr("La última verificación no encontró ningún agujero con el que medir la escala.") }
+        if e.code == "outside_course" { return tr("Los pasos exactos del plan sacan un eje de su recorrido. Mueva el trabajo en la mesa, o ponga dry_run = warn en el ajuste de la máquina si sabe lo que hace.") }
         if e.code == "spindle_limit" { return tr("El trabajo pide más de lo que da el husillo de la máquina.") }
         if e.code == "bad_spindle" { return tr("Husillo o límites no válidos.") }
         if e.code == "not_pausable" { return tr("Solo se puede pausar un trabajo de G-code.") }

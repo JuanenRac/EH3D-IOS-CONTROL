@@ -77,6 +77,8 @@ struct MoreView: View {
                     Title(model.tr("Ajustes"))
                     Button { model.open(.languages) } label: { HStack { Text(model.tr("Idioma")).foregroundColor(Forge.text); Spacer(); Text(Translator.languages.first { $0.code == model.language }?.name ?? "").foregroundColor(Forge.amber) } }
                     HStack { Text(model.tr("Tema")).foregroundColor(Forge.text); Spacer(); Text("Forge").foregroundColor(Forge.amber) }
+                    Toggle(model.tr("Mostrar el resumen antes de empezar un trabajo"), isOn: Binding(get: { model.confirmStart }, set: { model.setConfirmStart($0) })).foregroundColor(Forge.text)
+                    Text(model.tr("Activado por defecto: qué hace el trabajo, cuánto tarda, hasta dónde llegan los ejes y qué parece mal, con un botón para empezar. Desactivado: Empezar solo pide una confirmación.")).font(.caption).foregroundColor(Forge.dim)
                     Button(model.tr("Avisos")) { model.requestNotices() }.buttonStyle(.bordered)
                 }
                 Card {

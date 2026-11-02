@@ -34,9 +34,8 @@ private struct Frame: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if model.offline {
-                Text(model.tr("Sin conexión con el servidor: se muestra lo último que se supo.")).font(.caption).foregroundColor(Forge.danger).padding(8).frame(maxWidth: .infinity).background(Forge.danger.opacity(0.2))
-            }
+            LinkBanner(model: model)
+            StopNotes(model: model)
             Group {
                 switch model.page {
                 case .home: HomeView(model: model)

@@ -39,6 +39,35 @@ public struct Fleet: Equatable, Sendable {
     public func machine(_ id: String) -> FleetMachine? { machines.first { $0.id == id } }
 }
 
+/// What a change in the fleet tells the operator: a machine that now waits for the operator, or one whose job ended or stopped.
+public enum NoticeKind: Sendable { case waiting, ended }
+
+public struct Notice: Equatable, Sendable {
+    public let machineId: String
+    public let machineName: String
+    public let kind: NoticeKind
+}
+
+/// The state of every machine as the notices compare it: the state of its job, else its own.
+public func fleetStates(_ fleet: Fleet) -> [String: String] {
+    var out: [String: String] = [:]
+    for m in fleet.machines { out[m.id] = m.job?.state ?? m.state }
+    return out
+}
+
+/// The notices between the states that were seen before and the fleet now; nothing when there was nothing to compare with.
+public func fleetNotices(before: [String: String], now: Fleet) -> [Notice] {
+    if before.isEmpty { return [] }
+    let current = fleetStates(now)
+    var out: [Notice] = []
+    for m in now.machines {
+        guard let was = before[m.id], let after = current[m.id], was != after else { continue }
+        if after == "waiting_operator" { out.append(Notice(machineId: m.id, machineName: m.name, kind: .waiting)) }
+        else if m.job == nil && JobStates.active(was) { out.append(Notice(machineId: m.id, machineName: m.name, kind: .ended)) }
+    }
+    return out
+}
+
 // ---- reading the JSON: tolerant (a member that is missing or of another type is the default, never a crash)
 typealias JSON = [String: Any]
 
@@ -50,6 +79,7 @@ private func object(_ text: String) throws -> JSON {
 private func str(_ j: JSON, _ k: String, _ d: String = "") -> String { (j[k] as? String) ?? d }
 private func int(_ j: JSON, _ k: String, _ d: Int = 0) -> Int { (j[k] as? NSNumber)?.intValue ?? d }
 private func dbl(_ j: JSON, _ k: String) -> Double? { (j[k] as? NSNumber)?.doubleValue }
+private func doubles(_ any: Any?) -> [Double] { ((any as? [NSNumber]) ?? []).map { $0.doubleValue } }
 private func pauseOf(_ j: JSON?) -> Pause? { j.map { Pause(kind: str($0, "kind"), tool: ($0["tool"] as? NSNumber)?.intValue) } }
 
 public func parseFleet(_ text: String) throws -> Fleet {
@@ -77,12 +107,15 @@ public struct JobSummary: Equatable, Sendable {
     public var line: Int = 0
     /// The job this one goes on from (made by `resume-from`); empty for the others and for an older server.
     public var resumedFrom: String = ""
+    /// When the job was made and when it ended (seconds since 1970; nil while it has not ended), as the server writes them.
+    public var created: Int = 0
+    public var finished: Int? = nil
     public var percent: Int { itemsTotal <= 0 ? 0 : min(max(itemsDone * 100 / itemsTotal, 0), 100) }
 }
 
 private func summaryOf(_ j: JSON) -> JobSummary {
     JobSummary(id: str(j, "id"), machine: str(j, "machine"), name: str(j, "name"), kind: str(j, "kind"), state: str(j, "state"), by: str(j, "by"), itemsTotal: int(j, "items_total"), itemsDone: int(j, "items_done"),
-               holesTotal: int(j, "holes_total"), holesDone: int(j, "holes_done"), message: str(j, "message"), pause: pauseOf(j["pause"] as? JSON), estimateS: dbl(j, "estimate_s") ?? 0, line: int(j, "line"), resumedFrom: str(j, "resumed_from"))
+               holesTotal: int(j, "holes_total"), holesDone: int(j, "holes_done"), message: str(j, "message"), pause: pauseOf(j["pause"] as? JSON), estimateS: dbl(j, "estimate_s") ?? 0, line: int(j, "line"), resumedFrom: str(j, "resumed_from"), created: int(j, "created"), finished: (j["finished"] as? NSNumber)?.intValue)
 }
 
 public func parseJobs(_ text: String) throws -> [JobSummary] {
@@ -109,8 +142,17 @@ public struct JobView: Equatable, Sendable {
     public var skipped: Int = 0
     /// What the spindle of the machine cannot give, when the switch of the machine lets the job through (`warn`).
     public var spindleWarnings: [SpindleWarning] = []
+    /// The exact steps of the plan followed on paper (nil for a G-code job and for an older server), and what looks wrong in the work (empty when nothing does).
+    public var dryRun: DryRun? = nil
+    public var warnings: [WorkWarning] = []
     public static let empty = JobView(kind: "", name: "", tools: [], holes: [], paths: [], bounds: nil, items: 0, holeEnds: [], estimateS: 0, travelMm: 0)
 }
+
+/// The dry run of a plan: how far each axis goes (X, Y, Z in mm from the switches), the steps, the seconds they take and whether every axis stays inside its course.
+public struct DryRun: Equatable, Sendable { public let minMm: [Double]; public let maxMm: [Double]; public let endMm: [Double]; public let steps: Int; public let seconds: Double; public let withinCourse: Bool }
+
+/// What looks wrong in the work: `tiny`, `too_big`, `far`, `scale` or `out_of_course`, the numbers it is about in `values` (mm) and, for the last, the `axis`.
+public struct WorkWarning: Equatable, Sendable { public let code: String; public let axis: String; public let values: [Double] }
 
 /// One excess of a tool over the spindle: `rpm_above_max`, `rpm_below_min`, `feed_xy_above_max` or `feed_z_above_max`, the tool, the value asked for and the limit.
 public struct SpindleWarning: Equatable, Sendable { public let code: String; public let tool: Int; public let value: Int; public let limit: Int }
@@ -151,8 +193,12 @@ func viewOf(_ v: JSON) -> JobView {
     let ends = ((v["hole_ends"] as? [NSNumber]) ?? []).map { $0.intValue }
     let skippedTools = ((v["skipped_tools"] as? [NSNumber]) ?? []).map { $0.intValue }
     let warnings = ((v["spindle_warnings"] as? [JSON]) ?? []).map { SpindleWarning(code: str($0, "code"), tool: int($0, "tool"), value: int($0, "value"), limit: int($0, "limit")) }
+    let dry = (v["dry_run"] as? JSON).map { d in
+        DryRun(minMm: doubles(d["min_mm"]), maxMm: doubles(d["max_mm"]), endMm: doubles(d["end_mm"]), steps: (d["steps"] as? NSNumber)?.intValue ?? 0, seconds: dbl(d, "seconds") ?? 0, withinCourse: (d["within_course"] as? Bool) ?? true)
+    }
+    let workWarnings = ((v["warnings"] as? [JSON]) ?? []).map { WorkWarning(code: str($0, "code"), axis: str($0, "axis"), values: doubles($0["values"])) }
     let view = JobView(kind: str(v, "kind"), name: str(v, "name"), tools: tools, holes: holes, paths: paths, bounds: (b?.count ?? 0) >= 4 ? Array(b!.prefix(4)) : nil, items: int(v, "items"), holeEnds: ends,
-                       estimateS: dbl(v, "estimate_s") ?? 0, travelMm: dbl(v, "travel_mm") ?? 0, skippedTools: skippedTools, skipped: int(v, "skipped"), spindleWarnings: warnings)
+                       estimateS: dbl(v, "estimate_s") ?? 0, travelMm: dbl(v, "travel_mm") ?? 0, skippedTools: skippedTools, skipped: int(v, "skipped"), spindleWarnings: warnings, dryRun: dry, warnings: workWarnings)
     return view
 }
 

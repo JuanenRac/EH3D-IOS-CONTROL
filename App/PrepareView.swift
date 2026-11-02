@@ -78,13 +78,27 @@ struct PrepareView: View {
             }
         }
         .onAppear { skipText = String(model.prepare.skip) }
-        .confirmationDialog(model.tr("Empezar el trabajo"), isPresented: $askStart, titleVisibility: .visible) {
+        // starting shows the summary of the plan (what it does, how long, how far the axes go, what looks wrong) unless the person turned it off; then it only asks once more
+        .sheet(isPresented: Binding(get: { askStart && model.confirmStart && !planned(p).isEmpty }, set: { askStart = $0 })) {
+            StartSummarySheet(model: model, views: planned(p), onStart: { askStart = false; model.startPrepared(machineId) }, onCancel: { askStart = false })
+        }
+        .confirmationDialog(model.tr("Empezar el trabajo"), isPresented: Binding(get: { askStart && !(model.confirmStart && !planned(p).isEmpty) }, set: { askStart = $0 }), titleVisibility: .visible) {
             Button(model.tr("Empezar")) { model.startPrepared(machineId) }
             Button(model.tr("Cancelar"), role: .cancel) {}
         } message: { Text(model.tr("Compruebe que la máquina está preparada y despejada. El trabajo empieza ahora.")) }
     }
 
     private func pick(_ t: PickTarget) { target = t; picking = true }
+
+    /// The plans the server made from what was chosen: the views the summary shows before the job starts.
+    private func planned(_ p: PrepareUi) -> [JobView] {
+        switch p.work {
+        case .gcode: return [p.gcodeView].compactMap { $0 }
+        case .drill: return [p.drill.view].compactMap { $0 }
+        case .route: return [p.route.view].compactMap { $0 }
+        case .both: return [p.drill.view, p.route.view].compactMap { $0 }
+        }
+    }
 
     @ViewBuilder private func sideCard(_ side: Side, _ st: SideState) -> some View {
         Card {

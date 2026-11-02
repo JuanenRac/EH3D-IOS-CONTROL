@@ -27,7 +27,8 @@ struct HomeView: View {
                         Text(model.login.map { "\($0.name) · \(roleName($0.role, model.tr))" } ?? "").font(.caption).foregroundColor(Forge.dim)
                     }
                     Spacer()
-                    Light(color: model.offline ? Forge.danger : Forge.green, live: !model.offline)
+                    Pill(text: model.linkWord(model.linkState), color: linkColor(model.linkState))
+                    Light(color: linkColor(model.linkState), live: model.linkState == .connected)
                 }
                 HStack(spacing: 8) {
                     Tile(value: "\(fleet.idle)", name: model.tr("Libres"), color: Forge.green)
@@ -46,7 +47,7 @@ struct HomeView: View {
         .confirmationDialog(model.tr("PARADA DE EMERGENCIA"), isPresented: $askAll, titleVisibility: .visible) {
             Button(model.tr("PARAR AHORA"), role: .destructive) { model.emergencyStopAll() }
             Button(model.tr("No parar"), role: .cancel) {}
-        } message: { Text(model.tr("¿Parar todas las máquinas que trabajan?") + "\n" + model.tr("La máquina se detiene, el husillo y los motores se apagan y el trabajo se cancela.")) }
+        } message: { Text(model.tr("¿Parar todas las máquinas que trabajan?") + "\n" + model.tr("La máquina se detiene, el husillo y los motores se apagan y el trabajo se cancela.") + model.offlineStopWarning()) }
     }
 }
 
@@ -206,7 +207,7 @@ struct MachineView: View {
         .confirmationDialog(model.tr("PARADA DE EMERGENCIA"), isPresented: $askStop, titleVisibility: .visible) {
             Button(model.tr("PARAR AHORA"), role: .destructive) { model.emergencyStop(id) }
             Button(model.tr("No parar"), role: .cancel) {}
-        } message: { Text(model.trf("Se parará %s.", machine.name) + "\n" + model.tr("La máquina se detiene, el husillo y los motores se apagan y el trabajo se cancela.")) }
+        } message: { Text(model.trf("Se parará %s.", machine.name) + "\n" + model.tr("La máquina se detiene, el husillo y los motores se apagan y el trabajo se cancela.") + model.offlineStopWarning()) }
     }
 }
 
@@ -353,8 +354,12 @@ struct JobDetailView: View {
         .confirmationDialog(model.tr("PARADA DE EMERGENCIA"), isPresented: $askStop, titleVisibility: .visible) {
             Button(model.tr("PARAR AHORA"), role: .destructive) { model.cancel(id) }
             Button(model.tr("No parar"), role: .cancel) {}
-        } message: { Text(model.trf("Se cancelará %s.", job?.summary.name ?? "")) }
-        .confirmationDialog(model.tr("Empezar el trabajo"), isPresented: $askStart, titleVisibility: .visible) {
+        } message: { Text(model.trf("Se cancelará %s.", job?.summary.name ?? "") + model.offlineStopWarning()) }
+        // starting shows the summary of the job (what it does, how long, how far the axes go, what looks wrong) unless the person turned it off; then it only asks once more
+        .sheet(isPresented: Binding(get: { askStart && model.confirmStart && job != nil }, set: { askStart = $0 })) {
+            StartSummarySheet(model: model, views: job.map { [$0.view] } ?? [], onStart: { askStart = false; model.start(id) }, onCancel: { askStart = false })
+        }
+        .confirmationDialog(model.tr("Empezar el trabajo"), isPresented: Binding(get: { askStart && !(model.confirmStart && job != nil) }, set: { askStart = $0 }), titleVisibility: .visible) {
             Button(model.tr("Empezar")) { model.start(id) }
             Button(model.tr("Cancelar"), role: .cancel) {}
         } message: { Text(model.tr("Compruebe que la máquina está preparada y despejada. El trabajo empieza ahora.")) }
