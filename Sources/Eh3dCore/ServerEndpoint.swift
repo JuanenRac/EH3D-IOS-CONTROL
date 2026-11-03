@@ -58,6 +58,7 @@ public struct ServerEndpoint: Equatable, Sendable {
 
     public static func parse(_ value: String) -> ServerEndpoint? {
         guard let url = URL(string: value.trimmingCharacters(in: .whitespaces)), let scheme = url.scheme, let host = url.host, !host.isEmpty else { return nil }
+        if let port = url.port, !(1...65535).contains(port) { return nil }
         let accepted = scheme == "https" || (scheme == "http" && isPrivateLanHost(host))
         if !accepted || url.user != nil || url.password != nil || url.query != nil || url.fragment != nil { return nil }
         if !(url.path.isEmpty || url.path == "/") { return nil }

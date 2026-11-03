@@ -30,8 +30,14 @@ public enum SemanticVersion {
         var t = text.trimmingCharacters(in: .whitespaces)
         if t.hasPrefix("v") { t.removeFirst() }
         let parts = t.split(separator: ".", omittingEmptySubsequences: false).map(String.init)
-        guard (3...4).contains(parts.count), parts.allSatisfy({ !$0.isEmpty && $0.allSatisfy(\.isNumber) && ($0 == "0" || !$0.hasPrefix("0")) }) else { return nil }
-        return parts.map { Int($0) ?? 0 } + (parts.count == 3 ? [0] : [])
+        // only the digits 0 to 9 are digits (a fraction or a digit of another script is not), and a number too big for an Int is not a version
+        guard (3...4).contains(parts.count), parts.allSatisfy({ !$0.isEmpty && $0.allSatisfy({ c in c >= "0" && c <= "9" }) && ($0 == "0" || !$0.hasPrefix("0")) }) else { return nil }
+        var numbers: [Int] = []
+        for part in parts {
+            guard let n = Int(part) else { return nil }
+            numbers.append(n)
+        }
+        return numbers + (parts.count == 3 ? [0] : [])
     }
 
     /// True when `candidate` is a version higher than `installed`; false for a version that cannot be read.

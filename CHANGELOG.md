@@ -3,6 +3,8 @@
 All notable changes to this project are documented here.
 
 ## [Unreleased]
+- **More tests:** the preparation of a job, the link, the stops, the drawing and the summary from their edges, the version numbers of releases, and the addresses an operator types.
+- **A version number with a fraction or a digit of another script, or too big for an integer, is no longer read as a version;** an address with a port that does not exist is refused, and a duration that is not a number is written as nothing instead of stopping the app.
 
 ## [0.0.8] - Summary before a start, an honest link and shared test cases
 

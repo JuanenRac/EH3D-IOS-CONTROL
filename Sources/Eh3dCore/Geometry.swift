@@ -87,7 +87,8 @@ public struct Iso {
 
 /// A time as the machines show it: 3 h 05 min, 12 min 30 s or 45 s.
 public func formatDuration(_ seconds: Double) -> String {
-    let s = max(Int(seconds), 0)
+    // a time that is not a number, or too big to count, is shown as nothing instead of stopping the app
+    let s = seconds.isFinite ? Int(max(0, min(seconds, 1e12))) : 0
     if s >= 3600 { return String(format: "%d h %02d min", s / 3600, (s % 3600) / 60) }
     if s >= 60 { return String(format: "%d min %02d s", s / 60, s % 60) }
     return "\(s) s"
