@@ -3,6 +3,8 @@
 All notable changes to this project are documented here.
 
 ## [Unreleased]
+- **The page of a job says who started it** as well as who stopped it, with the text the machine page already uses.
+- **The case files shared with the Android app are checked in CI:** `tools/check_shared_cases.py` compares them with the ones of the other repository (the sibling folder, or the public one on GitHub) and fails when one differs, is missing or cannot be read; its own test runs before it.
 - **Brand:** Add the application icon and the logos of the program.
 - **Shared checks updated:** the validator also compares the badge and the Version row of the README with the manifest, fails when one of its checks cannot run, and the CHANGELOG step of the workflow reads the base branch from the environment.
 - **More tests:** the preparation of a job, the link, the stops, the drawing and the summary from their edges, the version numbers of releases, and the addresses an operator types.

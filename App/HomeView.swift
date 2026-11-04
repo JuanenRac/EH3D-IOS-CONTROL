@@ -347,6 +347,7 @@ struct JobDetailView: View {
                     if let p = s.pause { Text(pauseText(p, model)).foregroundColor(Forge.orange) }
                     if JobStates.canGoOn(s.state) { Text(model.tr("El servidor guardó lo que se pidió: se crea un trabajo nuevo que deja fuera lo ya hecho, sin elegir el archivo otra vez. Espera a que lo empiece y nada se mueve solo.")).font(.caption).foregroundColor(Forge.dim) }
                     if !s.resumedFrom.isEmpty { Text(model.trf("Continúa el trabajo %s", s.resumedFrom)).font(.caption).foregroundColor(Forge.dim) }
+                    if !s.startedBy.isEmpty { Text(model.trf("Lanzado por %s", s.startedBy)).font(.caption).foregroundColor(Forge.dim) }
                     if !s.stoppedBy.isEmpty { Text(model.trf("Detenido por %s", s.stoppedBy)).font(.caption).foregroundColor(Forge.dim) }
                     if s.state == "ready" { Text(model.tr("Un trabajo nunca arranca solo: pulse Empezar con la máquina preparada.")).font(.caption).foregroundColor(Forge.dim) }
                 } else { Text(model.tr("Cargando…")).foregroundColor(Forge.dim) }
