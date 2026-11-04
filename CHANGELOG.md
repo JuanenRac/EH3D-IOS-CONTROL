@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 - **The page of a job says who started it** as well as who stopped it, with the text the machine page already uses.
+- **Every refusal of the server has a text in the eight languages:** 31 more codes of the catalog of the server (the tuning, the G-code, the ids, the LED ring, the updates, the jobs and the machines among them) say what went wrong in the language of the app instead of the raw message; a test fails when a code of the catalog has neither a text nor a stated reason (the refusals of files that carry the message of the server, and the codes of the design programs the app never asks for).
 - **The case files shared with the Android app are checked in CI:** `tools/check_shared_cases.py` compares them with the ones of the other repository (the sibling folder, or the public one on GitHub) and fails when one differs, is missing or cannot be read; its own test runs before it.
 - **Brand:** Add the application icon and the logos of the program.
 - **Shared checks updated:** the validator also compares the badge and the Version row of the README with the manifest, fails when one of its checks cannot run, and the CHANGELOG step of the workflow reads the base branch from the environment.

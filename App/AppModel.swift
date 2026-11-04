@@ -517,6 +517,7 @@ final class AppModel: ObservableObject {
         if e.code == "not_stopped" { return tr("Solo se puede seguir desde un trabajo cancelado o fallido.") }
         if e.code == "no_work" { return tr("No queda nada por hacer: todas las herramientas están desactivadas o el trabajo ya está hecho.") }
         if e.code == "head_unreachable" { return tr("El nodo del cabezal no responde.") }
+        if let words = refusalText(e.code) { return words }
         if e.status == 403 { return tr("Su usuario solo puede ver: no puede hacer esto.") }
         return trf("El servidor respondió: %s", e.detail.isEmpty ? e.code : e.detail)
     }
