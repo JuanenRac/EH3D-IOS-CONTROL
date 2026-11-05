@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Stack-Swift%20%2B%20SwiftUI-F05138.svg" alt="Swift, SwiftUI">
-  <img src="https://img.shields.io/badge/Languages-8-00E5FF.svg" alt="Languages">
+  <img src="https://img.shields.io/badge/Languages-37-00E5FF.svg" alt="Languages">
   <img src="https://img.shields.io/badge/Version-0.0.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-scaffolding-FFB020.svg" alt="Maturity">
 </p>
@@ -54,7 +54,7 @@ Cada linha é uma parte deste repositório e a luz diz até onde chega hoje. É 
 | Câmara do cabeçote | 🟠 | A câmara do cabeçote de furação (EH3D-NODE-BUNGARD-AUX) em MJPEG através do servidor, as suas rotações, temperatura e saída de proteção, e uma medição da mesa com o laser. Escrito, nunca executado com um nó real. |
 | Atualizações | 🟠 | Consulta a última release deste projeto no GitHub e di-lo com uma ligação; uma aplicação de iPhone não se pode atualizar sozinha fora da App Store, por isso a versão nova instala-se a partir da release como a pessoa escolher. |
 | Uso real | 🔴 | Ainda não: a aplicação não foi executada num iPhone, contra um servidor real nem com uma máquina; o primeiro a experimentar é entrar no EH3D-SERVER da oficina. |
-| Documentação | 🟡 | README em oito idiomas, a ajuda da aplicação em oito idiomas e as notas da API do servidor que usa. |
+| Documentação | 🟡 | README em oito idiomas, a ajuda da aplicação em 37 idiomas e as notas da API do servidor que usa. |
 
 ## 🎯 Visão geral
 
@@ -161,7 +161,7 @@ EH3D-IOS-CONTROL/
 │   ├── Models.swift Prepare.swift Geometry.swift     o que o servidor diz; as regras do desenho
 │   ├── Eh3dApi.swift                                 o cliente da API do servidor
 │   ├── ServerEndpoint.swift SessionVault.swift       as verificações de endereço e a sessão cifrada
-│   ├── Tr.swift Resources/i18n/                      os oito idiomas
+│   ├── Tr.swift Resources/i18n/                      os 37 idiomas
 │   └── MjpegParser.swift Trust.swift Support.swift   o fluxo da câmara, os pins, as peças pequenas
 ├── App/
 │   ├── Eh3dApp.swift AppModel.swift                  a aplicação e o seu estado
@@ -205,7 +205,20 @@ EH3D-IOS-CONTROL/
 
 ## 🌍 Idiomas
 
-O README e os textos existem em inglês, espanhol, francês, italiano, alemão, chinês, japonês e português europeu.
+O README existe em inglês, espanhol, francês, italiano, alemão, chinês, japonês e português europeu. A própria aplicação fala 37 idiomas (os oito primeiros são os dos programas EH3D no computador); os outros 29 foram traduzidos pelo modelo e aguardam a revisão de falantes nativos. O português do Brasil e o francês do Canadá guardam apenas as frases que diferem do português europeu e do francês; uma frase que um idioma não tem é mostrada em inglês.
+
+| Código | Idioma | Código | Idioma | Código | Idioma | Código | Idioma |
+|---|---|---|---|---|---|---|---|
+| `en` | English | `es` | Español | `it` | Italiano | `de` | Deutsch |
+| `fr` | Français | `pt` | Português | `zh` | 中文 | `ja` | 日本語 |
+| `bg` | Български | `hr` | Hrvatski | `cs` | Čeština | `da` | Dansk |
+| `nl` | Nederlands | `et` | Eesti | `fi` | Suomi | `el` | Ελληνικά |
+| `hu` | Magyar | `ga` | Gaeilge | `lv` | Latviešu | `lt` | Lietuvių |
+| `mt` | Malti | `pl` | Polski | `ro` | Română | `sk` | Slovenčina |
+| `sl` | Slovenščina | `sv` | Svenska | `no` | Norsk | `is` | Íslenska |
+| `uk` | Українська | `ru` | Русский | `sr` | Српски | `sq` | Shqip |
+| `ca` | Català | `gl` | Galego | `eu` | Euskara | `pt-br` | Português (Brasil) |
+| `fr-ca` | Français (Canada) |  |  |  |  |  |  |
 
 ## 🔗 Projetos relacionados
 
@@ -224,7 +237,7 @@ O README e os textos existem em inglês, espanhol, francês, italiano, alemão, 
 ## 🤝 Contribuir e comunidade
 
 * Antes de um pull request execute `swift test` e `python -I tools/ci_validate.py`: ambos têm de passar. Veja [CONTRIBUTING.md](CONTRIBUTING.md) e o [código de conduta](CODE_OF_CONDUCT.md).
-* Cada texto que a aplicação mostra está nas tabelas de `Sources/Eh3dCore/Resources/i18n` nos oito idiomas; um teste mantém-nas completas.
+* Cada texto que a aplicação mostra está nas tabelas de `Sources/Eh3dCore/Resources/i18n` nos 37 idiomas; um teste mantém-nas completas.
 * Comunique uma vulnerabilidade em privado: [SECURITY.md](SECURITY.md). Perguntas, ideias e relatórios: electrohobby3d@gmail.com ([SUPPORT.md](SUPPORT.md)).
 
 ## 👤 AUTOR

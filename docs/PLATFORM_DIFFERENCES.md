@@ -7,7 +7,7 @@ This app is a port of the Android app (EH3D-ANDROID-CONTROL): whatever one app l
 * The rules live in plain code with no screen in it: the summary before a job starts (`Summary.swift`), the state of the link (`ServerLink.swift`), what became of a stop (`Stop.swift`) and what is told when a machine changes (`fleetNotices`). They are in `Sources/Eh3dCore`; the Android app has the same rules in its `model` folder.
 * Both apps walk the same case files (`Tests/Eh3dCoreTests/Cases` here, `app/src/test/resources/shared-cases` there): the summary, the link, the failures, the stops, the notices, the addresses and the fields of the answers that are read. The files are identical in both repositories; when one changes, copy it to the other.
 * The test of the fields fails when an example of the server carries a field that the app neither reads nor lists as ignored, and when a field listed as read is nowhere in the code.
-* The texts are the same Spanish phrases in the same eight tables (`Sources/Eh3dCore/Resources/i18n` here, `app/src/main/assets/i18n` there).
+* The texts are the same Spanish phrases in the same tables of 37 languages (36 files: Spanish is the source and has none) (`Sources/Eh3dCore/Resources/i18n` here, `app/src/main/assets/i18n` there).
 
 ## What the system makes different
 

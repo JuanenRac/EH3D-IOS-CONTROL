@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Stack-Swift%20%2B%20SwiftUI-F05138.svg" alt="Swift, SwiftUI">
-  <img src="https://img.shields.io/badge/Languages-8-00E5FF.svg" alt="Languages">
+  <img src="https://img.shields.io/badge/Languages-37-00E5FF.svg" alt="Languages">
   <img src="https://img.shields.io/badge/Version-0.0.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-scaffolding-FFB020.svg" alt="Maturity">
 </p>
@@ -54,7 +54,7 @@ Cada línea es una parte de este repositorio y la luz dice hasta dónde llega ho
 | Cámara del cabezal | 🟠 | La cámara del cabezal de taladrado (EH3D-NODE-BUNGARD-AUX) en MJPEG a través del servidor, sus vueltas, temperatura y salida de protección, y una medida de la mesa con el láser. Escrito, nunca ejecutado con un nodo real. |
 | Actualizaciones | 🟠 | Mira la última release de este proyecto en GitHub y lo dice con un enlace; una app de iPhone no puede actualizarse sola fuera de la App Store, así que la versión nueva se instala desde la release como decida la persona. |
 | Uso real | 🔴 | Todavía no: la app no se ha ejecutado en un iPhone, contra un servidor real ni con una máquina; lo primero que hay que probar es entrar en el EH3D-SERVER del taller. |
-| Documentación | 🟡 | README en ocho idiomas, la ayuda de la app en ocho idiomas y las notas de la API del servidor que usa. |
+| Documentación | 🟡 | README en ocho idiomas, la ayuda de la app en 37 idiomas y las notas de la API del servidor que usa. |
 
 ## 🎯 Resumen
 
@@ -161,7 +161,7 @@ EH3D-IOS-CONTROL/
 │   ├── Models.swift Prepare.swift Geometry.swift     lo que dice el servidor; las reglas del dibujo
 │   ├── Eh3dApi.swift                                 el cliente de la API del servidor
 │   ├── ServerEndpoint.swift SessionVault.swift       las comprobaciones de dirección y la sesión cifrada
-│   ├── Tr.swift Resources/i18n/                      los ocho idiomas
+│   ├── Tr.swift Resources/i18n/                      los 37 idiomas
 │   └── MjpegParser.swift Trust.swift Support.swift   el flujo de la cámara, los pines, las piezas pequeñas
 ├── App/
 │   ├── Eh3dApp.swift AppModel.swift                  la app y su estado
@@ -205,7 +205,20 @@ EH3D-IOS-CONTROL/
 
 ## 🌍 Idiomas
 
-El README y los textos existen en inglés, español, francés, italiano, alemán, chino, japonés y portugués de Portugal.
+El README existe en inglés, español, francés, italiano, alemán, chino, japonés y portugués de Portugal. La propia app habla 37 idiomas (los ocho primeros son los de los programas EH3D del ordenador); los 29 restantes los ha traducido el modelo y esperan la revisión de hablantes nativos. El portugués de Brasil y el francés de Canadá solo guardan las frases que difieren del portugués de Portugal y del francés; una frase que un idioma no tiene se muestra en inglés.
+
+| Código | Idioma | Código | Idioma | Código | Idioma | Código | Idioma |
+|---|---|---|---|---|---|---|---|
+| `en` | English | `es` | Español | `it` | Italiano | `de` | Deutsch |
+| `fr` | Français | `pt` | Português | `zh` | 中文 | `ja` | 日本語 |
+| `bg` | Български | `hr` | Hrvatski | `cs` | Čeština | `da` | Dansk |
+| `nl` | Nederlands | `et` | Eesti | `fi` | Suomi | `el` | Ελληνικά |
+| `hu` | Magyar | `ga` | Gaeilge | `lv` | Latviešu | `lt` | Lietuvių |
+| `mt` | Malti | `pl` | Polski | `ro` | Română | `sk` | Slovenčina |
+| `sl` | Slovenščina | `sv` | Svenska | `no` | Norsk | `is` | Íslenska |
+| `uk` | Українська | `ru` | Русский | `sr` | Српски | `sq` | Shqip |
+| `ca` | Català | `gl` | Galego | `eu` | Euskara | `pt-br` | Português (Brasil) |
+| `fr-ca` | Français (Canada) |  |  |  |  |  |  |
 
 ## 🔗 Proyectos relacionados
 
@@ -224,7 +237,7 @@ El README y los textos existen en inglés, español, francés, italiano, alemán
 ## 🤝 Contribuir y comunidad
 
 * Antes de un pull request ejecute `swift test` y `python -I tools/ci_validate.py`: ambos deben pasar. Vea [CONTRIBUTING.md](CONTRIBUTING.md) y el [código de conducta](CODE_OF_CONDUCT.md).
-* Cada texto que muestra la app está en las tablas de `Sources/Eh3dCore/Resources/i18n` en los ocho idiomas; una prueba las mantiene completas.
+* Cada texto que muestra la app está en las tablas de `Sources/Eh3dCore/Resources/i18n` en los 37 idiomas; una prueba las mantiene completas.
 * Informe de una vulnerabilidad en privado: [SECURITY.md](SECURITY.md). Preguntas, ideas e informes: electrohobby3d@gmail.com ([SUPPORT.md](SUPPORT.md)).
 
 ## 👤 AUTOR

@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Stack-Swift%20%2B%20SwiftUI-F05138.svg" alt="Swift, SwiftUI">
-  <img src="https://img.shields.io/badge/Languages-8-00E5FF.svg" alt="Languages">
+  <img src="https://img.shields.io/badge/Languages-37-00E5FF.svg" alt="Languages">
   <img src="https://img.shields.io/badge/Version-0.0.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-scaffolding-FFB020.svg" alt="Maturity">
 </p>
@@ -54,7 +54,7 @@ Ogni riga è una parte di questo repository e il semaforo dice a che punto è og
 | Telecamera della testa | 🟠 | La telecamera della testa di foratura (EH3D-NODE-BUNGARD-AUX) in MJPEG tramite il server, i suoi giri, la temperatura e l'uscita di protezione, e una misura del tavolo con il laser. Scritto, mai eseguito con un nodo reale. |
 | Aggiornamenti | 🟠 | Guarda l'ultima release di questo progetto su GitHub e lo dice con un link; un'app per iPhone non può aggiornarsi da sola fuori dall'App Store, quindi la nuova versione si installa dalla release come sceglie la persona. |
 | Uso reale | 🔴 | Non ancora: l'app non è stata eseguita su un iPhone, contro un server reale né con una macchina; la prima cosa da provare è accedere all'EH3D-SERVER dell'officina. |
-| Documentazione | 🟡 | README in otto lingue, la guida dell'app in otto lingue e le note dell'API del server che usa. |
+| Documentazione | 🟡 | README in otto lingue, la guida dell'app in 37 lingue e le note dell'API del server che usa. |
 
 ## 🎯 Panoramica
 
@@ -161,7 +161,7 @@ EH3D-IOS-CONTROL/
 │   ├── Models.swift Prepare.swift Geometry.swift     ciò che dice il server; le regole del disegno
 │   ├── Eh3dApi.swift                                 il client dell'API del server
 │   ├── ServerEndpoint.swift SessionVault.swift       i controlli dell'indirizzo e la sessione cifrata
-│   ├── Tr.swift Resources/i18n/                      le otto lingue
+│   ├── Tr.swift Resources/i18n/                      le 37 lingue
 │   └── MjpegParser.swift Trust.swift Support.swift   il flusso della telecamera, i pin, i pezzi piccoli
 ├── App/
 │   ├── Eh3dApp.swift AppModel.swift                  l'app e il suo stato
@@ -205,7 +205,20 @@ EH3D-IOS-CONTROL/
 
 ## 🌍 Lingue
 
-Il README e i testi esistono in inglese, spagnolo, francese, italiano, tedesco, cinese, giapponese e portoghese europeo.
+Il README esiste in inglese, spagnolo, francese, italiano, tedesco, cinese, giapponese e portoghese europeo. L'app stessa parla 37 lingue (le prime otto sono quelle dei programmi EH3D sul computer); le altre 29 sono tradotte dal modello e attendono la revisione di madrelingua. Il portoghese del Brasile e il francese del Canada conservano solo le frasi che differiscono dal portoghese europeo e dal francese; una frase che una lingua non ha viene mostrata in inglese.
+
+| Codice | Lingua | Codice | Lingua | Codice | Lingua | Codice | Lingua |
+|---|---|---|---|---|---|---|---|
+| `en` | English | `es` | Español | `it` | Italiano | `de` | Deutsch |
+| `fr` | Français | `pt` | Português | `zh` | 中文 | `ja` | 日本語 |
+| `bg` | Български | `hr` | Hrvatski | `cs` | Čeština | `da` | Dansk |
+| `nl` | Nederlands | `et` | Eesti | `fi` | Suomi | `el` | Ελληνικά |
+| `hu` | Magyar | `ga` | Gaeilge | `lv` | Latviešu | `lt` | Lietuvių |
+| `mt` | Malti | `pl` | Polski | `ro` | Română | `sk` | Slovenčina |
+| `sl` | Slovenščina | `sv` | Svenska | `no` | Norsk | `is` | Íslenska |
+| `uk` | Українська | `ru` | Русский | `sr` | Српски | `sq` | Shqip |
+| `ca` | Català | `gl` | Galego | `eu` | Euskara | `pt-br` | Português (Brasil) |
+| `fr-ca` | Français (Canada) |  |  |  |  |  |  |
 
 ## 🔗 Progetti correlati
 
@@ -224,7 +237,7 @@ Il README e i testi esistono in inglese, spagnolo, francese, italiano, tedesco, 
 ## 🤝 Contribuire e comunità
 
 * Prima di una pull request eseguire `swift test` e `python -I tools/ci_validate.py`: entrambi devono passare. Vedere [CONTRIBUTING.md](CONTRIBUTING.md) e il [codice di condotta](CODE_OF_CONDUCT.md).
-* Ogni testo mostrato dall'app è nelle tabelle di `Sources/Eh3dCore/Resources/i18n` in tutte le otto lingue; un test le mantiene complete.
+* Ogni testo mostrato dall'app è nelle tabelle di `Sources/Eh3dCore/Resources/i18n` in tutte le 37 lingue; un test le mantiene complete.
 * Segnalare una vulnerabilità in privato: [SECURITY.md](SECURITY.md). Domande, idee e segnalazioni: electrohobby3d@gmail.com ([SUPPORT.md](SUPPORT.md)).
 
 ## 👤 AUTORE

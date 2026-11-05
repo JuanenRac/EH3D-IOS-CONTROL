@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Stack-Swift%20%2B%20SwiftUI-F05138.svg" alt="Swift, SwiftUI">
-  <img src="https://img.shields.io/badge/Languages-8-00E5FF.svg" alt="Languages">
+  <img src="https://img.shields.io/badge/Languages-37-00E5FF.svg" alt="Languages">
   <img src="https://img.shields.io/badge/Version-0.0.8-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-scaffolding-FFB020.svg" alt="Maturity">
 </p>
@@ -54,7 +54,7 @@
 | 钻头摄像头 | 🟠 | 钻孔头（EH3D-NODE-BUNGARD-AUX）的摄像头通过服务器以 MJPEG 显示，并显示转速、温度、保护输出，以及用激光测量一次工作台。已编写，从未与真实节点一起运行。 |
 | 更新 | 🟠 | 它查看本项目在 GitHub 上的最新发布并用链接提示；iPhone 应用无法在 App Store 之外自行更新，因此新版本由用户自行选择方式从发布页安装。 |
 | 实际使用 | 🔴 | 还没有：应用从未在 iPhone 上、对真实服务器或与机器一起运行；首先要试的是登录车间的 EH3D-SERVER。 |
-| 文档 | 🟡 | 八种语言的 README、应用内八种语言的帮助，以及所用服务器 API 的说明。 |
+| 文档 | 🟡 | 八种语言的 README、应用内 37 种语言的帮助，以及所用服务器 API 的说明。 |
 
 ## 🎯 概述
 
@@ -161,7 +161,7 @@ EH3D-IOS-CONTROL/
 │   ├── Models.swift Prepare.swift Geometry.swift     服务器的数据；绘图规则
 │   ├── Eh3dApi.swift                                 服务器 API 客户端
 │   ├── ServerEndpoint.swift SessionVault.swift       地址检查与加密会话
-│   ├── Tr.swift Resources/i18n/                      八种语言
+│   ├── Tr.swift Resources/i18n/                      37 种语言
 │   └── MjpegParser.swift Trust.swift Support.swift   摄像头流、证书固定、小组件
 ├── App/
 │   ├── Eh3dApp.swift AppModel.swift                  应用及其状态
@@ -205,7 +205,20 @@ EH3D-IOS-CONTROL/
 
 ## 🌍 语言
 
-README 和文本提供英语、西班牙语、法语、意大利语、德语、汉语、日语和欧洲葡萄牙语版本。
+README 提供英语、西班牙语、法语、意大利语、德语、汉语、日语和欧洲葡萄牙语版本。应用本身支持 37 种语言（前八种与电脑上的 EH3D 程序相同）；其余 29 种由模型翻译，等待母语者审校。巴西葡萄牙语和加拿大法语只保存与欧洲葡萄牙语和法语不同的语句；某种语言缺少的语句以英语显示。
+
+| 代码 | 语言 | 代码 | 语言 | 代码 | 语言 | 代码 | 语言 |
+|---|---|---|---|---|---|---|---|
+| `en` | English | `es` | Español | `it` | Italiano | `de` | Deutsch |
+| `fr` | Français | `pt` | Português | `zh` | 中文 | `ja` | 日本語 |
+| `bg` | Български | `hr` | Hrvatski | `cs` | Čeština | `da` | Dansk |
+| `nl` | Nederlands | `et` | Eesti | `fi` | Suomi | `el` | Ελληνικά |
+| `hu` | Magyar | `ga` | Gaeilge | `lv` | Latviešu | `lt` | Lietuvių |
+| `mt` | Malti | `pl` | Polski | `ro` | Română | `sk` | Slovenčina |
+| `sl` | Slovenščina | `sv` | Svenska | `no` | Norsk | `is` | Íslenska |
+| `uk` | Українська | `ru` | Русский | `sr` | Српски | `sq` | Shqip |
+| `ca` | Català | `gl` | Galego | `eu` | Euskara | `pt-br` | Português (Brasil) |
+| `fr-ca` | Français (Canada) |  |  |  |  |  |  |
 
 ## 🔗 相关项目
 
@@ -224,7 +237,7 @@ README 和文本提供英语、西班牙语、法语、意大利语、德语、�
 ## 🤝 参与贡献与社区
 
 * 提交拉取请求之前请运行 `swift test` 和 `python -I tools/ci_validate.py`：两者都必须通过。参见 [CONTRIBUTING.md](CONTRIBUTING.md) 和[行为准则](CODE_OF_CONDUCT.md)。
-* 应用显示的每段文字都在 `Sources/Eh3dCore/Resources/i18n` 的表中，包含八种语言；测试保证其完整。
+* 应用显示的每段文字都在 `Sources/Eh3dCore/Resources/i18n` 的表中，包含 37 种语言；测试保证其完整。
 * 请私下报告漏洞：[SECURITY.md](SECURITY.md)。问题、想法和报告：electrohobby3d@gmail.com（[SUPPORT.md](SUPPORT.md)）。
 
 ## 👤 作者

@@ -40,7 +40,7 @@
 <text x="820.55" y="334" font-family="'Segoe UI','Noto Sans','Noto Sans CJK SC','Microsoft YaHei','Yu Gothic','Helvetica Neue',Helvetica,Arial,sans-serif" font-size="12.8" font-weight="400" fill="#8A97A6" text-anchor="start">the address checks and the sealed session</text>
 <line x1="392" y1="342" x2="1118" y2="342" stroke="#1A2430" stroke-width="1"/>
 <text x="392" y="361" font-family="'JetBrains Mono','Cascadia Code','SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="14.5" font-weight="600" fill="#E6EDF3" text-anchor="start">Tr.swift  Resources/i18n/</text>
-<text x="820.55" y="361" font-family="'Segoe UI','Noto Sans','Noto Sans CJK SC','Microsoft YaHei','Yu Gothic','Helvetica Neue',Helvetica,Arial,sans-serif" font-size="12.8" font-weight="400" fill="#8A97A6" text-anchor="start">the eight languages</text>
+<text x="820.55" y="361" font-family="'Segoe UI','Noto Sans','Noto Sans CJK SC','Microsoft YaHei','Yu Gothic','Helvetica Neue',Helvetica,Arial,sans-serif" font-size="12.8" font-weight="400" fill="#8A97A6" text-anchor="start">the 37 languages</text>
 <line x1="392" y1="369" x2="1118" y2="369" stroke="#1A2430" stroke-width="1"/>
 <text x="392" y="388" font-family="'JetBrains Mono','Cascadia Code','SFMono-Regular',Consolas,'Liberation Mono',monospace" font-size="14.5" font-weight="600" fill="#E6EDF3" text-anchor="start">MjpegParser.swift  Trust.swift  Support.swift</text>
 <text x="820.55" y="388" font-family="'Segoe UI','Noto Sans','Noto Sans CJK SC','Microsoft YaHei','Yu Gothic','Helvetica Neue',Helvetica,Arial,sans-serif" font-size="12.8" font-weight="400" fill="#8A97A6" text-anchor="start">the camera stream, the pins, the small pieces</text>
