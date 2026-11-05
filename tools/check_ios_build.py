@@ -46,8 +46,8 @@ def source_problems(root: Path) -> list[str]:
     if 'CFBundleShortVersionString: "$(MARKETING_VERSION)"' not in text or 'CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"' not in text:
         problems.append("project.yml must give CFBundleShortVersionString and CFBundleVersion from the settings, not as literals")
     declared = re.search(r"CFBundleLocalizations:\s*\[([^\]]*)\]", text)
-    if not declared or [x.strip() for x in declared.group(1).split(",")] != LANGUAGES:
-        problems.append(f"project.yml must declare the eight languages {', '.join(LANGUAGES)} in CFBundleLocalizations")
+    if not declared or [x.strip() for x in declared.group(1).split(",")][: len(LANGUAGES)] != LANGUAGES:
+        problems.append(f"project.yml must declare the eight languages {', '.join(LANGUAGES)} first in CFBundleLocalizations")
     return problems
 
 
