@@ -102,14 +102,16 @@ struct MoreView: View {
 struct LanguageView: View {
     @ObservedObject var model: AppModel
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Button("‹ " + model.tr("Volver")) { model.back() }
-            Text(model.tr("Idioma")).font(.title2.weight(.bold)).foregroundColor(Forge.text)
-            ForEach(Translator.languages, id: \.code) { l in
-                Button { model.choose(language: l.code) } label: { HStack { Image(systemName: model.language == l.code ? "largecircle.fill.circle" : "circle").foregroundColor(Forge.amber); Text(l.name).foregroundColor(Forge.text); Spacer() } }.padding(.vertical, 4)
-            }
-            Spacer()
-        }.padding(16)
+        // 37 languages do not fit on a phone screen: the list scrolls.
+        ScrollView {
+            VStack(alignment: .leading, spacing: 6) {
+                Button("‹ " + model.tr("Volver")) { model.back() }
+                Text(model.tr("Idioma")).font(.title2.weight(.bold)).foregroundColor(Forge.text)
+                ForEach(Translator.languages, id: \.code) { l in
+                    Button { model.choose(language: l.code) } label: { HStack { Image(systemName: model.language == l.code ? "largecircle.fill.circle" : "circle").foregroundColor(Forge.amber); Text(l.name).foregroundColor(Forge.text); Spacer() } }.padding(.vertical, 4)
+                }
+            }.padding(16).frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }
 

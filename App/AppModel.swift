@@ -88,7 +88,7 @@ final class AppModel: ObservableObject {
 
     init() {
         let saved = prefs.get("language")
-        let chosen = Translator.pick(saved: saved, phone: Locale.current.language.languageCode?.identifier ?? "en")
+        let chosen = Translator.pick(saved: saved, phone: Translator.phoneCode(tag: Locale.preferredLanguages.first ?? "en"))
         translator = Translator(language: chosen)
         language = chosen
         origin = prefs.get("origin") ?? ""
