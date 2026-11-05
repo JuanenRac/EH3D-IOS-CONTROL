@@ -28,7 +28,7 @@ targets:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         CFBundleDevelopmentRegion: es
-        CFBundleLocalizations: [en, es, de, fr, it, ja, zh-Hans, pt-PT]
+        CFBundleLocalizations: [en, es, de, fr, it, ja, zh-Hans, pt-PT, bg, hr, cs, da, nl, et, fi, el, hu, ga, lv, lt, mt, pl, ro, sk, sl, sv, nb, is, uk, ru, sr, sq, ca, gl, eu, pt-BR, fr-CA]
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         NSLocalNetworkUsageDescription: Reaches your EH3D server on your workshop network.
