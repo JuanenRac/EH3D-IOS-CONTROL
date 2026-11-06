@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Stack-Swift%20%2B%20SwiftUI-F05138.svg" alt="Swift, SwiftUI">
   <img src="https://img.shields.io/badge/Languages-37-00E5FF.svg" alt="Languages">
-  <img src="https://img.shields.io/badge/Version-0.0.8-0f6cbd.svg" alt="Version">
+  <img src="https://img.shields.io/badge/Version-0.0.9-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-scaffolding-FFB020.svg" alt="Maturity">
 </p>
 
@@ -29,7 +29,7 @@
 
 | | |
 |---|---|
-| Version | `0.0.8` |
+| Version | `0.0.9` |
 | Maturity | Scaffolding |
 | Tests | tests of the Swift package |
 | Stack | Swift, SwiftUI |
