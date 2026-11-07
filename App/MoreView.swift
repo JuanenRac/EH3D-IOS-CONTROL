@@ -4,19 +4,23 @@ import SwiftUI
 import UIKit
 import Eh3dCore
 
+private struct FeedFailure: Error { let text: String }
+
 /// The camera of the drill head: the stream is read as it comes and cut into pictures; a dropped stream is asked for again after 1, 2, 4... seconds (30 at most).
 struct MjpegView: View {
     let url: URL
+    @ObservedObject var model: AppModel
     /// Turns the plain address into one with a one-use ticket (asked again at every try).
     var resolve: ((URL) async -> URL?)? = nil
     @State private var image: UIImage?
-    @State private var failed = false
+    /// What to tell while no picture has arrived (the same words as the Android app); nil while it is still loading.
+    @State private var failure: String?
 
     var body: some View {
         ZStack {
             Forge.raised
             if let image { Image(uiImage: image).resizable().scaledToFit() }
-            else if failed { Text("…").foregroundColor(Forge.dim) }
+            else if let failure { Text(failure).font(.caption).foregroundColor(Forge.danger).multilineTextAlignment(.center).padding(6) }
             else { ProgressView().tint(Forge.amber) }
         }
         .task(id: url) { await run() }
@@ -29,18 +33,23 @@ struct MjpegView: View {
                 var request = URLRequest(url: await resolve?(url) ?? url)
                 request.timeoutInterval = 20
                 let (bytes, response) = try await URLSession.shared.bytes(for: request)
-                guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
+                if let status = (response as? HTTPURLResponse)?.statusCode, status != 200 { throw FeedFailure(text: model.trf("El servidor respondió HTTP %s", status)) }
+                guard response is HTTPURLResponse else { throw URLError(.badServerResponse) }
                 var parser = MjpegFrameParser()
                 var chunk = Data()
                 for try await byte in bytes {
                     chunk.append(byte)
                     if chunk.count >= 4096 {
-                        for frame in parser.feed(chunk) { if let picture = UIImage(data: frame) { image = picture; failed = false; backoff.succeeded() } }
+                        for frame in parser.feed(chunk) { if let picture = UIImage(data: frame) { image = picture; failure = nil; backoff.succeeded() } }
                         chunk.removeAll(keepingCapacity: true)
                     }
                 }
-            } catch { if Task.isCancelled { return }; if image == nil { failed = true } }
+            } catch {
+                if Task.isCancelled { return }
+                if image == nil { failure = (error as? FeedFailure)?.text ?? model.tr("Vídeo no disponible") }
+            }
             backoff.failed()
+            if image == nil, failure == nil { failure = model.tr("No llegan imágenes") }
             try? await Task.sleep(nanoseconds: UInt64(backoff.delaySeconds * 1_000_000_000))
         }
     }

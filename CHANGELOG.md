@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The camera says why it shows nothing,** as the Android app does: the HTTP status the server answered, "Video not available" or "No pictures are arriving" (texts that were already in the 37 tables) instead of three dots. Not run yet: there is no Xcode here.
+
 ## [0.0.9] - 37 languages, the person who started a job on its page and a text for every refusal of the server
 
 - **37 languages:** the app speaks the 37 languages of the EH3D programs on the computer, in the same order: the eight it had (English, Spanish, Italian, German, French, European Portuguese, Chinese and Japanese) and Bulgarian, Croatian, Czech, Danish, Dutch, Estonian, Finnish, Greek, Hungarian, Irish, Latvian, Lithuanian, Maltese, Polish, Romanian, Slovak, Slovenian, Swedish, Norwegian, Icelandic, Ukrainian, Russian, Serbian, Albanian, Catalan, Galician, Basque, Brazilian Portuguese and Canadian French. Every text of the screens, the help and the refusals of the server is in all of them. The words of the 29 new languages are translated by the model and wait for a review by native speakers. Brazilian Portuguese and Canadian French hold only the phrases that differ from European Portuguese and French and take the rest from them; a phrase that a language does not have is shown in English. The list of languages scrolls, the language of the phone picks a variant by its region (`pt-BR`, `fr-CA`), and the tests and `tools/i18n_check.py` check that every table has every phrase, with the same holes and no blank or English-only text. None of the 37 is written right to left. The text the system shows when the app asks to reach the local network is translated into the 29 new languages too.

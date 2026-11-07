@@ -218,7 +218,7 @@ struct HeadCard: View {
         Card(accent: Forge.blue) {
             Title(model.tr("Cabezal de taladrado"))
             if let head = model.head {
-                if head.camera, let url = model.streamURL(machineId) { MjpegView(url: url, resolve: { await model.ticketURL($0) }).aspectRatio(4.0 / 3.0, contentMode: .fit).clipShape(RoundedRectangle(cornerRadius: 6)) }
+                if head.camera, let url = model.streamURL(machineId) { MjpegView(url: url, model: model, resolve: { await model.ticketURL($0) }).aspectRatio(4.0 / 3.0, contentMode: .fit).clipShape(RoundedRectangle(cornerRadius: 6)) }
                 else { Text(model.tr("La cámara del cabezal está apagada.")).foregroundColor(Forge.dim) }
                 LightRow(model: model, machineId: machineId, head: head)
                 HStack(spacing: 8) {

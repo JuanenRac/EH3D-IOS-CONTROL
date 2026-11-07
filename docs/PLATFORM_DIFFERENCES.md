@@ -21,6 +21,12 @@ This app is a port of the Android app (EH3D-ANDROID-CONTROL): whatever one app l
 | An address with a path after the host (`http://192.168.0.5:8080/x`) | The address is refused | The path is dropped |
 | Two addresses for one installation (at home and away) | `DualEndpoint` | Not there |
 | Updates | Tells that a version exists and links to it | Downloads the APK and hands it to the installer |
+| Certificate of a secure server | Pinned the first time it is seen; one extra phrase in the 37 tables says so | Not pinned; the phrase is not in its tables |
+| The stream of the head camera | The camera is read with `URLSession` and stops with its screen | Also stops while the app is out of sight and can decode at a smaller size for the grid |
+
+## Not there in either app yet
+
+* Jog (moving an axis by hand) and a live progress stream of a job: the server has no route for jog and sends progress only in the job (`percent`, `items_done`, `holes_done`, `estimate_s`), which both apps already show; they will follow when the server offers the route.
 
 ## Not run yet
 
