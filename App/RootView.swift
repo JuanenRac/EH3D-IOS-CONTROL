@@ -176,8 +176,8 @@ private struct EntryView: View {
                         }
                     }.padding(.top, 20)
                     if !setup {
-                        Text(remember ? model.tr("Con «Recordarme» el usuario y la contraseña se guardan cifrados en este teléfono, solo para este servidor. Quita la marca para olvidarlos al momento.")
-                                      : model.tr("Tu contraseña no se guarda en el teléfono. La sesión sí, cifrada, y se renueva mientras uses la app: no tendrás que volver a entrar salvo que caduque o la cierres."))
+                        Text(remember ? model.tr("Con «Recordarme» solo se guarda, cifrado en este teléfono, el pase de sesión de este servidor (nunca el usuario ni la contraseña); caduca a los 30 días y se revoca al cerrar sesión.")
+                                      : model.tr("No se guarda nada en el teléfono: al cerrar la app tendrás que entrar de nuevo. Marca «Recordarme» para conservar el pase de sesión, cifrado, durante 30 días."))
                             .font(.caption).foregroundColor(Forge.dim).multilineTextAlignment(.center).padding(.top, 14)
                     }
                 }.padding(24)
@@ -187,7 +187,7 @@ private struct EntryView: View {
             let o = model.origin
             host = o.replacingOccurrences(of: "http://", with: "").replacingOccurrences(of: "https://", with: "").split(separator: ":").first.map(String.init) ?? ""
             if let p = o.split(separator: ":").last, p.allSatisfy({ $0.isNumber }), !p.isEmpty { port = String(p) }
-            name = model.savedUser(); password = model.savedPassword(); remember = model.rememberMe
+            name = ""; password = ""; remember = model.rememberMe
         }
     }
 }

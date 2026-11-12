@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **"Remember me" keeps only the session token:** the user and the password are never kept; with the box ticked (off by default) the token of the session is sealed in the Keychain and expires 30 days after the sign-in, signing out revokes it at the server and forgets it, and what an earlier version kept (the user and the password) is deleted at the first start. A token made before the expiry existed is dropped once. The two captions of the sign-in screen are in the 37 languages.
+
 - **The camera says why it shows nothing,** as the Android app does: the HTTP status the server answered, "Video not available" or "No pictures are arriving" (texts that were already in the 37 tables) instead of three dots. Not run yet: there is no Xcode here.
 
 ## [0.0.9] - 37 languages, the person who started a job on its page and a text for every refusal of the server

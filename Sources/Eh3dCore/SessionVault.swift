@@ -1,8 +1,9 @@
-// EH3D-IOS-CONTROL - keeps the session of the server between launches, so the app opens already signed in, and, only if the person ticks "remember me", the user and the password.
+// EH3D-IOS-CONTROL - keeps the session token of the server between launches, so the app opens already signed in, only if the person ticks "remember me" (off by default).
 // Copyright (C) 2026 JuanenRac (Electro Hobby 3D). GPL-3.0-or-later.
 //
-// What is kept is the session cookie the server handed out. The password is typed once and forgotten unless the person asks to remember it. Everything secret lives in the Keychain of the phone,
-// which cannot be taken out of it. By default it is readable after the first unlocking of the phone since it started (so that the app can work after a restart); with the optional switch (off by
+// What is kept is the session token the server handed out, with its own expiry (30 days from the sign-in); never the user or the password, which are typed each time. An expired token is dropped
+// without being used, signing out ends the session at the server (it is revoked) and forgets the token here, and the user and the password that an earlier version could keep are deleted by
+// `purgeLegacy`. Everything secret lives in the Keychain of the phone, which cannot be taken out of it. By default it is readable after the first unlocking of the phone since it started (so that the app can work after a restart); with the optional switch (off by
 // default, with a visible warning) it is readable only while the phone is unlocked.
 import Foundation
 
@@ -33,10 +34,8 @@ public final class MemorySecrets: SecretStore {
     public func remove(_ key: String) { items[key] = nil }
 }
 
-public struct RememberedLogin: Equatable, Sendable {
-    public let username: String
-    public let password: String
-}
+/// How long a remembered session is kept: 30 days.
+public let sessionTimeToLive: TimeInterval = 30 * 24 * 60 * 60
 
 public final class SessionVault {
     private let secrets: SecretStore
@@ -50,7 +49,7 @@ public final class SessionVault {
     @discardableResult
     public func setTiedToUnlock(_ on: Bool) -> Bool {
         var moved = true
-        for key in [Self.cookieKey, Self.loginKey] {
+        for key in [Self.cookieKey] {
             switch secrets.read(key) {
             case .value(let text): secrets.write(key, text, tiedToUnlock: on)
             case .locked: moved = false
@@ -63,44 +62,44 @@ public final class SessionVault {
 
     /// False while the secrets cannot be read for a reason that will pass (tied to the unlocking, and the phone is locked).
     public func readable() -> Bool {
-        for key in [Self.cookieKey, Self.loginKey] { if secrets.read(key) == .locked { return false } }
-        return true
+        return secrets.read(Self.cookieKey) != .locked
     }
 
     static let cookieKey = "session_cookie"
-    static let loginKey = "remembered_login"
+    /// The key under which an earlier version kept the user and the password of "remember me".
+    static let legacyLoginKey = "remembered_login"
 
-    public func saveSession(_ cookie: SessionCookie, origin: String) {
-        secrets.write(Self.cookieKey, Self.join([origin, cookie.name, cookie.value]), tiedToUnlock: tiedToUnlock)
+    /// Keeps the session of `origin` until `sessionTimeToLive` after `now`; replaces whatever was kept. A value with the separator in it is not kept.
+    public func saveSession(_ cookie: SessionCookie, origin: String, now: Date = Date()) {
+        guard !cookie.name.isEmpty, !cookie.value.isEmpty, ![origin, cookie.name, cookie.value].contains(where: { $0.contains(Self.separator) }) else { return }
+        let expires = Int64(now.timeIntervalSince1970 + sessionTimeToLive)
+        secrets.write(Self.cookieKey, Self.join([origin, cookie.name, cookie.value, String(expires)]), tiedToUnlock: tiedToUnlock)
     }
 
-    /// The kept session, for that origin only; nil when there is none, when it belongs to another server, or when the phone is locked (see `readable`).
-    public func loadSession(origin: String) -> SessionCookie? {
+    /// The kept session, for that origin only; nil when there is none, when it belongs to another server, when the phone is locked (see `readable`), or when it has expired
+    /// (an expired one, one made before the expiry existed and one that is damaged are dropped).
+    public func loadSession(origin: String, now: Date = Date()) -> SessionCookie? {
         guard case .value(let text) = secrets.read(Self.cookieKey) else { return nil }
         let parts = Self.split(text)
-        guard parts.count == 3, parts[0] == origin else { return nil }
+        guard parts.count == 4, let expires = Int64(parts[3]), now.timeIntervalSince1970 < Double(expires) else { secrets.remove(Self.cookieKey); return nil }
+        guard parts[0] == origin else { return nil }
         return SessionCookie(name: parts[1], value: parts[2])
     }
 
     public func dropSession() { secrets.remove(Self.cookieKey) }
 
-    public func rememberLogin(origin: String, username: String, password: String) {
-        secrets.write(Self.loginKey, Self.join([origin, username, password]), tiedToUnlock: tiedToUnlock)
+    /// Deletes what the earlier "remember me" kept (the user and the password); true when there was something.
+    @discardableResult
+    public func purgeLegacy() -> Bool {
+        let had = secrets.read(Self.legacyLoginKey) != .absent
+        secrets.remove(Self.legacyLoginKey)
+        return had
     }
 
-    public func rememberedLogin(origin: String) -> RememberedLogin? {
-        guard case .value(let text) = secrets.read(Self.loginKey) else { return nil }
-        let parts = Self.split(text)
-        guard parts.count == 3, parts[0] == origin else { return nil }
-        return RememberedLogin(username: parts[1], password: parts[2])
-    }
+    /// The way out of a locked app: forgets the session. The server and its alarms are not touched.
+    public func forgetAll() { dropSession(); purgeLegacy() }
 
-    public func forgetLogin() { secrets.remove(Self.loginKey) }
-
-    /// The way out of a locked app: forgets the session and the remembered login. The server and its alarms are not touched.
-    public func forgetAll() { dropSession(); forgetLogin() }
-
-    // the three pieces are kept as one text with a separator that cannot be in any of them (a unit separator)
+    // the four pieces are kept as one text with a separator that cannot be in any of them (a unit separator)
     private static let separator = "\u{1F}"
     private static func join(_ parts: [String]) -> String { parts.map { $0.replacingOccurrences(of: separator, with: "") }.joined(separator: separator) }
     private static func split(_ text: String) -> [String] { text.components(separatedBy: separator) }

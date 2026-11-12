@@ -98,12 +98,10 @@ final class AppModel: ObservableObject {
         trust = delegate
         pinnedSession = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
         api = Eh3dApi(origin: prefs.get("origin") ?? "", session: pinnedSession)
-        rememberMe = vault.rememberedLogin(origin: origin) != nil
+        vault.purgeLegacy()   // the user and the password that an earlier version kept are deleted at the first start
+        rememberMe = vault.loadSession(origin: origin) != nil
         Task { await start() }
     }
-
-    func savedUser() -> String { vault.rememberedLogin(origin: origin)?.username ?? "" }
-    func savedPassword() -> String { vault.rememberedLogin(origin: origin)?.password ?? "" }
 
     private func start() async {
         if origin.isEmpty { phase = .signedOut; return }
@@ -112,9 +110,6 @@ final class AppModel: ObservableObject {
             api.token = kept.value
             if let me = try? await api.session() { login = me; phase = .signedIn; poll(); return }
             vault.dropSession(); api.token = ""
-        }
-        if let saved = vault.rememberedLogin(origin: origin) {
-            if (try? await doSignIn(origin: origin, name: saved.username, password: saved.password, remember: true)) != nil { return }
         }
         phase = .signedOut
     }
@@ -154,8 +149,7 @@ final class AppModel: ObservableObject {
         let result = try await api.login(name: name.trimmingCharacters(in: .whitespaces), password: password)
         api.token = result.token
         login = result
-        vault.saveSession(SessionCookie(name: "token", value: result.token), origin: origin)
-        if remember { vault.rememberLogin(origin: origin, username: name, password: password) } else { vault.forgetLogin() }
+        if remember { vault.saveSession(SessionCookie(name: "token", value: result.token), origin: origin) } else { vault.dropSession() }   // only the token of the session is ever kept, and only when asked
         rememberMe = remember
         prefs.put("origin", origin)
         message = nil
