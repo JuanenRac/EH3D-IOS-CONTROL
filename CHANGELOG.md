@@ -4,6 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The validation of the CI is the reusable one of the documentation hub:** the job `validate` calls `validate.yml` of EH3D-DOCS (pinned by commit) and what the repository checks besides it is in jobs of their own, with the check of the CHANGELOG.
 - **The catalog of the refusals of the server is the current one:** the copy that the test reads has the 115 codes of the server (it had 89), and the 26 new ones are listed with their reason: the files of a project, the catalogs, the plugins, the design program and the switches of security have no page in the app, and the message of the server is shown as it comes for the refusals of a rack, of a plugin and of too many listeners (same as the Android app; the test is not run on this computer).
 - **"Remember me" keeps only the session token:** the user and the password are never kept; with the box ticked (off by default) the token of the session is sealed in the Keychain and expires 30 days after the sign-in, signing out revokes it at the server and forgets it, and what an earlier version kept (the user and the password) is deleted at the first start. A token made before the expiry existed is dropped once. The two captions of the sign-in screen are in the 37 languages.
 
