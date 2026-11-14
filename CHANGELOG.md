@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The build number of the app follows the version like an odometer:** the check of the versions asked the build number to be the last part of the version, which cannot hold at `0.1.0` (the last part is 0 and the number must be at least 1) and failed the build of the release. The build number is now major x 100 + minor x 10 + patch (`0.0.9` is 9, `0.1.0` is 10, `0.1.1` is 11), so it never goes down; `tools/check_ios_build.py` and its tests say so.
+
 ## [0.1.0] - Camera explains an empty view and a safer remember-me
 
 - **The shared validation tools are updated:** the validator also runs the workflow and lessons checks of the suite with their latest rules, including a check to run before every push.
