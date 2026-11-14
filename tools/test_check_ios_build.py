@@ -40,9 +40,16 @@ class Versions(unittest.TestCase):
     def test_a_project_that_follows_its_manifest_passes(self):
         self.assertEqual(C.source_problems(self.make()), [])
 
+    def test_the_build_number_follows_the_version_like_an_odometer(self):
+        self.assertEqual(C.source_problems(self.make(version="0.0.9", marketing="0.0.9", build="9")), [])
+        self.assertEqual(C.source_problems(self.make(version="0.1.0", marketing="0.1.0", build="10")), [])
+        self.assertEqual(C.source_problems(self.make(version="0.1.1", marketing="0.1.1", build="11")), [])
+        self.assertTrue(any("should be 10" in p for p in C.source_problems(self.make(version="0.1.0", marketing="0.1.0", build="1"))))
+        self.assertTrue(any("whole number" in p for p in C.source_problems(self.make(version="0.1.0", marketing="0.1.0", build="0"))))
+
     def test_another_marketing_version_or_build_is_a_problem(self):
         self.assertTrue(any("MARKETING_VERSION" in p for p in C.source_problems(self.make(marketing="0.0.5"))))
-        self.assertTrue(any("last part" in p for p in C.source_problems(self.make(build="5"))))
+        self.assertTrue(any("does not follow" in p for p in C.source_problems(self.make(build="5"))))
         self.assertTrue(any("whole number" in p for p in C.source_problems(self.make(build="x"))))
         self.assertTrue(any("whole number" in p for p in C.source_problems(self.make(build="0"))))
 

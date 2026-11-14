@@ -7,7 +7,7 @@
 """Checks the versions of the iPhone app, before the app is built and in the app that was built.
 
 Before (any machine):   python tools/check_ios_build.py
-    the version of the manifest is the marketing version of project.yml, the number of the build is a whole number that follows the last part of the version (0.0.6 is
+    the version of the manifest is the marketing version of project.yml, the number of the build is a whole number that follows the version like an odometer (major x 100 + minor x 10 + patch: 0.1.0 is build 10, so it never goes down; 0.0.6 is
     build 6), and the app takes both from those settings instead of a literal.
 After (a Mac, once the app target is built):   python tools/check_ios_build.py path/to/EH3D.app
     the Info.plist inside the built app shows that same version and that same build number.
@@ -41,8 +41,10 @@ def source_problems(root: Path) -> list[str]:
         problems.append(f"project.yml CURRENT_PROJECT_VERSION ({build}) is not a whole number from 1")
     else:
         parts = version.split(".")
-        if len(parts) == 3 and parts[2].isdigit() and int(build) != int(parts[2]):
-            problems.append(f"project.yml CURRENT_PROJECT_VERSION ({build}) does not follow the last part of the version {version}")
+        if len(parts) == 3 and all(p.isdigit() for p in parts):
+            expected = int(parts[0]) * 100 + int(parts[1]) * 10 + int(parts[2])
+            if int(build) != expected:
+                problems.append(f"project.yml CURRENT_PROJECT_VERSION ({build}) does not follow the version {version} (it should be {expected})")
     if 'CFBundleShortVersionString: "$(MARKETING_VERSION)"' not in text or 'CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"' not in text:
         problems.append("project.yml must give CFBundleShortVersionString and CFBundleVersion from the settings, not as literals")
     declared = re.search(r"CFBundleLocalizations:\s*\[([^\]]*)\]", text)
