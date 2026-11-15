@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **112 more tests, a check that the two phone apps agree and a measure of coverage:** the client of the API is tested against a server that lives in the test (paths, methods, headers, bodies, refusals, a service that is not JSON, a server that is away), the pins of the certificates, the cutting of the live camera into pictures, the wait before asking for it again and the readers of the answers of the server are tested from their edges, `tools/check_app_parity.py` fails when the examples of the answers, the catalog of the refusals or the tables of the 37 languages differ from the ones of the Android app, and the CI prints how much of the package of rules the tests cover (`tools/check_coverage_floor.py`).
+
 - **The build number of the app follows the version like an odometer:** the check of the versions asked the build number to be the last part of the version, which cannot hold at `0.1.0` (the last part is 0 and the number must be at least 1) and failed the build of the release. The build number is now major x 100 + minor x 10 + patch (`0.0.9` is 9, `0.1.0` is 10, `0.1.1` is 11), so it never goes down; `tools/check_ios_build.py` and its tests say so.
 
 ## [0.1.0] - Camera explains an empty view and a safer remember-me
