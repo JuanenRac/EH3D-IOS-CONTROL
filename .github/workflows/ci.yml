@@ -78,7 +78,7 @@ jobs:
       - name: Test
         run: swift test --enable-code-coverage
       - name: The rules of the package are covered by the tests
-        run: python3 tools/check_coverage_floor.py "$(swift test --show-codecov-path)" --list --floor 0
+        run: python3 tools/check_coverage_floor.py "$(swift test --show-codecov-path)" --list --floor 89
 
   app:
     name: Build the app target
