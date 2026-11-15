@@ -48,8 +48,8 @@ public struct ServerLink: Equatable, Sendable {
 /// What a refused or lost request says about the link, or nil when the server answered as itself (a 404 for a job that is gone, a 403 for a viewer: the link is fine).
 /// No answer at all and a 5xx are an unreachable server; an answer that is not the JSON of EH3D-SERVER, or an error without the `error` member of the API, is another service on that address.
 public func classifyFailure(status: Int, code: String) -> LinkFailure? {
-    if code == "bad_json" { return .wrongServer }  // the readers of the answers say it with status 0, which must not be read as "no answer at all"
     if status == 0 { return .unreachable }
+    if code == "bad_json" { return .wrongServer }
     if status >= 500 { return .unreachable }
     if code.hasPrefix("http_") && (400...499).contains(status) && status != 401 && status != 403 && status != 429 { return .wrongServer }
     return nil
