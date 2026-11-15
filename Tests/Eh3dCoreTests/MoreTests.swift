@@ -166,7 +166,7 @@ final class MoreTests: XCTestCase {
 
     func testAFailureIsToldApartByItsStatusAndItsCode() {
         XCTAssertEqual(classifyFailure(status: 0, code: ""), .unreachable)
-        XCTAssertEqual(classifyFailure(status: 0, code: "bad_json"), .unreachable)
+        XCTAssertEqual(classifyFailure(status: 0, code: "bad_json"), .wrongServer)
         XCTAssertEqual(classifyFailure(status: 200, code: "bad_json"), .wrongServer)
         XCTAssertEqual(classifyFailure(status: 500, code: "bad_json"), .wrongServer)
         XCTAssertEqual(classifyFailure(status: 500, code: ""), .unreachable)

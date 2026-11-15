@@ -98,6 +98,9 @@ final class OutageScenarioTests: XCTestCase {
         Outage.set(.otherService)
         link = await poll(link, at: 16_000)
         XCTAssertEqual(link.state(), .wrongServer, "a page of another service is not no connection")
+        // a body that is not JSON is another service whatever status the client could read from it
+        XCTAssertEqual(classifyFailure(status: 0, code: "bad_json"), .wrongServer)
+        XCTAssertEqual(classifyFailure(status: 0, code: "unreachable"), .unreachable)
         Outage.set(.ok)
         link = await poll(link, at: 17_500)
         XCTAssertEqual(link.state(), .connected)
