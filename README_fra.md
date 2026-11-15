@@ -31,7 +31,7 @@
 |---|---|
 | Version | `0.1.0` |
 | Maturité | Échafaudage |
-| Tests | tests du paquet Swift |
+| Tests | 232 tests du paquet Swift |
 | Pile technique | Swift, SwiftUI |
 | Sur du matériel réel | Pas encore : l'application n'a pas été exécutée sur un iPhone, contre un vrai serveur ni avec une machine ; la première chose à essayer est de se connecter au EH3D-SERVER de l'atelier. |
 
@@ -140,7 +140,7 @@ Ouvrez l'application, saisissez l'adresse du serveur (et le port 18200), appuyez
 
 ## 🧪 Tests
 
-`swift test` exécute les tests du paquet Eh3dCore : les lecteurs du JSON du serveur (flotte, travaux, tête, mesure), la position de la tête et la géométrie des deux vues, le contrôle de l'adresse, la conservation chiffrée de la session, la comparaison des versions et les langues (les sept tables ont les mêmes phrases et chaque phrase des écrans y figure). Les écrans se construisent avec Xcode et ne sont pas couverts par les tests. Ils lisent aussi les exemples de réponses que produisent les tests du serveur : une réponse qui change sans que l'appli suive échoue ici. La CI compile aussi la cible de l'appli pour le simulateur avec XcodeGen et vérifie que l'appli compilée affiche la version et le numéro de build du projet ; cette compilation ne peut être vérifiée que sur GitHub. Les deux apps mobiles parcourent aussi les mêmes fichiers de cas (le résumé, la connexion, l'arrêt, les avis, les adresses et les champs lus), si bien que l'une ne peut pas différer de l'autre sans qu'un test échoue.
+`swift test` exécute les tests du paquet Eh3dCore : les lecteurs du JSON du serveur (flotte, travaux, tête, mesure), la position de la tête et la géométrie des deux vues, le contrôle de l'adresse, la conservation chiffrée de la session, la comparaison des versions et les langues (les sept tables ont les mêmes phrases et chaque phrase des écrans y figure). Les écrans se construisent avec Xcode et ne sont pas couverts par les tests. Ils lisent aussi les exemples de réponses que produisent les tests du serveur : une réponse qui change sans que l'appli suive échoue ici. La CI compile aussi la cible de l'appli pour le simulateur avec XcodeGen et vérifie que l'appli compilée affiche la version et le numéro de build du projet ; cette compilation ne peut être vérifiée que sur GitHub. Les deux apps mobiles parcourent aussi les mêmes fichiers de cas (le résumé, la connexion, l'arrêt, les avis, les adresses et les champs lus), si bien que l'une ne peut pas différer de l'autre sans qu'un test échoue. `python -I tools/check_app_parity.py` vérifie que les exemples des réponses, le catalogue des refus et les tables des 37 langues sont les mêmes dans les deux applications mobiles (la seule phrase du certificat épinglé est la seule différence permise), et la CI affiche la part du code qui porte des règles que ces tests couvrent.
 
 ## 🏗️ Compilation et publication
 

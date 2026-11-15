@@ -31,7 +31,7 @@
 |---|---|
 | Version | `0.1.0` |
 | Reifegrad | Gerüst |
-| Tests | Tests des Swift-Pakets |
+| Tests | 232 Tests des Swift-Pakets |
 | Technologie-Stack | Swift, SwiftUI |
 | Auf echter Hardware | Noch nicht: Die App wurde nicht auf einem iPhone, gegen einen echten Server oder mit einer Maschine ausgeführt; als Erstes ist die Anmeldung am EH3D-SERVER der Werkstatt zu versuchen. |
 
@@ -140,7 +140,7 @@ App öffnen, die Adresse des Servers (und Port 18200) eingeben, Verbinden drück
 
 ## 🧪 Tests
 
-`swift test` führt die Tests des Pakets Eh3dCore aus: die Leser des Server-JSON (Flotte, Aufträge, Kopf, Messung), die Position des Kopfes und die Geometrie der beiden Ansichten, die Adressprüfung, die verschlüsselte Sitzungsspeicherung, der Versionsvergleich und die Sprachen (die sieben Tabellen haben dieselben Sätze, und jeder Satz der Bildschirme steht darin). Die Bildschirme werden mit Xcode gebaut und nicht von Tests abgedeckt. Sie lesen auch die Beispiele der Antworten, die die Tests des Servers erzeugen; eine Antwort, die sich ändert, ohne dass die App folgt, schlägt hier fehl. Die CI baut außerdem das App-Target für den Simulator mit XcodeGen und prüft, dass die gebaute App die Version und die Build-Nummer des Projekts zeigt; dieser Build lässt sich nur auf GitHub prüfen. Beide Handy-Apps durchlaufen außerdem dieselben Falldateien (die Zusammenfassung, die Verbindung, den Stopp, die Hinweise, die Adressen und die gelesenen Felder), sodass sich die eine nicht von der anderen unterscheiden kann, ohne dass ein Test fehlschlägt.
+`swift test` führt die Tests des Pakets Eh3dCore aus: die Leser des Server-JSON (Flotte, Aufträge, Kopf, Messung), die Position des Kopfes und die Geometrie der beiden Ansichten, die Adressprüfung, die verschlüsselte Sitzungsspeicherung, der Versionsvergleich und die Sprachen (die sieben Tabellen haben dieselben Sätze, und jeder Satz der Bildschirme steht darin). Die Bildschirme werden mit Xcode gebaut und nicht von Tests abgedeckt. Sie lesen auch die Beispiele der Antworten, die die Tests des Servers erzeugen; eine Antwort, die sich ändert, ohne dass die App folgt, schlägt hier fehl. Die CI baut außerdem das App-Target für den Simulator mit XcodeGen und prüft, dass die gebaute App die Version und die Build-Nummer des Projekts zeigt; dieser Build lässt sich nur auf GitHub prüfen. Beide Handy-Apps durchlaufen außerdem dieselben Falldateien (die Zusammenfassung, die Verbindung, den Stopp, die Hinweise, die Adressen und die gelesenen Felder), sodass sich die eine nicht von der anderen unterscheiden kann, ohne dass ein Test fehlschlägt. `python -I tools/check_app_parity.py` prüft, dass die Beispiele der Antworten, der Katalog der Ablehnungen und die Tabellen der 37 Sprachen in beiden Handy-Apps gleich sind (der eine Satz des angehefteten Zertifikats ist der einzige erlaubte Unterschied), und die CI gibt aus, wie viel vom Code mit Regeln diese Tests abdecken.
 
 ## 🏗️ Build und Veröffentlichung
 

@@ -31,7 +31,7 @@
 |---|---|
 | Version | `0.1.0` |
 | Maturity | Scaffolding |
-| Tests | tests of the Swift package |
+| Tests | 232 tests of the Swift package |
 | Stack | Swift, SwiftUI |
 | On real hardware | Not yet: the app has not been run on a iPhone, against a real server or with a machine; the first thing to try is signing in to the EH3D-SERVER of the workshop. |
 
@@ -140,7 +140,7 @@ Open the app, type the address of the server (and port 18200), press Connect and
 
 ## 🧪 Testing
 
-`swift test` runs the tests of the Eh3dCore package: the readers of the server's JSON (fleet, jobs, head, measure), the position of the head and the geometry of the two views, the check of the address, the sealed keeping of the session, the comparison of versions, and the languages (the seven tables have the same phrases, and every phrase of the screens is in them). The screens are built with Xcode and are not covered by tests. They also read the examples of the answers that the tests of the server make, so an answer that changes without the app following fails here. The CI also builds the app target for the simulator with XcodeGen and checks that the built app shows the version and the build number of the project; that build can only be checked on GitHub. Both phone apps also walk the same files of cases (the summary, the link, the stop, the notices, the addresses and the fields they read), so one cannot differ from the other without a test failing.
+`swift test` runs the tests of the Eh3dCore package: the readers of the server's JSON (fleet, jobs, head, measure), the position of the head and the geometry of the two views, the check of the address, the sealed keeping of the session, the comparison of versions, and the languages (the seven tables have the same phrases, and every phrase of the screens is in them). The screens are built with Xcode and are not covered by tests. They also read the examples of the answers that the tests of the server make, so an answer that changes without the app following fails here. The CI also builds the app target for the simulator with XcodeGen and checks that the built app shows the version and the build number of the project; that build can only be checked on GitHub. Both phone apps also walk the same files of cases (the summary, the link, the stop, the notices, the addresses and the fields they read), so one cannot differ from the other without a test failing. `python -I tools/check_app_parity.py` checks that the examples of the answers, the catalog of the refusals and the tables of the 37 languages are the same in both phone apps (the one phrase of the pinned certificate is the only difference allowed), and the CI prints how much of the code that holds rules these tests cover.
 
 ## 🏗️ Build & Release
 

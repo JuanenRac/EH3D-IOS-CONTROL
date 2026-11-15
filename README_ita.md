@@ -31,7 +31,7 @@
 |---|---|
 | Versione | `0.1.0` |
 | Maturità | Impalcatura |
-| Test | test del pacchetto Swift |
+| Test | 232 test del pacchetto Swift |
 | Stack tecnologico | Swift, SwiftUI |
 | Su hardware reale | Non ancora: l'app non è stata eseguita su un iPhone, contro un server reale né con una macchina; la prima cosa da provare è accedere all'EH3D-SERVER dell'officina. |
 
@@ -140,7 +140,7 @@ Aprire l'app, scrivere l'indirizzo del server (e la porta 18200), premere Connet
 
 ## 🧪 Test
 
-`swift test` esegue i test del pacchetto Eh3dCore: i lettori del JSON del server (flotta, lavori, testa, misura), la posizione della testa e la geometria delle due viste, il controllo dell'indirizzo, la conservazione cifrata della sessione, il confronto delle versioni e le lingue (le sette tabelle hanno le stesse frasi e ogni frase delle schermate vi compare). Le schermate si compilano con Xcode e non sono coperte dai test. Leggono anche gli esempi di risposte prodotti dai test del server, così una risposta che cambia senza che l'app la segua fa fallire i test. La CI compila anche il target dell'app per il simulatore con XcodeGen e verifica che l'app compilata mostri la versione e il numero di build del progetto; questa compilazione si può verificare solo su GitHub. Le due app per telefono percorrono inoltre gli stessi file di casi (il riepilogo, la connessione, l'arresto, gli avvisi, gli indirizzi e i campi letti), così una non può differire dall'altra senza che un test fallisca.
+`swift test` esegue i test del pacchetto Eh3dCore: i lettori del JSON del server (flotta, lavori, testa, misura), la posizione della testa e la geometria delle due viste, il controllo dell'indirizzo, la conservazione cifrata della sessione, il confronto delle versioni e le lingue (le sette tabelle hanno le stesse frasi e ogni frase delle schermate vi compare). Le schermate si compilano con Xcode e non sono coperte dai test. Leggono anche gli esempi di risposte prodotti dai test del server, così una risposta che cambia senza che l'app la segua fa fallire i test. La CI compila anche il target dell'app per il simulatore con XcodeGen e verifica che l'app compilata mostri la versione e il numero di build del progetto; questa compilazione si può verificare solo su GitHub. Le due app per telefono percorrono inoltre gli stessi file di casi (il riepilogo, la connessione, l'arresto, gli avvisi, gli indirizzi e i campi letti), così una non può differire dall'altra senza che un test fallisca. `python -I tools/check_app_parity.py` verifica che gli esempi delle risposte, il catalogo dei rifiuti e le tabelle delle 37 lingue siano gli stessi nelle due app per telefono (l'unica frase del certificato fissato è l'unica differenza ammessa), e la CI stampa quanta parte del codice che contiene regole questi test coprono.
 
 ## 🏗️ Compilazione e rilascio
 
