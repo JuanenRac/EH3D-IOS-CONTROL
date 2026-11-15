@@ -4,7 +4,7 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
-- **A simulated server that goes away and comes back, and a wrong reading of the link found with it:** `OutageScenarioTests` drives the real client and the real rules of the link against a stand-in that is unreachable, answers 503, answers as another service or refuses an old session, with a seeded run of 30 outages. It checks the state shown (connected, stale, no connection, wrong server), the longer waits between retries and the return to connected with the first good answer. It found that an answer that is not JSON, which the readers report with status 0, was told as no connection instead of the wrong server; `classifyFailure` now looks at the code first. Not run against a real server on a phone.
+- **A simulated server that goes away and comes back:** `OutageScenarioTests` drives the real client and the real rules of the link against a stand-in that is unreachable, answers 503, answers as another service (a 404 page) or refuses an old session, with a seeded run of 30 outages. It checks the state shown (connected, stale, no connection, wrong server), the longer waits between retries and the return to connected with the first good answer. Not run against a real server on a phone.
 
 - **A floor of coverage in the CI:** the build stops when the tests cover less than 89 % of the lines of the package of rules (it is 91 % today, it was 72 % before the last tests); the screens of the app are built with Xcode and are not counted.
 

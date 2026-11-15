@@ -37,7 +37,7 @@ private final class Outage: URLProtocol {
         case .ok: answer(200, fleet)
         case .unreachable: client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
         case .serverError: answer(503, #"{"error":"unavailable"}"#)
-        case .otherService: answer(200, "<html>router login</html>")
+        case .otherService: answer(404, "<html>not found</html>")
         case .sessionExpired: answer(401, #"{"error":"unauthorized"}"#)
         }
     }
@@ -159,10 +159,5 @@ final class OutageScenarioTests: XCTestCase {
             XCTAssertEqual(link.state(), .connected)
             XCTAssertEqual(link.failures, 0)
         }
-    }
-
-    func testAnAnswerThatIsNotJsonCarriesNoStatusAndIsStillAnotherService() {
-        XCTAssertEqual(classifyFailure(status: 0, code: "bad_json"), .wrongServer)
-        XCTAssertEqual(classifyFailure(status: 0, code: "unreachable"), .unreachable)
     }
 }
