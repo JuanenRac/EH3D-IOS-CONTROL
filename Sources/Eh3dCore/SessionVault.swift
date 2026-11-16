@@ -96,6 +96,18 @@ public final class SessionVault {
         return had
     }
 
+    /// The Keychain survives an uninstall and the preferences do not, so a reinstalled app could find the session of the earlier one. The first time this runs a marker is kept in the
+    /// preferences; when that happens on an app with no other saved setting (`hasOtherSettings` false: nothing was ever connected) the session is forgotten. An app that is being
+    /// updated has its settings and keeps its session. True when the Keychain was cleaned.
+    @discardableResult
+    public func forgetIfReinstalled(hasOtherSettings: Bool) -> Bool {
+        if prefs.get("install_marker") == "1" { return false }
+        prefs.put("install_marker", "1")
+        if hasOtherSettings { return false }
+        forgetAll()
+        return true
+    }
+
     /// The way out of a locked app: forgets the session. The server and its alarms are not touched.
     public func forgetAll() { dropSession(); purgeLegacy() }
 

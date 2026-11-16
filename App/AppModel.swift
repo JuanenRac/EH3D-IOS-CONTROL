@@ -98,6 +98,7 @@ final class AppModel: ObservableObject {
         trust = delegate
         pinnedSession = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
         api = Eh3dApi(origin: prefs.get("origin") ?? "", session: pinnedSession)
+        vault.forgetIfReinstalled(hasOtherSettings: prefs.get("origin") != nil)   // a reinstalled app does not inherit the session the Keychain kept
         vault.purgeLegacy()   // the user and the password that an earlier version kept are deleted at the first start
         rememberMe = vault.loadSession(origin: origin) != nil
         Task { await start() }

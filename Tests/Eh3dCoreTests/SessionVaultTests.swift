@@ -32,6 +32,22 @@ final class SessionVaultTests: XCTestCase {
         XCTAssertTrue(secrets.items.isEmpty)
     }
 
+    func testAReinstalledAppForgetsTheSessionTheKeychainKeptButAnUpdatedOneKeepsIt() {
+        let (vault, secrets) = make()
+        vault.saveSession(SessionCookie(name: "token", value: "abc123"), origin: origin, now: Date(timeIntervalSince1970: 0))
+        XCTAssertTrue(vault.forgetIfReinstalled(hasOtherSettings: false))
+        XCTAssertTrue(secrets.items.isEmpty)
+        // later starts do nothing, and a session made afterwards stays
+        vault.saveSession(SessionCookie(name: "token", value: "def456"), origin: origin, now: Date(timeIntervalSince1970: 0))
+        XCTAssertFalse(vault.forgetIfReinstalled(hasOtherSettings: false))
+        XCTAssertEqual(secrets.items.count, 1)
+
+        let (updated, kept) = make()
+        updated.saveSession(SessionCookie(name: "token", value: "abc123"), origin: origin, now: Date(timeIntervalSince1970: 0))
+        XCTAssertFalse(updated.forgetIfReinstalled(hasOtherSettings: true))
+        XCTAssertEqual(kept.items.count, 1)
+    }
+
     func testTheUserAndThePasswordAnEarlierVersionKeptAreDeleted() {
         let (vault, secrets) = make()
         secrets.write("remembered_login", [origin, "ana", "secret pass"].joined(separator: "\u{1F}"), tiedToUnlock: false)
