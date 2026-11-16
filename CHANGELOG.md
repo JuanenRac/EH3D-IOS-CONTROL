@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A saved certificate pin now needs a real chain:** when the system does not trust the chain, the pin counts only if the chain is evaluated again with the pinned certificate as the only anchor (signed path from the leaf, in date, made for the host). Before, a chain that merely held the pinned certificate behind a forged leaf was accepted. Servers already paired keep working. Tests cover the decision with and without the proof.
+
 - **A reply that is not JSON is the wrong server, not a lost connection:** `classifyFailure` now checks the `bad_json` code before the status, so a body that is not the JSON of EH3D-SERVER is told as another service on the address even when the client could read no status from it (the old order called it no connection). The test that fixed the old behaviour is changed, the case is added to the case files shared with the iPhone app and to the scenarios of the simulated server.
 
 - **Simulation of the stops and of the notices, ported from the Android app:** add `Tests/Eh3dCoreTests/StopScenarioTests.swift`, a simulated EH3D-SERVER with a memory (one machine, one job; a stop reaches the machine two looks later; the server can be made unreachable) and a phone that looks at the fleet every second and a half with the real client and the real rules of the stops and the notices. Three tests cover a stop that is sent, then still working past the grace, then confirmed and gone after a while; a machine that does not stop; and an outage that makes no notice while the changes that happened meanwhile are told when the server is back. Nothing has run against a real server or a phone.
