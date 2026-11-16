@@ -42,13 +42,21 @@ public final class PinStore {
     }
 
     /// Decides about a chain: `chainPins` are the pins of every certificate of the chain, the leaf first; `systemTrusts` is the answer of the system's own evaluation.
-    public func decide(host: String, chainPins: [String], systemTrusts: Bool) -> PinDecision {
+    public func decide(host: String, chainPins: [String], systemTrusts: Bool, verifiedPins: [String]? = nil) -> PinDecision {
         let kept = pins(for: host)
-        if !kept.isEmpty { return chainPins.contains { kept.contains($0) } ? .trusted : .mismatch }
+        if !kept.isEmpty { return PinStore.usable(chainPins, systemTrusts: systemTrusts, verified: verifiedPins).contains { kept.contains($0) } ? .trusted : .mismatch }
         guard let first = chainPins.first else { return .mismatch }
         // the key worth pinning is the one of the authority when there is one above the leaf, and the leaf's own when the server stands alone
         let candidate = chainPins.count > 1 ? chainPins[chainPins.count - 1] : first
         return systemTrusts ? .firstUse(pin: candidate) : .unknownAuthority(pin: candidate)
+    }
+
+    /// The pins of a chain that may count: all of them when the system trusts the chain; otherwise only those the app proved by evaluating the chain with that certificate as the only anchor (a signed
+    /// path from the leaf to it, in date, for the host). `verified` nil means the caller did not check (tests).
+    static func usable(_ chainPins: [String], systemTrusts: Bool, verified: [String]?) -> [String] {
+        if systemTrusts { return chainPins }
+        guard let verified else { return chainPins }
+        return chainPins.filter { verified.contains($0) }
     }
 
     /// The pin that a QR code of EH3D-STUDIO carries: `eh3d-pin:<base64>` (optionally `eh3d-pin:<host>:<base64>`); nil for anything else.

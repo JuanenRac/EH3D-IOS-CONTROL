@@ -28,7 +28,17 @@ final class TrustDelegate: NSObject, URLSessionDelegate {
         let systemTrusts = SecTrustEvaluateWithError(trust, &error)
         let chain = (SecTrustCopyCertificateChain(trust) as? [SecCertificate]) ?? []
         let hashes = chain.compactMap(TrustDelegate.spkiPin)
-        switch pins.decide(host: host, chainPins: hashes, systemTrusts: systemTrusts) {
+        // when the system does not trust the chain, a pin only counts for a certificate that the chain really leads to (see `evaluates`)
+        var verified: [String]?
+        if !systemTrusts {
+            verified = []
+            let kept = pins.pins(for: host)
+            for certificate in chain {
+                guard let pin = TrustDelegate.spkiPin(certificate), kept.contains(pin) else { continue }
+                if TrustDelegate.evaluates(trust, anchoredAt: certificate) { verified = [pin]; break }
+            }
+        }
+        switch pins.decide(host: host, chainPins: hashes, systemTrusts: systemTrusts, verifiedPins: verified) {
         case .trusted:
             completionHandler(.useCredential, URLCredential(trust: trust))
         case .firstUse(let pin):
@@ -43,6 +53,14 @@ final class TrustDelegate: NSObject, URLSessionDelegate {
             lock.lock(); mismatchHost = host; lock.unlock()
             completionHandler(.cancelAuthenticationChallenge, nil)
         }
+    }
+
+    /// Evaluates the chain again with `anchor` as the only certificate it may end in: true when the leaf is signed through the chain up to it, in date, and made for the host. A certificate that is merely
+    /// present in the chain, behind a leaf that the anchor never signed, fails here.
+    static func evaluates(_ trust: SecTrust, anchoredAt anchor: SecCertificate) -> Bool {
+        SecTrustSetAnchorCertificates(trust, [anchor] as CFArray)
+        SecTrustSetAnchorCertificatesOnly(trust, true)
+        return SecTrustEvaluateWithError(trust, nil)
     }
 
     /// The base64 SHA-256 of the SubjectPublicKeyInfo of a certificate: the usual pin. The system gives the bare key, so the header of its algorithm is put in front.

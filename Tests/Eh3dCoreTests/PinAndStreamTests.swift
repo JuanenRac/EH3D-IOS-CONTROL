@@ -96,6 +96,14 @@ final class PinAndStreamTests: XCTestCase {
 
     // ---- the decision about a chain
 
+    func testAPinInAChainTheSystemDoesNotTrustCountsOnlyWhenTheChainWasVerifiedToIt() {
+        let (pins, _) = store()
+        pins.add(pinA, for: "h")
+        XCTAssertEqual(pins.decide(host: "h", chainPins: [pinB, pinA], systemTrusts: false, verifiedPins: []), .mismatch)
+        XCTAssertEqual(pins.decide(host: "h", chainPins: [pinB, pinA], systemTrusts: false, verifiedPins: [pinA]), .trusted)
+        XCTAssertEqual(pins.decide(host: "h", chainPins: [pinB, pinA], systemTrusts: true, verifiedPins: []), .trusted)
+    }
+
     func testAChainWithAKeptPinIsTrustedWhateverTheSystemSays() {
         let (pins, _) = store()
         pins.add(pinA, for: "h")
