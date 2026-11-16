@@ -36,3 +36,12 @@ public func followStops(_ notes: [StopNote], fleet: Fleet, askedMs: Int64, nowMs
         return next
     }
 }
+
+/// Sends a stop and, when it did not reach the server at all (no answer, status 0), sends it once more after `pauseMs`. An answer of the server, whatever it says, is final.
+public func withStopRetry(pauseMs: UInt64 = 250, _ work: () async throws -> Void) async throws {
+    do { try await work() }
+    catch let error as ApiError where error.status == 0 {
+        try await Task.sleep(nanoseconds: pauseMs * 1_000_000)
+        try await work()
+    }
+}

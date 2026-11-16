@@ -135,4 +135,16 @@ final class StopScenarioTests: XCTestCase {
         await look()
         XCTAssertEqual(fleetNotices(before: waiting, now: fleet), [Notice(machineId: "m1", machineName: "Drill 1", kind: .ended)])
     }
+
+    func testAStopThatDidNotReachTheServerIsSentOnceMoreButAnAnswerIsFinal() async throws {
+        var calls = 0
+        try await withStopRetry(pauseMs: 1) { calls += 1; if calls == 1 { throw ApiError(status: 0, code: "", detail: "") } }
+        XCTAssertEqual(calls, 2)
+
+        calls = 0
+        do { try await withStopRetry(pauseMs: 1) { calls += 1; throw ApiError(status: 0, code: "", detail: "") }; XCTFail("must throw") } catch { XCTAssertEqual(calls, 2, "once more, not for ever") }
+
+        calls = 0
+        do { try await withStopRetry(pauseMs: 1) { calls += 1; throw ApiError(status: 503, code: "", detail: "") }; XCTFail("must throw") } catch { XCTAssertEqual(calls, 1, "an answer is not sent again") }
+    }
 }

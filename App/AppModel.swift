@@ -279,7 +279,7 @@ final class AppModel: ObservableObject {
     private func stopping(_ machineId: String?, _ work: @escaping () async throws -> Void) {
         Task {
             do {
-                try await work()
+                try await withStopRetry { try await work() }
                 if let machineId {
                     stopNotes.removeAll { $0.machineId == machineId }
                     stopNotes.append(StopNote(machineId: machineId, machineName: fleet.machine(machineId)?.name ?? machineId, atMs: clock()))
