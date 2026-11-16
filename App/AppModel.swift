@@ -98,6 +98,7 @@ final class AppModel: ObservableObject {
         trust = delegate
         pinnedSession = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
         api = Eh3dApi(origin: prefs.get("origin") ?? "", session: pinnedSession)
+        vault.forgetIfReinstalled(hasOtherSettings: prefs.get("origin") != nil)   // a reinstalled app does not inherit the session the Keychain kept
         vault.purgeLegacy()   // the user and the password that an earlier version kept are deleted at the first start
         rememberMe = vault.loadSession(origin: origin) != nil
         Task { await start() }
@@ -271,20 +272,23 @@ final class AppModel: ObservableObject {
     /// The emergency stop of one machine: its running job is cancelled, which stops the machine and switches the drivers off.
     /// The server ends whatever is active on the machine at once, without waiting for the line it is sending; a stop that did not get there shows its error.
     func emergencyStop(_ machineId: String) { stopping(machineId) { try await self.api.stopMachine(machineId) } }
-    func emergencyStopAll() { for m in fleet.machines where m.job != nil { let id = m.id; stopping(id) { try await self.api.stopMachine(id) } } }
+    /// Every machine the fleet lists, working or not: the last reading may be older than a job that has just started, and stopping an idle machine does no harm.
+    func emergencyStopAll() { for m in fleet.machines { let id = m.id; stopping(id) { try await self.api.stopMachine(id) } } }
 
     /// A stop: when the server takes it a note follows what the fleet says next; when it does not get there the person is told plainly that the machine was NOT stopped.
     private func stopping(_ machineId: String?, _ work: @escaping () async throws -> Void) {
         Task {
             do {
-                try await work()
+                try await withStopRetry { try await work() }
                 if let machineId {
                     stopNotes.removeAll { $0.machineId == machineId }
                     stopNotes.append(StopNote(machineId: machineId, machineName: fleet.machine(machineId)?.name ?? machineId, atMs: clock()))
                 }
                 await refresh()
             } catch let e as ApiError {
-                if e.unauthorized { signOut() } else { message = (e.status == 0 || e.status >= 500) ? tr("La orden de parada NO ha llegado al servidor. Use la parada física de la máquina.") : text(e) }
+                // A stop that did not get there is said plainly in every case, also when the session is the reason (the notice stays for the sign-in screen).
+                message = (e.unauthorized || e.status == 0 || e.status >= 500) ? tr("La orden de parada NO ha llegado al servidor. Use la parada física de la máquina.") : text(e)
+                if e.unauthorized { signOut() }
             } catch { message = tr("La orden de parada NO ha llegado al servidor. Use la parada física de la máquina.") }
         }
     }
