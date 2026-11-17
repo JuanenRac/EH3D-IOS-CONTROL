@@ -154,7 +154,7 @@ public struct JobView: Equatable, Sendable {
 /// The dry run of a plan: how far each axis goes (X, Y, Z in mm from the switches), the steps, the seconds they take and whether every axis stays inside its course.
 public struct DryRun: Equatable, Sendable { public let minMm: [Double]; public let maxMm: [Double]; public let endMm: [Double]; public let steps: Int; public let seconds: Double; public let withinCourse: Bool }
 
-/// What looks wrong in the work: `tiny`, `too_big`, `far`, `scale` or `out_of_course`, the numbers it is about in `values` (mm) and, for the last, the `axis`.
+/// What looks wrong in the work: `tiny`, `too_big`, `far`, `scale`, `out_of_course` or `units_supposed` (no numbers), the numbers it is about in `values` (mm) and, for the last, the `axis`.
 public struct WorkWarning: Equatable, Sendable { public let code: String; public let axis: String; public let values: [Double] }
 
 /// One excess of a tool over the spindle: `rpm_above_max`, `rpm_below_min`, `feed_xy_above_max` or `feed_z_above_max`, the tool, the value asked for and the limit.

@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The warning that a drill file did not state its unit is written in the language of the app:** the server's `units_supposed` warning had no phrase of its own and showed as a generic server warning; it now has its text in the 37 languages.
+
 - **A reinstalled app no longer opens with the session of the earlier install:** the Keychain survives an uninstall and the preferences do not, so the first start of an app with no saved setting forgets the kept session (an updated app keeps it). A unit test covers both cases.
 
 - **A stop that is refused because the session is no longer valid says so, and "stop all" reaches every machine:** the plain notice that the stop did NOT arrive is shown before the app returns to the sign-in, and the stop of the whole fleet is sent to every machine the fleet lists, not only to those with a job in the last reading. Same as the Android app. A stop that got no answer at all is sent once more after 250 ms before the notice is shown; an answer of the server is final.
