@@ -44,6 +44,7 @@ final class AppModel: ObservableObject {
     var offline: Bool { linkState == .offline || linkState == .wrongServer }
     /// The stops that were sent and what the fleet says of them since.
     @Published var stopNotes: [StopNote] = []
+    private var pendingStops: [PendingStop] = []
     /// Whether the summary of a job is shown before it starts (on by default; the person can turn it off in the settings).
     @Published var confirmStart = true
     @Published var message: String?
@@ -156,6 +157,9 @@ final class AppModel: ObservableObject {
         message = nil
         stack = []
         phase = .signedIn
+        let again = stopsToResend(pendingStops, nowMs: clock())
+        pendingStops = []
+        for id in again { stopping(id) { try await self.api.stopMachine(id) } }
         poll()
         return result
     }
@@ -288,7 +292,11 @@ final class AppModel: ObservableObject {
             } catch let e as ApiError {
                 // A stop that did not get there is said plainly in every case, also when the session is the reason (the notice stays for the sign-in screen).
                 message = (e.unauthorized || e.status == 0 || e.status >= 500) ? tr("La orden de parada NO ha llegado al servidor. Use la parada física de la máquina.") : text(e)
-                if e.unauthorized { signOut() }
+                if e.unauthorized {
+                    // the session ended: the stop is kept for a short time and sent again after the next sign-in
+                    if let machineId { pendingStops.removeAll { $0.machineId == machineId }; pendingStops.append(PendingStop(machineId: machineId, atMs: clock())) }
+                    signOut()
+                }
             } catch { message = tr("La orden de parada NO ha llegado al servidor. Use la parada física de la máquina.") }
         }
     }

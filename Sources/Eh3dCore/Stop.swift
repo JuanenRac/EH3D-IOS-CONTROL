@@ -45,3 +45,16 @@ public func withStopRetry(pauseMs: UInt64 = 250, _ work: () async throws -> Void
         try await work()
     }
 }
+
+/// A stop that the server refused because the session had ended (401), kept in memory only until the person signs in again.
+public struct PendingStop: Equatable {
+    public let machineId: String
+    public let atMs: Int64
+    public init(machineId: String, atMs: Int64) { self.machineId = machineId; self.atMs = atMs }
+}
+
+/// The stops to send again after signing in: only those no older than `maxAgeMs`, so a late sign-in never stops a job that was started afterwards.
+public func stopsToResend(_ pending: [PendingStop], nowMs: Int64, maxAgeMs: Int64 = 120_000) -> [String] {
+    var seen = Set<String>()
+    return pending.filter { (0...maxAgeMs).contains(nowMs - $0.atMs) }.map { $0.machineId }.filter { seen.insert($0).inserted }
+}

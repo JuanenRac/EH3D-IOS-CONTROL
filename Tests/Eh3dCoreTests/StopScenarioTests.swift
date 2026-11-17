@@ -147,4 +147,11 @@ final class StopScenarioTests: XCTestCase {
         calls = 0
         do { try await withStopRetry(pauseMs: 1) { calls += 1; throw ApiError(status: 503, code: "", detail: "") }; XCTFail("must throw") } catch { XCTAssertEqual(calls, 1, "an answer is not sent again") }
     }
+
+    func testAStopRefusedForTheEndedSessionIsSentAgainOnlyWhileItIsRecent() {
+        let pending = [PendingStop(machineId: "a", atMs: 1_000), PendingStop(machineId: "b", atMs: 200_000), PendingStop(machineId: "a", atMs: 1_500)]
+        XCTAssertEqual(stopsToResend(pending, nowMs: 250_000), ["b"])
+        XCTAssertEqual(stopsToResend(pending, nowMs: 100_000), ["a"])
+        XCTAssertEqual(stopsToResend(pending, nowMs: 100), [])
+    }
 }
