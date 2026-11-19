@@ -8,6 +8,9 @@ public struct Login: Equatable, Sendable {
     public let role: String
 }
 
+/// The application this app says it logs in for (`POST /auth/login`): the server keeps it with the login and in the audit.
+public let loginApp = "ios"
+
 public final class Eh3dApi: @unchecked Sendable {
     private let origin: String
     public var token: String
@@ -68,7 +71,8 @@ public final class Eh3dApi: @unchecked Sendable {
     public func setup(code: String, name: String, password: String) async throws { _ = try await call("/setup", method: "POST", body: json(["code": code, "name": name, "password": password])) }
 
     public func login(name: String, password: String) async throws -> Login {
-        let j = try JSONSerialization.jsonObject(with: Data(try await call("/login", method: "POST", body: json(["name": name, "password": password])).utf8)) as? [String: Any]
+        // The single login of the server: the application it is for is kept with the login and in the audit.
+        let j = try JSONSerialization.jsonObject(with: Data(try await call("/auth/login", method: "POST", body: json(["name": name, "password": password, "app": loginApp])).utf8)) as? [String: Any]
         return Login(token: (j?["token"] as? String) ?? "", name: (j?["name"] as? String) ?? name, role: (j?["role"] as? String) ?? "viewer")
     }
 

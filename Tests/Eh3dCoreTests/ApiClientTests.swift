@@ -136,8 +136,9 @@ final class ApiClientTests: XCTestCase {
         answer(#"{"token":"t_abc","name":"Ana","role":"operator"}"#)
         let login = try await api().login(name: "ana", password: "secret phrase")
         XCTAssertEqual(login, Login(token: "t_abc", name: "Ana", role: "operator"))
-        XCTAssertEqual(seen[0].path, "/api/v1/login")
+        XCTAssertEqual(seen[0].path, "/api/v1/auth/login")
         XCTAssertEqual(try json(seen[0].body)["name"] as? String, "ana")
+        XCTAssertEqual(try json(seen[0].body)["app"] as? String, "ios")
         XCTAssertNil(seen[0].authorization)
     }
 
