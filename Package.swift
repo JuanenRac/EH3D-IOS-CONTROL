@@ -7,7 +7,7 @@ let package = Package(
     platforms: [.iOS(.v16), .macOS(.v13)],
     products: [.library(name: "Eh3dCore", targets: ["Eh3dCore"])],
     targets: [
-        .target(name: "Eh3dCore", resources: [.copy("Resources/i18n")]),
+        .target(name: "Eh3dCore", resources: [.copy("Resources/i18n"), .copy("Resources/server-errors.json")]),
         .testTarget(name: "Eh3dCoreTests", dependencies: ["Eh3dCore"]),
     ]
 )
