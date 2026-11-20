@@ -59,9 +59,9 @@ final class ServerErrorsTests: XCTestCase {
         let german = try XCTUnwrap(ServerErrors.text("machine_alarm", language: "de"))
         XCTAssertNotEqual(english, spanish)
         XCTAssertNotEqual(spanish, german)
-        XCTAssertTrue(english.hasPrefix("The machine"))
-        XCTAssertTrue(spanish.hasPrefix("La máquina"))
-        XCTAssertTrue(german.hasPrefix("Die Maschine"))
+        XCTAssertTrue(english.hasPrefix("An emergency stop"))
+        XCTAssertTrue(spanish.hasPrefix("Una parada de emergencia"))
+        XCTAssertTrue(german.hasPrefix("Ein Not-Halt"))
     }
 
     func testAVariantTakesTheTextOfItsMainLanguageAndALanguageWithoutATableTakesEnglish() {
