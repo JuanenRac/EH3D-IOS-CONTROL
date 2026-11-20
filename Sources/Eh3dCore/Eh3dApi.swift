@@ -223,6 +223,12 @@ public final class Eh3dApi: @unchecked Sendable {
     /// The switches of security of the server that the app explains (administrators only; any other role is refused with 403).
     public func policySwitches() async throws -> [PolicySwitch] { try parsePolicySwitches(try await call("/auth/policy")) }
 
+    /// The contract of the settings of the server with the values in force (`GET /settings/contract`): administrators only, any other role is refused with 403. Answers the text of the reply.
+    public func settingsContract() async throws -> String { try await call("/settings/contract") }
+
+    /// Writes one setting by the method and the route its entry of the contract names (path without `/api/v1`). Answers the text of the reply: the new policy and, in `changed`, what the server did.
+    public func writeSetting(method: String, path: String, body: String) async throws -> String { try await call(path, method: method, body: body) }
+
     public func session() async throws -> Login {
         let j = try JSONSerialization.jsonObject(with: Data(try await call("/session").utf8)) as? [String: Any]
         return Login(token: token, name: (j?["name"] as? String) ?? "", role: (j?["role"] as? String) ?? "viewer")

@@ -44,6 +44,7 @@ private struct Frame: View {
                 case .help: HelpView(model: model)
                 case .about: AboutView(model: model)
                 case .languages: LanguageView(model: model)
+                case .serverSettings: ServerSettingsView(model: model)
                 case .machine(let id): MachineView(model: model, id: id)
                 case .job(let id): JobDetailView(model: model, id: id)
                 case .prepare(let id): PrepareView(model: model, machineId: id)

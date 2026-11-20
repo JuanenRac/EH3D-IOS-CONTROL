@@ -92,6 +92,20 @@
         },
         {
           "desc": {
+            "en": "the server settings from its contract",
+            "es": "los ajustes del servidor y su contrato",
+            "it": "le impostazioni dal contratto",
+            "de": "Servereinstellungen aus dem Vertrag",
+            "fr": "les réglages tirés du contrat",
+            "pt": "as definições a partir do contrato",
+            "zh": "由契约绘制的服务器设置",
+            "ja": "契約から描くサーバー設定"
+          },
+          "name": "SettingsContract.swift",
+          "tree_name": "SettingsContract.swift"
+        },
+        {
+          "desc": {
             "en": "the camera stream, the pins, the small pieces",
             "es": "el flujo de la cámara, los pines, las piezas pequeñas",
             "it": "il flusso della telecamera, i pin, i pezzi piccoli",
@@ -162,6 +176,20 @@
           },
           "name": "Viewers.swift  MoreView.swift  Theme.swift",
           "tree_name": "Viewers.swift MoreView.swift Theme.swift"
+        },
+        {
+          "desc": {
+            "en": "the page of the settings of the server",
+            "es": "la página de ajustes del servidor",
+            "it": "la pagina delle impostazioni del server",
+            "de": "die Seite mit den Einstellungen des Servers",
+            "fr": "la page des réglages du serveur",
+            "pt": "a página de definições do servidor",
+            "zh": "服务器设置页面",
+            "ja": "サーバー設定のページ"
+          },
+          "name": "SettingsView.swift",
+          "tree_name": "SettingsView.swift"
         },
         {
           "desc": {

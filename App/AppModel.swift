@@ -7,6 +7,8 @@ import Eh3dCore
 
 enum Page: Hashable {
     case home, jobs, more, help, about, languages
+    /// Every setting and switch of the server, drawn from its contract.
+    case serverSettings
     case machine(String)
     case job(String)
     /// The page that prepares a job on a machine: what to do, the file, its tools and where to start.
@@ -25,6 +27,12 @@ struct PrepareUi {
     var loading = false, busy = false
     func side(_ side: Side) -> SideState { side == .drill ? drill : route }
     mutating func set(_ side: Side, _ state: SideState) { if side == .drill { drill = state } else { route = state } }
+}
+
+/// What became of the last change of a setting: it was saved (or not) and the sentence to say it, in the language of the app.
+struct SettingNote: Equatable {
+    let ok: Bool
+    let text: String
 }
 
 enum Phase { case booting, signedOut, firstSetup, signedIn }
@@ -84,6 +92,10 @@ final class AppModel: ObservableObject {
     /// The jobs of the generic queue of the server (the ones of the machines of the plugins) and, for an administrator, the switches of security of the server that the app explains.
     @Published var workJobs: [WorkJob] = []
     @Published var switches: [PolicySwitch] = []
+    /// The page of the settings: the contract (the live one, or the copy of the app read-only), what became of each change and the key that is being saved.
+    @Published var settingsView: LoadedContract?
+    @Published var settingsNotes: [String: SettingNote] = [:]
+    @Published var settingsBusy: String?
 
     let translator: Translator
     private let prefs = PreferencesStore()
@@ -113,6 +125,8 @@ final class AppModel: ObservableObject {
         let loadedConnection = ConnectionSettings.read(int: { key, fallback in store.get(key).flatMap { Int($0) } ?? fallback }, bool: { key, fallback in store.get(key).map { $0 == "1" } ?? fallback })
         connection = loadedConnection
         ServerErrors.ensureBundled()
+        SettingsTexts.ensureBundled()
+        EmbeddedContract.ensureBundled()
         vault = SessionVault(secrets: KeychainSecrets(), prefs: prefs)
         let delegate = TrustDelegate(pins: PinStore(prefs))
         trust = delegate
@@ -293,6 +307,43 @@ final class AppModel: ObservableObject {
             do { switches = try await api.policySwitches() }
             catch let e as ApiError { if e.unauthorized { signOut() } else if e.status != 0 { switches = [] } }
             catch {}
+        }
+    }
+
+    /// Reads the contract of the settings of the server: the live one for an administrator; when the server does not give it, the copy of the app, read-only, with the reason.
+    func loadSettings() {
+        Task {
+            settingsView = await loadContract(read: { () async throws -> String in
+                do { return try await self.api.settingsContract() }
+                catch let e as ApiError { if e.unauthorized { self.signOut() }; throw e }
+            }, embedded: EmbeddedContract.get())
+        }
+    }
+
+    /// Sends one change of a setting by the route its entry of the contract names (the screen has asked a second time when the risk is high). A value looser than recommended makes the server ask for
+    /// `confirm_weak`: `onWeak` is called so the screen asks again, and nothing is sent twice by itself.
+    func changeSetting(_ setting: Setting, value: SettingValue, confirmWeak: Bool, onWeak: @escaping () -> Void) {
+        if settingsBusy != nil { return }
+        settingsBusy = setting.key
+        settingsNotes[setting.key] = nil
+        Task {
+            defer { settingsBusy = nil }
+            do {
+                let result = try await saveSetting(send: { method, path, body in try await self.api.writeSetting(method: method, path: path, body: body) }, setting, value: value, confirmWeak: confirmWeak)
+                switch result {
+                case .saved(let restart):
+                    settingsNotes[setting.key] = SettingNote(ok: true, text: SettingsTexts.text(restart ? "ssc_saved_restart" : "ssc_saved", language: language))
+                    loadSettings()
+                case .needsWeakConfirm:
+                    onWeak()
+                case .refused(let error):
+                    if error.unauthorized { signOut() } else {
+                        let words = text(error)
+                        settingsNotes[setting.key] = SettingNote(ok: false, text: words)
+                        message = words
+                    }
+                }
+            } catch { message = error.localizedDescription }
         }
     }
 
@@ -630,6 +681,12 @@ final class AppModel: ObservableObject {
 
     func requestNotices() { UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in } }
 
+    /// A refusal of a change of the settings: the sentence of the code in the language of the app, then the detail of the server, which names the key.
+    private func policyText(_ e: ApiError) -> String {
+        let joined = [ServerErrors.text(e.code, language: language), e.detail == e.code ? nil : e.detail].compactMap { $0 }.joined(separator: " ")
+        return joined.isEmpty ? e.code : joined
+    }
+
     private func text(_ e: ApiError) -> String {
         if e.status == 0 && trust.takeMismatch() { return tr("El certificado del servidor no es el que se guardó la primera vez: no se conecta.") }
         if e.status == 0 { return tr("No se alcanza el servidor. Compruebe la dirección y que el teléfono está en la misma red.") }
@@ -651,6 +708,7 @@ final class AppModel: ObservableObject {
         if e.code == "not_stopped" { return tr("Solo se puede seguir desde un trabajo cancelado o fallido.") }
         if e.code == "no_work" { return tr("No queda nada por hacer: todas las herramientas están desactivadas o el trabajo ya está hecho.") }
         if e.code == "head_unreachable" { return tr("El nodo del cabezal no responde.") }
+        if e.code == "bad_policy" || e.code == "weak_confirm_required" || e.code == "forbidden_scope" { return policyText(e) }
         if let words = refusalText(e.code) { return words }
         if let words = ServerErrors.text(e.code, language: language) { return words }
         if e.status == 403 { return tr("Su usuario solo puede ver: no puede hacer esto.") }
