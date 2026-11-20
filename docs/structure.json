@@ -50,17 +50,17 @@
         },
         {
           "desc": {
-            "en": "the client of the API of the server",
-            "es": "el cliente de la API del servidor",
-            "it": "il client dell'API del server",
-            "de": "der Client der Server-API",
-            "fr": "le client de l'API du serveur",
-            "pt": "o cliente da API do servidor",
-            "zh": "服务器 API 客户端",
-            "ja": "サーバー API クライアント"
+            "en": "the API client and the connection",
+            "es": "el cliente de la API y la conexión",
+            "it": "il client dell'API e la connessione",
+            "de": "der API-Client und die Verbindung",
+            "fr": "le client de l'API et la connexion",
+            "pt": "o cliente da API e a ligação",
+            "zh": "API 客户端与连接",
+            "ja": "API クライアントと接続"
           },
-          "name": "Eh3dApi.swift",
-          "tree_name": "Eh3dApi.swift"
+          "name": "Eh3dApi.swift  Connection.swift",
+          "tree_name": "Eh3dApi.swift Connection.swift"
         },
         {
           "desc": {
@@ -78,17 +78,17 @@
         },
         {
           "desc": {
-            "en": "the 37 languages",
-            "es": "los 37 idiomas",
-            "it": "le 37 lingue",
-            "de": "die 37 Sprachen",
-            "fr": "les 37 langues",
-            "pt": "os 37 idiomas",
-            "zh": "37 种语言",
-            "ja": "37言語"
+            "en": "the 37 languages, the refusal texts",
+            "es": "los 37 idiomas, los textos de las negativas",
+            "it": "le 37 lingue, i testi dei rifiuti",
+            "de": "die 37 Sprachen, die Ablehnungstexte",
+            "fr": "les 37 langues, les textes des refus",
+            "pt": "os 37 idiomas, os textos das recusas",
+            "zh": "37 种语言，拒绝信息文本",
+            "ja": "37言語、拒否メッセージ"
           },
-          "name": "Tr.swift  Resources/i18n/",
-          "tree_name": "Tr.swift Resources/i18n/"
+          "name": "Tr.swift  ServerErrors.swift  Resources/",
+          "tree_name": "Tr.swift ServerErrors.swift Resources/"
         },
         {
           "desc": {

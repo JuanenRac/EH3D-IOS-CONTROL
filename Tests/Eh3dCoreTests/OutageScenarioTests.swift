@@ -53,7 +53,7 @@ final class OutageScenarioTests: XCTestCase {
         Outage.set(.ok)
     }
 
-    private func api() -> Eh3dApi { Eh3dApi(origin: origin, token: "t", session: Outage.session()) }
+    private func api() -> Eh3dApi { Eh3dApi(origin: origin, token: "t", settings: ConnectionSettings(retries: 0), session: Outage.session()) }
 
     /// One poll of the app: asks for the fleet and keeps the link the way the app does (the server that answers as itself, even with a refusal, is a link that works).
     private func poll(_ link: ServerLink, at nowMs: Int64) async -> ServerLink {

@@ -144,6 +144,17 @@ private struct EntryView: View {
                             Spacer()
                             Button(model.busy ? model.tr("Conectando…") : model.tr("Conectar")) { model.connect(host: host, port: port) }.buttonStyle(.bordered).disabled(host.isEmpty || model.busy)
                         }
+                        if model.connection.mdns {
+                            HStack(spacing: 8) {
+                                Button { model.searchNetwork() } label: { HStack { if model.searching { ProgressView().tint(Forge.amber) }; Text(model.tr("Buscar en la red")) } }
+                                    .buttonStyle(.bordered).disabled(model.searching || model.busy)
+                                Spacer()
+                            }
+                            ForEach(model.candidates, id: \.label) { found in
+                                Button(found.label) { host = found.host; port = String(found.port) }.buttonStyle(.bordered)
+                            }
+                            if model.searchEnded && model.candidates.isEmpty { Text(model.tr("No se ha encontrado ningún servidor.")).font(.caption).foregroundColor(Forge.dim) }
+                        }
                         if ServerEndpoint.needsSecureConnection(host) { Text(model.tr("Fuera de la red local solo se admite https://: la contraseña no viajará sin cifrar.")).font(.caption).foregroundColor(Forge.orange) }
                         Title(setup ? model.tr("Primer administrador") : model.tr("Iniciar sesión"))
                         if setup {

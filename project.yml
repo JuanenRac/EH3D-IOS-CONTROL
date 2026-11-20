@@ -32,6 +32,8 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         NSLocalNetworkUsageDescription: Reaches your EH3D server on your workshop network.
+        # the search for the server on the local network (off by default) browses this Bonjour service
+        NSBonjourServices: ["_eh3d._tcp"]
         NSAppTransportSecurity:
           # plain http is allowed only for addresses of the local network; the app itself refuses http to anything else
           NSAllowsLocalNetworking: true

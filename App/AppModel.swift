@@ -69,6 +69,18 @@ final class AppModel: ObservableObject {
     private var previewing: Task<Void, Never>?
     @Published var stack: [Page] = []
     @Published var language: String
+    /// The time-out, the retries and the search on the local network (off unless the person turns it on), as the settings of the connection keep them.
+    @Published var connection = ConnectionSettings()
+    /// The servers found on the local network, for the person to choose one; nothing connects by itself.
+    @Published var candidates: [Candidate] = []
+    @Published var searching = false
+    /// True once a search has ended (so "nothing found" is only said after one).
+    @Published var searchEnded = false
+    private var discovery: ServerDiscovery?
+    private var searchTimer: Task<Void, Never>?
+    /// The open logins of the person (this phone, Studio, the others) and the machines of the plugins of the server.
+    @Published var sessionList: [AuthSession] = []
+    @Published var workMachines: [WorkMachine] = []
 
     let translator: Translator
     private let prefs = PreferencesStore()
@@ -94,11 +106,14 @@ final class AppModel: ObservableObject {
         language = chosen
         origin = prefs.get("origin") ?? ""
         confirmStart = prefs.get("confirm_start") != "0"
+        let store = prefs
+        connection = ConnectionSettings.read(int: { key, fallback in store.get(key).flatMap { Int($0) } ?? fallback }, bool: { key, fallback in store.get(key).map { $0 == "1" } ?? fallback })
+        ServerErrors.ensureBundled()
         vault = SessionVault(secrets: KeychainSecrets(), prefs: prefs)
         let delegate = TrustDelegate(pins: PinStore(prefs))
         trust = delegate
         pinnedSession = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
-        api = Eh3dApi(origin: prefs.get("origin") ?? "", session: pinnedSession)
+        api = Eh3dApi(origin: prefs.get("origin") ?? "", settings: connection, session: pinnedSession)
         vault.forgetIfReinstalled(hasOtherSettings: prefs.get("origin") != nil)   // a reinstalled app does not inherit the session the Keychain kept
         vault.purgeLegacy()   // the user and the password that an earlier version kept are deleted at the first start
         rememberMe = vault.loadSession(origin: origin) != nil
@@ -107,10 +122,14 @@ final class AppModel: ObservableObject {
 
     private func start() async {
         if origin.isEmpty { phase = .signedOut; return }
-        api = Eh3dApi(origin: origin, session: pinnedSession)
+        api = Eh3dApi(origin: origin, settings: connection, session: pinnedSession)
         if let kept = vault.loadSession(origin: origin) {
             api.token = kept.value
-            if let me = try? await api.session() { login = me; phase = .signedIn; poll(); return }
+            if let me = try? await api.session() {
+                login = me
+                _ = try? await api.refresh()   // a session that is back from a start gets its life whole again, and the app learns how long it lasts
+                phase = .signedIn; poll(); return
+            }
             vault.dropSession(); api.token = ""
         }
         phase = .signedOut
@@ -121,7 +140,7 @@ final class AppModel: ObservableObject {
         Task {
             busy = true; defer { busy = false }
             do {
-                let probe = Eh3dApi(origin: endpoint.origin, session: pinnedSession)
+                let probe = Eh3dApi(origin: endpoint.origin, settings: connection, session: pinnedSession)
                 let needed = try await probe.setupNeeded()
                 api = probe; origin = endpoint.origin; prefs.put("origin", origin)
                 phase = needed ? .firstSetup : .signedOut
@@ -147,7 +166,7 @@ final class AppModel: ObservableObject {
     }
 
     private func doSignIn(origin address: String, name: String, password: String, remember: Bool) async throws -> Login {
-        if api.token.isEmpty && origin != address { api = Eh3dApi(origin: address, session: pinnedSession); origin = address }
+        if api.token.isEmpty && origin != address { api = Eh3dApi(origin: address, settings: connection, session: pinnedSession); origin = address }
         let result = try await api.login(name: name.trimmingCharacters(in: .whitespaces), password: password)
         api.token = result.token
         login = result
@@ -164,16 +183,82 @@ final class AppModel: ObservableObject {
         return result
     }
 
-    func signOut() {
+    func signOut(everywhere: Bool = false) {
         poller?.cancel()
-        // the call that ends the session goes with the token that is being closed, not with the empty one set just below
-        let closing = Eh3dApi(origin: origin, token: api.token, session: pinnedSession)
-        Task { await closing.logout() }
+        stopSearch()
+        // the call that ends the session goes with the token that is being closed, not with the empty one set just below; a sign-out waits for nothing, so it is not tried again
+        let closing = Eh3dApi(origin: origin, token: api.token, settings: ConnectionSettings(timeoutS: connection.timeoutS, retries: 0), session: pinnedSession)
+        Task {
+            if everywhere { _ = try? await closing.logoutAll() } else { await closing.logout() }
+        }
         vault.forgetAll()
         rememberMe = false
         api.token = ""
         login = nil; fleet = .empty; job = nil; head = nil; jobs = []; stack = []
+        sessionList = []; workMachines = []
         phase = .signedOut
+    }
+
+    // ---- the settings of the connection
+    private func saveConnection(_ value: ConnectionSettings) {
+        connection = value
+        api.settings = value
+        prefs.put(ConnectionSettings.keyTimeout, String(value.timeoutS))
+        prefs.put(ConnectionSettings.keyRetries, String(value.retries))
+        prefs.put(ConnectionSettings.keyMdns, value.mdns ? "1" : "0")
+    }
+
+    func chooseTimeout(_ seconds: Int) { saveConnection(connection.withTimeout(seconds)) }
+    func chooseRetries(_ count: Int) { saveConnection(connection.withRetries(count)) }
+
+    /// The search for the server on the local network is off by default; turning it off also stops a search that is running and forgets what it found.
+    func chooseMdns(_ on: Bool) {
+        saveConnection(connection.withMdns(on))
+        if !on { stopSearch(); candidates = [] }
+    }
+
+    /// Looks for `_eh3d._tcp` on the local network for a few seconds (only when the person turned the search on); what is found is shown, never used by itself.
+    func searchNetwork() {
+        if !connection.mdns || searching { return }
+        candidates = []
+        searchEnded = false
+        searching = true
+        let found = ServerDiscovery { [weak self] host, port in
+            Task { @MainActor in
+                guard let self else { return }
+                self.candidates = addCandidate(self.candidates, host: host, port: port)
+            }
+        }
+        discovery = found
+        found.start()
+        searchTimer = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 8_000_000_000)
+            if !Task.isCancelled { self?.stopSearch() }
+        }
+    }
+
+    func stopSearch() {
+        searchTimer?.cancel(); searchTimer = nil
+        discovery?.stop(); discovery = nil
+        if searching { searchEnded = true }
+        searching = false
+    }
+
+    // ---- the open logins
+    func loadSessions() {
+        Task {
+            do { sessionList = try await api.sessions() }
+            catch let e as ApiError { if e.unauthorized { signOut() } else if !e.forbidden { message = text(e) } }
+            catch { message = error.localizedDescription }
+        }
+    }
+
+    func closeSession(_ id: String) {
+        Task {
+            do { try await api.closeSession(id); sessionList = try await api.sessions() }
+            catch let e as ApiError { if e.unauthorized { signOut() } else { message = text(e) } }
+            catch { message = error.localizedDescription }
+        }
     }
 
     func dismissMessage() { message = nil }
@@ -236,6 +321,10 @@ final class AppModel: ObservableObject {
                 if page == here { jobs = list }
             case .job(let id): job = try await api.job(id)
             case .jobs: jobs = try await api.jobs()
+            case .home:
+                // a server without plugins has none
+                do { workMachines = try await api.workMachines() }
+                catch let e as ApiError { if e.unauthorized { throw e } else if e.status != 0 { workMachines = [] } }
             default: break
             }
             link = link.succeeded(nowMs: clock())
@@ -524,6 +613,7 @@ final class AppModel: ObservableObject {
         if e.code == "no_work" { return tr("No queda nada por hacer: todas las herramientas están desactivadas o el trabajo ya está hecho.") }
         if e.code == "head_unreachable" { return tr("El nodo del cabezal no responde.") }
         if let words = refusalText(e.code) { return words }
+        if let words = ServerErrors.text(e.code, language: language) { return words }
         if e.status == 403 { return tr("Su usuario solo puede ver: no puede hacer esto.") }
         return trf("El servidor respondió: %s", e.detail.isEmpty ? e.code : e.detail)
     }

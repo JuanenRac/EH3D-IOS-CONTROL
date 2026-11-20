@@ -42,6 +42,10 @@ struct HomeView: View {
                 }
                 if fleet.machines.isEmpty { Card { Text(model.offline ? model.tr("Sin conexión con el servidor.") : model.tr("El servidor no tiene máquinas todavía. Se añaden desde EH3D-STUDIO.")).foregroundColor(Forge.dim) } }
                 ForEach(fleet.machines, id: \.id) { m in MachineCard(model: model, m: m).onTapGesture { model.open(.machine(m.id)) } }
+                if !model.workMachines.isEmpty {
+                    Title(model.tr("Otras máquinas"))
+                    ForEach(model.workMachines, id: \.id) { w in WorkMachineCard(model: model, w: w) }
+                }
             }.padding(.horizontal, 16).padding(.top, 12)
         }
         .confirmationDialog(model.tr("PARADA DE EMERGENCIA"), isPresented: $askAll, titleVisibility: .visible) {
@@ -72,6 +76,31 @@ struct MachineCard: View {
                 Text(model.trf("%d de %d hechos · quedan %s", job.itemsDone, job.itemsTotal, formatDuration(job.remainingS))).font(.caption).foregroundColor(Forge.dim)
             } else if m.ready > 0 {
                 Text(model.trf("%d trabajo(s) listo(s) para empezar", m.ready)).font(.caption).foregroundColor(Forge.dim)
+            }
+        }
+    }
+}
+
+/// A machine of a plugin of the server (laser, pick-and-place, printer...): its state and what the plugin says of it in `detail`; a latched one is red.
+struct WorkMachineCard: View {
+    @ObservedObject var model: AppModel
+    let w: WorkMachine
+    var body: some View {
+        let busy = w.state == "busy"
+        let color = w.latched ? Forge.danger : busy ? Forge.amber : Forge.green
+        let word = w.latched ? model.tr("Bloqueada") : busy ? model.tr("Trabajando") : model.tr("Libre")
+        Card(accent: color) {
+            HStack(spacing: 10) {
+                Light(color: color, live: busy && !w.latched)
+                VStack(alignment: .leading) {
+                    Text(w.name).font(.headline).foregroundColor(Forge.text)
+                    Text(w.plugin).font(.caption).foregroundColor(Forge.dim)
+                }
+                Spacer()
+                Pill(text: word, color: color)
+            }
+            ForEach(Array(w.detail.prefix(8).enumerated()), id: \.offset) { _, line in
+                Text("\(line.key): \(line.value)").font(.caption).foregroundColor(Forge.dim)
             }
         }
     }

@@ -31,7 +31,7 @@
 |---|---|
 | Version | `0.1.1` |
 | Maturité | Échafaudage |
-| Tests | 240 tests du paquet Swift |
+| Tests | 307 tests du paquet Swift |
 | Pile technique | Swift, SwiftUI |
 | Sur du matériel réel | Pas encore : l'application n'a pas été exécutée sur un iPhone, contre un vrai serveur ni avec une machine ; la première chose à essayer est de se connecter au EH3D-SERVER de l'atelier. |
 
@@ -48,6 +48,7 @@ Chaque ligne est une partie de ce dépôt et le feu dit où elle en est aujourd'
 | Logiciel | 🟠 | Les écrans et les règles de l'application sont écrits pour iPhone ; les règles se compilent et se testent sans téléphone. |
 | Tests | 🟡 | tests du paquet Swift : ce que dit le serveur de la flotte, des travaux et de la tête, la position de la tête, la géométrie 2D et isométrique, les langues et les contrôles d'adresse et de version. |
 | Surveillance | 🟠 | Chaque machine de l'atelier avec son état, son travail, la progression, les étapes faites et le temps restant, lu depuis le serveur toutes les secondes et demie ; un avis quand une machine attend l'opérateur ou s'arrête. Écrit, non exécuté contre un vrai serveur. |
+| Connexion | 🟠 | La session se renouvelle d'elle-même dans le dernier quart de sa durée de vie, les sessions ouvertes peuvent être listées et fermées, les refus du serveur sont dits en huit langues depuis la même table que Studio, et le délai d'attente, les nouvelles tentatives et une recherche facultative du serveur sur le réseau local (désactivée par défaut) sont des réglages. Écrit et testé contre un serveur simulé ; non exécuté contre un vrai serveur ni sur un iPhone. |
 | Arrêt d'urgence | 🟠 | Un bouton rouge qui demande deux fois et annule le travail en cours via le serveur (une machine ou toutes) ; la confirmation des étapes qu'attend un travail. Seulement opérateurs et administrateurs. Il n'a jamais arrêté une vraie machine et ne remplace pas son arrêt physique. |
 | Préparer des travaux | 🟠 | Choisir perçage, fraisage, les deux ou un programme G-code et le fichier du téléphone ; les outils du fichier avec leur nombre (et leur diamètre quand le fichier le déclare), désactiver des outils, commencer par l'un d'eux ; mettre en pause, reprendre, annuler et reprendre un travail arrêté (de tout type) là où il s'est arrêté, avec le fichier gardé par le serveur ; lire l'interrupteur des lignes `$` de GRBL de la machine. Le serveur n'a pas de liste de fichiers : le fichier est envoyé depuis le téléphone. Écrit, jamais exécuté contre un vrai serveur ni une vraie machine. |
 | Visionneuse 2D et 3D | 🟠 | La carte, les trous (un anneau jusqu'au perçage), les trajets (pâles jusqu'à la coupe) et la tête, en 2D et dans une vue isométrique qui tourne au doigt ; la position de la tête est une estimation à partir des étapes faites. Testé comme géométrie, jamais vu sur un téléphone. |
@@ -159,9 +160,9 @@ La version vit dans `eh3d.project.json` et dans `project.yml`, et chaque version
 EH3D-IOS-CONTROL/
 ├── Sources/Eh3dCore/
 │   ├── Models.swift Prepare.swift Geometry.swift     ce que dit le serveur ; les règles du dessin
-│   ├── Eh3dApi.swift                                 le client de l'API du serveur
+│   ├── Eh3dApi.swift Connection.swift                le client de l'API et la connexion
 │   ├── ServerEndpoint.swift SessionVault.swift       les contrôles d'adresse et la session chiffrée
-│   ├── Tr.swift Resources/i18n/                      les 37 langues
+│   ├── Tr.swift ServerErrors.swift Resources/        les 37 langues, les textes des refus
 │   └── MjpegParser.swift Trust.swift Support.swift   le flux de la caméra, les empreintes, les petites pièces
 ├── App/
 │   ├── Eh3dApp.swift AppModel.swift                  l'application et son état

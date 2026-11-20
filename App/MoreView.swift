@@ -71,6 +71,22 @@ struct MoreView: View {
                     Text(model.login.map { "\($0.name) · \(roleName($0.role, model.tr))" } ?? "").foregroundColor(Forge.text)
                     Text(model.origin).font(.caption).foregroundColor(Forge.dim)
                     Button(model.tr("Cerrar sesión")) { model.signOut() }.buttonStyle(.bordered)
+                    Button(model.tr("Cerrar la sesión en todos los aparatos")) { model.signOut(everywhere: true) }.buttonStyle(.bordered)
+                }
+                if !model.sessionList.isEmpty {
+                    Card {
+                        Title(model.tr("Sesiones abiertas"))
+                        ForEach(model.sessionList, id: \.id) { entry in
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text([entry.app.isEmpty ? "-" : entry.app, entry.ip].filter { !$0.isEmpty }.joined(separator: " · ")).foregroundColor(Forge.text)
+                                    if entry.current { Text(model.tr("Esta sesión")).font(.caption).foregroundColor(Forge.amber) }
+                                }
+                                Spacer()
+                                if !entry.current { Button(model.tr("Cerrar")) { model.closeSession(entry.id) } }
+                            }
+                        }
+                    }
                 }
                 Card {
                     Title(model.tr("Actualización desde GitHub"))
@@ -91,11 +107,29 @@ struct MoreView: View {
                     Button(model.tr("Avisos")) { model.requestNotices() }.buttonStyle(.bordered)
                 }
                 Card {
+                    Title(model.tr("Conexión con el servidor"))
+                    HStack {
+                        Text(model.trf("Tiempo de espera de cada intento: %d s", model.connection.timeoutS)).foregroundColor(Forge.text)
+                        Spacer()
+                        Button("-") { model.chooseTimeout(model.connection.timeoutS - 5) }.buttonStyle(.bordered)
+                        Button("+") { model.chooseTimeout(model.connection.timeoutS + 5) }.buttonStyle(.bordered)
+                    }
+                    HStack {
+                        Text(model.trf("Reintentos tras un fallo de red: %d", model.connection.retries)).foregroundColor(Forge.text)
+                        Spacer()
+                        Button("-") { model.chooseRetries(model.connection.retries - 1) }.buttonStyle(.bordered)
+                        Button("+") { model.chooseRetries(model.connection.retries + 1) }.buttonStyle(.bordered)
+                    }
+                    Toggle(model.tr("Buscar el servidor en la red local (mDNS)"), isOn: Binding(get: { model.connection.mdns }, set: { model.chooseMdns($0) })).foregroundColor(Forge.text)
+                    Text(model.tr("Apagado por defecto. Lo que se encuentra solo se propone: nunca se conecta solo, y cualquier aparato de la red puede responder.")).font(.caption).foregroundColor(Forge.dim)
+                }
+                Card {
                     Button { model.open(.help) } label: { Text(model.tr("Ayuda")).foregroundColor(Forge.text) }
                     Button { model.open(.about) } label: { Text(model.tr("Acerca de")).foregroundColor(Forge.text) }
                 }
             }.padding(.horizontal, 16)
         }
+        .onAppear { model.loadSessions() }
     }
 
     /// Looks at the newest release of this project on GitHub (public, no sign-in); iPhones cannot be updated from outside the store, so the app only tells and links to it.

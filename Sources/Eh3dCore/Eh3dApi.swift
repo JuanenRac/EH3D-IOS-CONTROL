@@ -2,31 +2,83 @@
 // Copyright (C) 2026 JuanenRac (Electro Hobby 3D). GPL-3.0-or-later.
 import Foundation
 
+/// Who is signed in: the token (a login's or a program's), the name and the role (`viewer`, `operator` or `admin`); the id of the login and the seconds it lasts, when the server says them.
 public struct Login: Equatable, Sendable {
     public let token: String
     public let name: String
     public let role: String
+    public let sessionId: String
+    public let expiresS: Int
+    public init(token: String, name: String, role: String, sessionId: String = "", expiresS: Int = 0) {
+        self.token = token; self.name = name; self.role = role; self.sessionId = sessionId; self.expiresS = expiresS
+    }
 }
 
 /// The application this app says it logs in for (`POST /auth/login`): the server keeps it with the login and in the audit.
 public let loginApp = "ios"
 
+/// The client of the API. It follows the client of the suite (docs/SERVER_CLIENT.md of EH3D-COMMON): every try has `settings.timeoutS` seconds; after a failure on the network it waits 200 ms, 400 ms... and tries
+/// again up to `retries` more times, and a POST is never sent twice (only a connection that could not be made is tried again for any method); a login that is in the last quarter of its life is renewed by itself
+/// before the next request; a 401 makes it forget the token. `pause` and `clockMs` are the waiting and the clock, so the tests do not wait.
 public final class Eh3dApi: @unchecked Sendable {
     private let origin: String
     public var token: String
+    /// The time-out, the retries and the search on the network; the app changes them while it runs.
+    public var settings: ConnectionSettings
+    /// Whether a request renews a login that is in the last quarter of its life; the tests turn it off.
+    public var autoRefresh = true
     private let urlSession: URLSession
     private let version: String
+    private let pause: @Sendable (Int) async -> Void
+    private let clockMs: @Sendable () -> Int64
 
-    public init(origin: String, token: String = "", session: URLSession = .shared, version: String = "0.0.1") {
+    // How long the login lasts and when it ends (milliseconds of `clockMs`); 0 while the app does not know. Always touched through `lock`.
+    private let lock = NSLock()
+    private var lifeTotalS = 0
+    private var expiresAtMs: Int64 = 0
+    private var renewing = false
+
+    public init(origin: String, token: String = "", settings: ConnectionSettings = ConnectionSettings(), session: URLSession = .shared, version: String = "0.0.1",
+                pause: @escaping @Sendable (Int) async -> Void = { ms in _ = try? await Task.sleep(nanoseconds: UInt64(max(ms, 0)) * 1_000_000) },
+                clockMs: @escaping @Sendable () -> Int64 = { Int64(DispatchTime.now().uptimeNanoseconds / 1_000_000) }) {
         self.origin = origin.hasSuffix("/") ? String(origin.dropLast()) : origin
         self.token = token
+        self.settings = settings
         self.urlSession = session
         self.version = version
+        self.pause = pause
+        self.clockMs = clockMs
     }
+
+    /// Takes the life of a login the server has just told (`expires_s`), counted from now.
+    private func adoptLife(_ expiresS: Int) {
+        if expiresS <= 0 { return }
+        let now = clockMs()
+        lock.lock(); defer { lock.unlock() }
+        if lifeTotalS <= 0 || expiresS > lifeTotalS { lifeTotalS = expiresS }
+        expiresAtMs = now + Int64(expiresS) * 1000
+    }
+
+    private func forgetToken() {
+        token = ""
+        lock.lock(); defer { lock.unlock() }
+        lifeTotalS = 0; expiresAtMs = 0
+    }
+
+    /// True when this call took the right to renew (a login in the last quarter of its life that nobody is renewing).
+    private func beginRenewal() -> Bool {
+        let now = clockMs()
+        lock.lock(); defer { lock.unlock() }
+        if renewing || !RefreshRule.due(totalS: lifeTotalS, leftS: Int((expiresAtMs - now) / 1000)) { return false }
+        renewing = true
+        return true
+    }
+
+    private func endRenewal() { lock.lock(); defer { lock.unlock() }; renewing = false }
 
     private func request(_ path: String, method: String, body: String?) throws -> URLRequest {
         guard let url = URL(string: origin + "/api/v1" + path) else { throw ApiError(status: 0, code: "bad_address", detail: path) }
-        var r = URLRequest(url: url, timeoutInterval: 12)
+        var r = URLRequest(url: url, timeoutInterval: TimeInterval(settings.timeoutS))
         r.httpMethod = method
         r.setValue("application/json", forHTTPHeaderField: "Accept")
         r.setValue("EH3D-IOS-CONTROL/\(version)", forHTTPHeaderField: "User-Agent")
@@ -38,18 +90,51 @@ public final class Eh3dApi: @unchecked Sendable {
         return r
     }
 
-    private func call(_ path: String, method: String = "GET", body: String? = nil) async throws -> String {
+    /// The failures of the system that say the connection was never made, so nothing of the request went out and any method may be tried again.
+    static func neverSent(_ code: URLError.Code) -> Bool {
+        switch code {
+        case .cannotFindHost, .cannotConnectToHost, .dnsLookupFailed, .notConnectedToInternet: return true
+        default: return false
+        }
+    }
+
+    /// One try.
+    private func once(_ path: String, method: String, body: String?) async throws -> String {
         let (data, response): (Data, URLResponse)
         do { (data, response) = try await urlSession.data(for: request(path, method: method, body: body)) }
         catch let error as ApiError { throw error }
+        catch let error as URLError { throw ApiError(status: 0, code: "unreachable", detail: error.localizedDescription, neverSent: Eh3dApi.neverSent(error.code)) }
         catch { throw ApiError(status: 0, code: "unreachable", detail: error.localizedDescription) }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         let text = String(data: data, encoding: .utf8) ?? ""
         if !(200...299).contains(status) {
             let e = describeError(status: status, body: text)
+            // the server refused the login: the token is forgotten here, and nothing else asks with it (the person signs in again)
+            if status == 401 && !token.isEmpty && !path.hasSuffix("/login") { forgetToken() }
             throw ApiError(status: status, code: e.code, detail: e.detail.isEmpty ? e.code : e.detail)
         }
         return text
+    }
+
+    /// Renews the login first when it is in the last quarter of its life; a failure here is left to the request itself to find out.
+    private func renewIfDue(_ path: String) async {
+        if !autoRefresh || token.isEmpty || path.hasPrefix("/auth/") || path.hasSuffix("/login") { return }
+        if !beginRenewal() { return }
+        _ = try? await refresh()
+        endRenewal()
+    }
+
+    private func call(_ path: String, method: String = "GET", body: String? = nil) async throws -> String {
+        await renewIfDue(path)
+        var retry = 0
+        while true {
+            do { return try await once(path, method: method, body: body) }
+            catch let error as ApiError {
+                if Task.isCancelled || retry >= settings.retries || !RetryRules.mayRepeat(method: method, status: error.status, neverSent: error.neverSent) { throw error }
+                await pause(RetryRules.delayMs(retry))
+                retry += 1
+            }
+        }
     }
 
     private func json(_ pairs: [String: String]) -> String {
@@ -73,15 +158,40 @@ public final class Eh3dApi: @unchecked Sendable {
     public func login(name: String, password: String) async throws -> Login {
         // The single login of the server: the application it is for is kept with the login and in the audit.
         let j = try JSONSerialization.jsonObject(with: Data(try await call("/auth/login", method: "POST", body: json(["name": name, "password": password, "app": loginApp])).utf8)) as? [String: Any]
-        return Login(token: (j?["token"] as? String) ?? "", name: (j?["name"] as? String) ?? name, role: (j?["role"] as? String) ?? "viewer")
+        let expires = (j?["expires_s"] as? NSNumber)?.intValue ?? 0
+        let result = Login(token: (j?["token"] as? String) ?? "", name: (j?["name"] as? String) ?? name, role: (j?["role"] as? String) ?? "viewer", sessionId: (j?["session_id"] as? String) ?? "", expiresS: expires)
+        token = result.token
+        adoptLife(expires)
+        return result
     }
+
+    /// Makes the login last again (`POST /auth/refresh`): the token stays the same; answers the seconds that are left.
+    @discardableResult
+    public func refresh() async throws -> Int {
+        let j = try JSONSerialization.jsonObject(with: Data(try await call("/auth/refresh", method: "POST", body: "{}").utf8)) as? [String: Any]
+        let left = (j?["expires_s"] as? NSNumber)?.intValue ?? 0
+        adoptLife(left)
+        return left
+    }
+
+    /// The open logins of the person who asks (`GET /auth/sessions`), the newest first.
+    public func sessions() async throws -> [AuthSession] { try parseSessions(try await call("/auth/sessions")) }
+
+    /// Closes one login of the list (a phone that was lost): its token stops working at once.
+    public func closeSession(_ id: String) async throws { _ = try await call("/auth/sessions/\(q(id))", method: "DELETE") }
+
+    /// Ends every login of the person, this one too.
+    public func logoutAll() async throws { _ = try await call("/auth/logout-all", method: "POST", body: "{}") }
+
+    /// The machines of the plugins of the server (laser, pick-and-place, printer...) with what each says of itself in `detail`; the ones of the drilling and routing machines are in the fleet.
+    public func workMachines() async throws -> [WorkMachine] { try parseWorkMachines(try await call("/work/machines")) }
 
     public func session() async throws -> Login {
         let j = try JSONSerialization.jsonObject(with: Data(try await call("/session").utf8)) as? [String: Any]
         return Login(token: token, name: (j?["name"] as? String) ?? "", role: (j?["role"] as? String) ?? "viewer")
     }
 
-    public func logout() async { _ = try? await call("/logout", method: "POST", body: "{}") }
+    public func logout() async { _ = try? await call("/auth/logout", method: "POST", body: "{}") }
 
     public func fleet() async throws -> Fleet { try parseFleet(try await call("/fleet")) }
     public func jobs(machine: String? = nil) async throws -> [JobSummary] { try parseJobs(try await call("/jobs" + (machine.map { "?machine=\(q($0))" } ?? ""))) }

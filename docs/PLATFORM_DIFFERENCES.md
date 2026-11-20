@@ -7,6 +7,8 @@ This app is a port of the Android app (EH3D-ANDROID-CONTROL): whatever one app l
 * The rules live in plain code with no screen in it: the summary before a job starts (`Summary.swift`), the state of the link (`ServerLink.swift`), what became of a stop (`Stop.swift`) and what is told when a machine changes (`fleetNotices`). They are in `Sources/Eh3dCore`; the Android app has the same rules in its `model` folder.
 * Both apps walk the same case files (`Tests/Eh3dCoreTests/Cases` here, `app/src/test/resources/shared-cases` there): the summary, the link, the failures, the stops, the notices, the addresses and the fields of the answers that are read. The files are identical in both repositories; when one changes, copy it to the other.
 * The test of the fields fails when an example of the server carries a field that the app neither reads nor lists as ignored, and when a field listed as read is nowhere in the code.
+* The rules of the connection are the same (`Connection.swift` here, `Connection.kt` there): the settings and their ranges (time-out 1 to 120 s, retries 0 to 5, the search off), the pauses of 200 ms up to 2 s, which requests may be sent again, the renewal of the login in the last quarter of its life, the logins that the server lists, the machines of the plugins with their detail flattened to at most 24 lines, and the candidates found on the network (8 at most).
+* The text of every refusal code of the server is the same table in eight languages (`Sources/Eh3dCore/Resources/server-errors.json` here, `app/src/main/assets/server-errors.json` there), written by the same `tools/gen_server_errors.py` from the catalog of the server; the other 29 languages show the English text.
 * The texts are the same Spanish phrases in the same tables of 37 languages (36 files: Spanish is the source and has none) (`Sources/Eh3dCore/Resources/i18n` here, `app/src/main/assets/i18n` there).
 
 ## What the system makes different
@@ -20,6 +22,9 @@ This app is a port of the Android app (EH3D-ANDROID-CONTROL): whatever one app l
 | Notices with the app closed | Only while the app is in sight | A periodic job (WorkManager, every 15 minutes at best) |
 | An address with a path after the host (`http://192.168.0.5:8080/x`) | The address is refused | The path is dropped |
 | Two addresses for one installation (at home and away) | `DualEndpoint` | Not there |
+| The search for the server on the local network (`_eh3d._tcp`, off by default) | Bonjour (`NWBrowser`, `ServerDiscovery.swift`) needs the permission of the local network (`NSLocalNetworkUsageDescription`, with the service in `NSBonjourServices`); IPv4 addresses only, 8 seconds, 8 candidates at most; the person chooses what it found; written without a Mac and to be tried on an iPhone | `NsdManager` (`ServerDiscovery.kt`), the same limits |
+| The clock of the renewal of the login and of the pauses between tries | `DispatchTime.now().uptimeNanoseconds` and `Task.sleep` | `System.currentTimeMillis` and `delay` |
+| What counts as a connection that was never made (a POST may then be sent again) | `URLError` codes `cannotFindHost`, `cannotConnectToHost`, `dnsLookupFailed` and `notConnectedToInternet` | The failure of `connect()` before anything is written |
 | Updates | Tells that a version exists and links to it | Downloads the APK and hands it to the installer |
 | Certificate of a secure server | Pinned the first time it is seen; one extra phrase in the 37 tables says so | Not pinned; the phrase is not in its tables |
 | The stream of the head camera | The camera is read with `URLSession` and stops with its screen | Also stops while the app is out of sight and can decode at a smaller size for the grid |

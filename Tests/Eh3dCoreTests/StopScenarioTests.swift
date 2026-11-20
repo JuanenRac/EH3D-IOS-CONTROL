@@ -77,7 +77,7 @@ final class StopScenarioTests: XCTestCase {
         nowMs = 0
     }
 
-    private func api() -> Eh3dApi { Eh3dApi(origin: "http://sim.test:18200", token: "t", session: WorkshopServer.session()) }
+    private func api() -> Eh3dApi { Eh3dApi(origin: "http://sim.test:18200", token: "t", settings: ConnectionSettings(retries: 0), session: WorkshopServer.session()) }
 
     /// One look at the fleet every 1.5 s of the clock of the test; a failed look leaves the last fleet as it was.
     private func look() async {

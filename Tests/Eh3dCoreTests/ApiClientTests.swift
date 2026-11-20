@@ -10,6 +10,7 @@ private struct Seen {
     let contentType: String?
     let agent: String?
     let body: String
+    let timeout: TimeInterval
 }
 
 /// A server that lives in the test: it answers every request of a session built with it and writes down what it was asked. Tests of this file run one at a time.
@@ -18,6 +19,9 @@ private final class StandIn: URLProtocol {
     static var seen: [Seen] = []
     static var reply: (Seen) -> (Int, String) = { _ in (200, "{}") }
     static var failure: Error?
+
+    /// How many requests have arrived (the one being answered included); the reply of a test reads it to answer differently the third time.
+    static var attempts: Int { lock.lock(); defer { lock.unlock() }; return seen.count }
 
     static func reset() {
         lock.lock(); defer { lock.unlock() }
@@ -56,7 +60,7 @@ private final class StandIn: URLProtocol {
         let parts = URLComponents(url: url, resolvingAgainstBaseURL: false)
         let note = Seen(method: request.httpMethod ?? "GET", path: parts?.percentEncodedPath ?? "", query: parts?.percentEncodedQuery,
                         authorization: request.value(forHTTPHeaderField: "Authorization"), contentType: request.value(forHTTPHeaderField: "Content-Type"),
-                        agent: request.value(forHTTPHeaderField: "User-Agent"), body: StandIn.body(of: request))
+                        agent: request.value(forHTTPHeaderField: "User-Agent"), body: StandIn.body(of: request), timeout: request.timeoutInterval)
         StandIn.lock.lock()
         StandIn.seen.append(note)
         let failure = StandIn.failure
@@ -83,7 +87,12 @@ final class ApiClientTests: XCTestCase {
         StandIn.reset()
     }
 
-    private func api(token: String = "", origin: String? = nil) -> Eh3dApi { Eh3dApi(origin: origin ?? self.origin, token: token, session: StandIn.session()) }
+    private func api(token: String = "", origin: String? = nil) -> Eh3dApi {
+        // one try each: the tries again and the renewal of the login have their own tests (ApiConnectionTests)
+        let client = Eh3dApi(origin: origin ?? self.origin, token: token, settings: ConnectionSettings(retries: 0), session: StandIn.session())
+        client.autoRefresh = false
+        return client
+    }
     private func answer(_ text: String, status: Int = 200) { StandIn.reply = { _ in (status, text) } }
     private var seen: [Seen] { StandIn.lock.lock(); defer { StandIn.lock.unlock() }; return StandIn.seen }
     private func json(_ text: String) throws -> [String: Any] { try XCTUnwrap(JSONSerialization.jsonObject(with: Data(text.utf8)) as? [String: Any]) }
@@ -380,7 +389,292 @@ final class ApiClientTests: XCTestCase {
         StandIn.failure = URLError(.notConnectedToInternet)
         await api(token: "t").logout()
         XCTAssertEqual(seen.count, 1)
-        XCTAssertEqual(seen[0].path, "/api/v1/logout")
+        XCTAssertEqual(seen[0].path, "/api/v1/auth/logout")
         XCTAssertEqual(seen[0].method, "POST")
+    }
+}
+
+
+/// The rules of the client of the suite in the client of the app: the login that is renewed by itself, the token that a 401 makes it forget, the tries again after a failure and their pauses, and the calls of the
+/// logins and of the machines of the plugins. The pauses and the clock are the ones of the test, so nothing waits.
+final class ApiConnectionTests: XCTestCase {
+    private let origin = "http://stub.test:18200"
+
+    /// The pauses the client asked for, and the clock it reads, both in the hands of the test.
+    private final class Time: @unchecked Sendable {
+        private let lock = NSLock()
+        private var waited: [Int] = []
+        private var now: Int64 = 5_000_000
+        func wait(_ ms: Int) { lock.lock(); defer { lock.unlock() }; waited.append(ms) }
+        var pauses: [Int] { lock.lock(); defer { lock.unlock() }; return waited }
+        func read() -> Int64 { lock.lock(); defer { lock.unlock() }; return now }
+        func advance(seconds: Int) { lock.lock(); defer { lock.unlock() }; now += Int64(seconds) * 1000 }
+    }
+
+    private var time = Time()
+
+    override func setUp() {
+        super.setUp()
+        StandIn.reset()
+        time = Time()
+    }
+
+    private func api(token: String = "", retries: Int = 0, timeoutS: Int = 15, refresh: Bool = true) -> Eh3dApi {
+        let clock = time
+        let client = Eh3dApi(origin: origin, token: token, settings: ConnectionSettings(timeoutS: timeoutS, retries: retries), session: StandIn.session(),
+                             pause: { ms in clock.wait(ms) }, clockMs: { clock.read() })
+        client.autoRefresh = refresh
+        return client
+    }
+
+    private var seen: [Seen] { StandIn.lock.lock(); defer { StandIn.lock.unlock() }; return StandIn.seen }
+    private var lines: [String] { seen.map { "\($0.method) \($0.path)" } }
+    private func answer(_ text: String, status: Int = 200) { StandIn.reply = { _ in (status, text) } }
+    private func refusal(_ work: () async throws -> Void) async -> ApiError? {
+        do { try await work(); return nil } catch let error as ApiError { return error } catch { XCTFail("another kind of error: \(error)"); return nil }
+    }
+
+    /// The server of a login that lasts 1000 s: it answers the login, the renewal and the fleet.
+    private func serveLogin() {
+        StandIn.reply = { note in
+            switch note.path {
+            case "/api/v1/auth/login": return (200, #"{"token":"t_new","name":"Ana","role":"operator","session_id":"s1","expires_s":1000}"#)
+            case "/api/v1/auth/refresh": return (200, #"{"ok":true,"expires_s":1000}"#)
+            default: return (200, #"{"machines":[]}"#)
+            }
+        }
+    }
+
+    // ---- the login and its life
+
+    func testALoginReadsTheIdOfTheLoginAndHowLongItLasts() async throws {
+        serveLogin()
+        let login = try await api().login(name: "ana", password: "secret phrase")
+        XCTAssertEqual(login, Login(token: "t_new", name: "Ana", role: "operator", sessionId: "s1", expiresS: 1000))
+    }
+
+    func testTheClientKeepsTheTokenOfTheLoginItMade() async throws {
+        serveLogin()
+        let client = api()
+        _ = try await client.login(name: "ana", password: "secret phrase")
+        XCTAssertEqual(client.token, "t_new")
+        _ = try await client.fleet()
+        XCTAssertEqual(seen.last?.authorization, "Bearer t_new")
+    }
+
+    func testALoginInTheLastQuarterOfItsLifeIsRenewedBeforeTheNextRequest() async throws {
+        serveLogin()
+        let client = api()
+        _ = try await client.login(name: "ana", password: "secret phrase")
+        time.advance(seconds: 800)
+        _ = try await client.fleet()
+        XCTAssertEqual(lines, ["POST /api/v1/auth/login", "POST /api/v1/auth/refresh", "GET /api/v1/fleet"])
+        XCTAssertEqual(seen[1].authorization, "Bearer t_new")
+    }
+
+    func testALoginBeforeTheLastQuarterIsNotRenewed() async throws {
+        serveLogin()
+        let client = api()
+        _ = try await client.login(name: "ana", password: "secret phrase")
+        time.advance(seconds: 700)
+        _ = try await client.fleet()
+        XCTAssertEqual(lines, ["POST /api/v1/auth/login", "GET /api/v1/fleet"])
+    }
+
+    func testARenewalGivesTheLoginItsWholeLifeAgainSoItIsNotRenewedTwice() async throws {
+        serveLogin()
+        let client = api()
+        _ = try await client.login(name: "ana", password: "secret phrase")
+        time.advance(seconds: 800)
+        _ = try await client.fleet()
+        _ = try await client.fleet()
+        XCTAssertEqual(lines.filter { $0.hasSuffix("/auth/refresh") }.count, 1)
+    }
+
+    func testTheCallsOfTheLoginAreNeverPrecededByARenewal() async throws {
+        serveLogin()
+        let client = api()
+        _ = try await client.login(name: "ana", password: "secret phrase")
+        time.advance(seconds: 900)
+        answer(#"{"sessions":[]}"#)
+        _ = try await client.sessions()
+        XCTAssertEqual(lines, ["POST /api/v1/auth/login", "GET /api/v1/auth/sessions"])
+    }
+
+    func testAnUnknownLifeIsNeverRenewed() async throws {
+        answer(#"{"machines":[]}"#)
+        let client = api(token: "t_kept")
+        time.advance(seconds: 100_000)
+        _ = try await client.fleet()
+        XCTAssertEqual(lines, ["GET /api/v1/fleet"])
+    }
+
+    func testARenewalThatFailsIsLeftToTheRequestItself() async throws {
+        StandIn.reply = { note in note.path.hasSuffix("/auth/refresh") ? (500, #"{"error":"internal"}"#) : (note.path.hasSuffix("/login") ? (200, #"{"token":"t","expires_s":100}"#) : (200, #"{"machines":[]}"#)) }
+        let client = api()
+        _ = try await client.login(name: "ana", password: "secret phrase")
+        time.advance(seconds: 90)
+        _ = try await client.fleet()
+        XCTAssertEqual(lines.last, "GET /api/v1/fleet")
+    }
+
+    func testTheRenewalCanBeTurnedOff() async throws {
+        serveLogin()
+        let client = api(refresh: false)
+        _ = try await client.login(name: "ana", password: "secret phrase")
+        time.advance(seconds: 900)
+        _ = try await client.fleet()
+        XCTAssertEqual(lines, ["POST /api/v1/auth/login", "GET /api/v1/fleet"])
+    }
+
+    func testRefreshingAKeptSessionReadsTheSecondsLeft() async throws {
+        answer(#"{"ok":true,"expires_s":86400}"#)
+        let left = try await api(token: "t_kept").refresh()
+        XCTAssertEqual(left, 86400)
+        XCTAssertEqual(seen[0].method, "POST")
+        XCTAssertEqual(seen[0].path, "/api/v1/auth/refresh")
+        XCTAssertEqual(seen[0].body, "{}")
+    }
+
+    // ---- a refusal of the login
+
+    func testA401MakesTheClientForgetTheToken() async {
+        answer(#"{"error":"unauthorized"}"#, status: 401)
+        let client = api(token: "t_old")
+        let error = await refusal { _ = try await client.fleet() }
+        XCTAssertEqual(error?.unauthorized, true)
+        XCTAssertEqual(client.token, "")
+        _ = await refusal { _ = try await client.fleet() }
+        XCTAssertNil(seen[1].authorization)
+    }
+
+    func testA401OfTheLoginItselfIsAWrongPasswordAndKeepsTheToken() async {
+        answer(#"{"error":"unauthorized"}"#, status: 401)
+        let client = api(token: "t_kept")
+        _ = await refusal { _ = try await client.login(name: "ana", password: "wrong") }
+        XCTAssertEqual(client.token, "t_kept")
+    }
+
+    func testA403KeepsTheTokenBecauseTheLoginIsGoodAndOnlyTheRoleIsNot() async {
+        answer(#"{"error":"forbidden"}"#, status: 403)
+        let client = api(token: "t_kept")
+        let error = await refusal { _ = try await client.fleet() }
+        XCTAssertEqual(error?.forbidden, true)
+        XCTAssertEqual(error?.unauthorized, false)
+        XCTAssertEqual(client.token, "t_kept")
+    }
+
+    // ---- the logins and the machines of the plugins
+
+    func testTheLoginsOfThePersonAreListed() async throws {
+        answer(#"{"sessions":[{"id":"s1","name":"ana","role":"operator","app":"ios","ip":"192.168.0.7","current":true},{"id":"s2","name":"ana","role":"operator","app":"studio","ip":"192.168.0.9"}]}"#)
+        let list = try await api(token: "t").sessions()
+        XCTAssertEqual(list.map { $0.id }, ["s1", "s2"])
+        XCTAssertEqual(list.map { $0.current }, [true, false])
+        XCTAssertEqual(seen[0].method, "GET")
+        XCTAssertEqual(seen[0].path, "/api/v1/auth/sessions")
+    }
+
+    func testOneLoginIsClosedByItsEncodedId() async throws {
+        answer(#"{"ok":true}"#)
+        try await api(token: "t").closeSession("a b/c")
+        XCTAssertEqual(seen[0].method, "DELETE")
+        XCTAssertEqual(seen[0].path, "/api/v1/auth/sessions/a%20b%2Fc")
+    }
+
+    func testEveryLoginIsEndedWithOnePost() async throws {
+        answer(#"{"ok":true}"#)
+        try await api(token: "t").logoutAll()
+        XCTAssertEqual(lines, ["POST /api/v1/auth/logout-all"])
+        XCTAssertEqual(seen[0].body, "{}")
+    }
+
+    func testSigningOutUsesTheSingleLogoutOfTheServer() async {
+        await api(token: "t").logout()
+        XCTAssertEqual(lines, ["POST /api/v1/auth/logout"])
+    }
+
+    func testTheMachinesOfThePluginsAreReadFromTheWorkRoute() async throws {
+        answer(#"{"machines":[{"id":"l1","name":"Laser","plugin":"laser","state":"idle","detail":{"estop_latched":true}},{"id":"b1","plugin":"bungard"}]}"#)
+        let list = try await api(token: "t").workMachines()
+        XCTAssertEqual(lines, ["GET /api/v1/work/machines"])
+        XCTAssertEqual(list.map { $0.id }, ["l1"])
+        XCTAssertTrue(list[0].latched)
+    }
+
+    // ---- time-out and tries again
+
+    func testTheTimeOutOfEachTryIsASettingOfTheConnection() async throws {
+        answer("{}")
+        let client = api(token: "t", timeoutS: 40)
+        _ = try await client.health()
+        client.settings = client.settings.withTimeout(7)
+        _ = try await client.health()
+        XCTAssertEqual(seen.map { $0.timeout }, [40, 7])
+    }
+
+    func testAReadIsTriedAgainAfterABadGatewayWithGrowingPauses() async throws {
+        StandIn.reply = { _ in StandIn.attempts < 3 ? (503, #"{"error":"busy"}"#) : (200, #"{"machines":[]}"#) }
+        _ = try await api(token: "t", retries: 2).fleet()
+        XCTAssertEqual(seen.count, 3)
+        XCTAssertEqual(time.pauses, [200, 400])
+    }
+
+    func testTheTriesStopWhenTheRetriesAreSpent() async {
+        answer(#"{"error":"busy"}"#, status: 503)
+        let error = await refusal { _ = try await self.api(token: "t", retries: 2).fleet() }
+        XCTAssertEqual(error?.status, 503)
+        XCTAssertEqual(seen.count, 3)
+    }
+
+    func testNothingIsTriedAgainWithNoRetries() async {
+        answer(#"{"error":"busy"}"#, status: 503)
+        _ = await refusal { _ = try await self.api(token: "t", retries: 0).fleet() }
+        XCTAssertEqual(seen.count, 1)
+        XCTAssertEqual(time.pauses, [])
+    }
+
+    func testThePausesGrowToTwoSecondsAndNoFurther() async {
+        answer(#"{"error":"busy"}"#, status: 503)
+        _ = await refusal { _ = try await self.api(token: "t", retries: 5).fleet() }
+        XCTAssertEqual(time.pauses, [200, 400, 800, 1600, 2000])
+    }
+
+    func testAPostIsNeverSentTwiceAfterAnAnswerOrATimeOut() async {
+        answer(#"{"error":"busy"}"#, status: 503)
+        _ = await refusal { try await self.api(token: "t", retries: 3).start("j1") }
+        XCTAssertEqual(seen.count, 1)
+        StandIn.reset()
+        StandIn.failure = URLError(.timedOut)
+        _ = await refusal { try await self.api(token: "t", retries: 3).start("j1") }
+        XCTAssertEqual(seen.count, 1)
+    }
+
+    func testAPostIsTriedAgainWhenTheConnectionCouldNotBeMade() async {
+        StandIn.failure = URLError(.cannotConnectToHost)
+        let error = await refusal { try await self.api(token: "t", retries: 2).start("j1") }
+        XCTAssertEqual(seen.count, 3)
+        XCTAssertEqual(error?.status, 0)
+        XCTAssertEqual(error?.neverSent, true)
+    }
+
+    func testAReadIsTriedAgainAfterATimeOutButAnAnswerOfTheServerIsFinal() async {
+        StandIn.failure = URLError(.timedOut)
+        let error = await refusal { _ = try await self.api(token: "t", retries: 1).fleet() }
+        XCTAssertEqual(seen.count, 2)
+        XCTAssertEqual(error?.neverSent, false)
+        StandIn.reset()
+        answer(#"{"error":"unknown_machine"}"#, status: 404)
+        _ = await refusal { _ = try await self.api(token: "t", retries: 3).job("gone") }
+        XCTAssertEqual(seen.count, 1)
+    }
+
+    func testWhatTheSystemSaysOfAConnectionThatWasNeverMade() {
+        for code in [URLError.Code.cannotFindHost, .cannotConnectToHost, .dnsLookupFailed, .notConnectedToInternet] { XCTAssertTrue(Eh3dApi.neverSent(code), "\(code)") }
+        for code in [URLError.Code.timedOut, .networkConnectionLost, .cancelled, .badServerResponse] { XCTAssertFalse(Eh3dApi.neverSent(code), "\(code)") }
+    }
+
+    func testTheSettingsOfTheConnectionAreBroughtIntoTheirRange() {
+        XCTAssertEqual(Eh3dApi(origin: origin, settings: ConnectionSettings(timeoutS: 0, retries: 99)).settings, ConnectionSettings(timeoutS: 1, retries: 5))
     }
 }

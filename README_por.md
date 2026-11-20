@@ -31,7 +31,7 @@
 |---|---|
 | Versão | `0.1.1` |
 | Maturidade | Estrutura inicial |
-| Testes | 240 testes do pacote Swift |
+| Testes | 307 testes do pacote Swift |
 | Tecnologias | Swift, SwiftUI |
 | Em hardware real | Ainda não: a aplicação não foi executada num iPhone, contra um servidor real nem com uma máquina; o primeiro a experimentar é entrar no EH3D-SERVER da oficina. |
 
@@ -48,6 +48,7 @@ Cada linha é uma parte deste repositório e a luz diz até onde chega hoje. É 
 | Software | 🟠 | Os ecrãs e as regras da aplicação estão escritos para iPhone; as regras compilam-se e testam-se sem telemóvel. |
 | Testes | 🟡 | testes do pacote Swift: o que o servidor diz da frota, dos trabalhos e do cabeçote, a posição do cabeçote, a geometria 2D e isométrica, os idiomas e as verificações de endereço e versão. |
 | Monitorização | 🟠 | Cada máquina da oficina com o seu estado, trabalho, progresso, passos feitos e tempo que falta, lido do servidor a cada segundo e meio; um aviso quando uma máquina espera pelo operador ou para. Escrito, não executado contra um servidor real. |
+| Ligação | 🟠 | A sessão renova-se sozinha no último quarto da sua duração, as sessões abertas podem ser listadas e fechadas, as recusas do servidor são ditas em oito idiomas a partir da mesma tabela do Studio, e o tempo limite, as repetições e uma pesquisa opcional do servidor na rede local (desligada por omissão) são definições. Escrito e testado contra um servidor simulado; não executado contra um real nem num iPhone. |
 | Paragem de emergência | 🟠 | Um botão vermelho que pergunta duas vezes e cancela o trabalho em curso através do servidor (uma máquina ou todas); a confirmação dos passos que um trabalho espera. Só operadores e administradores. Nunca parou uma máquina real e não substitui a sua paragem física. |
 | Preparar trabalhos | 🟠 | Escolher furação, fresagem, ambas ou um programa de G-code e o ficheiro do telemóvel; as ferramentas do ficheiro com a sua contagem (e o diâmetro, quando o ficheiro o declara), desligar ferramentas, começar por uma; pausar, retomar, cancelar e retomar um trabalho parado (de qualquer tipo) de onde parou, com o ficheiro guardado pelo servidor; ler o interruptor das linhas `$` do GRBL da máquina. O servidor não tem lista de ficheiros, por isso o ficheiro é enviado a partir do telemóvel. Escrito, nunca executado contra um servidor ou uma máquina reais. |
 | Visor 2D e 3D | 🟠 | A placa, os furos (um anel até serem furados), os trajetos (ténues até serem cortados) e o cabeçote, em 2D e numa vista isométrica que roda com o dedo; a posição do cabeçote é uma estimativa a partir dos passos feitos. Testado como geometria, nunca visto num telemóvel. |
@@ -159,9 +160,9 @@ A versão vive em `eh3d.project.json` e em `project.yml`, e cada versão tem a s
 EH3D-IOS-CONTROL/
 ├── Sources/Eh3dCore/
 │   ├── Models.swift Prepare.swift Geometry.swift     o que o servidor diz; as regras do desenho
-│   ├── Eh3dApi.swift                                 o cliente da API do servidor
+│   ├── Eh3dApi.swift Connection.swift                o cliente da API e a ligação
 │   ├── ServerEndpoint.swift SessionVault.swift       as verificações de endereço e a sessão cifrada
-│   ├── Tr.swift Resources/i18n/                      os 37 idiomas
+│   ├── Tr.swift ServerErrors.swift Resources/        os 37 idiomas, os textos das recusas
 │   └── MjpegParser.swift Trust.swift Support.swift   o fluxo da câmara, os pins, as peças pequenas
 ├── App/
 │   ├── Eh3dApp.swift AppModel.swift                  a aplicação e o seu estado

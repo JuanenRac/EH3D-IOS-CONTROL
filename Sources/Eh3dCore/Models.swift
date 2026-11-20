@@ -320,12 +320,16 @@ public func parseMeasure(_ text: String) throws -> Measure {
 }
 
 /// The server refused, or could not be reached: `status` is the HTTP status (0 when there was no answer) and `code` the `error` code of the server, if it sent one.
+/// `neverSent` is true when the connection could not even be made, so nothing of the request went out.
 public struct ApiError: Error, Equatable, Sendable {
     public let status: Int
     public let code: String
     public let detail: String
-    public init(status: Int, code: String, detail: String) { self.status = status; self.code = code; self.detail = detail }
+    public let neverSent: Bool
+    public init(status: Int, code: String, detail: String, neverSent: Bool = false) { self.status = status; self.code = code; self.detail = detail; self.neverSent = neverSent }
     public var unauthorized: Bool { status == 401 }
+    /// The server knows who it is but the role does not allow it: the login is kept.
+    public var forbidden: Bool { status == 403 }
 }
 
 /// The pure part of the error of the server: its code and its detail, or what the status says.

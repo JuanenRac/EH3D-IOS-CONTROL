@@ -31,7 +31,7 @@
 |---|---|
 | Version | `0.1.1` |
 | Reifegrad | Gerüst |
-| Tests | 240 Tests des Swift-Pakets |
+| Tests | 307 Tests des Swift-Pakets |
 | Technologie-Stack | Swift, SwiftUI |
 | Auf echter Hardware | Noch nicht: Die App wurde nicht auf einem iPhone, gegen einen echten Server oder mit einer Maschine ausgeführt; als Erstes ist die Anmeldung am EH3D-SERVER der Werkstatt zu versuchen. |
 
@@ -48,6 +48,7 @@ Jede Zeile ist ein Teil dieses Repositorys, und die Ampel sagt, wie weit er heut
 | Software | 🟠 | Die Bildschirme und die Regeln der App sind für iPhone geschrieben; die Regeln werden ohne Telefon gebaut und getestet. |
 | Tests | 🟡 | Tests des Swift-Pakets: was der Server über Flotte, Aufträge und Kopf sagt, die Position des Kopfes, die 2D- und isometrische Geometrie, die Sprachen und die Adress- und Versionsprüfungen. |
 | Überwachung | 🟠 | Jede Maschine der Werkstatt mit Zustand, Auftrag, Fortschritt, erledigten Schritten und Restzeit, alle anderthalb Sekunden vom Server gelesen; eine Meldung, wenn eine Maschine auf den Bediener wartet oder stoppt. Geschrieben, nicht gegen einen echten Server ausgeführt. |
+| Verbindung | 🟠 | Die Anmeldung wird im letzten Viertel ihrer Lebensdauer von selbst erneuert, die offenen Anmeldungen lassen sich auflisten und schließen, die Ablehnungen des Servers werden in acht Sprachen aus derselben Tabelle wie in Studio genannt, und Zeitlimit, Wiederholungen und eine optionale Suche nach dem Server im lokalen Netz (standardmäßig aus) sind Einstellungen. Geschrieben und gegen einen simulierten Server getestet; nicht gegen einen echten Server und nicht auf einem iPhone ausgeführt. |
 | Not-Halt | 🟠 | Ein roter Knopf, der zweimal fragt und den laufenden Auftrag über den Server abbricht (eine Maschine oder alle); die Bestätigung der Schritte, auf die ein Auftrag wartet. Nur Bediener und Administratoren. Er hat nie eine echte Maschine angehalten und ersetzt nicht deren physischen Stopp. |
 | Aufträge vorbereiten | 🟠 | Bohren, Fräsen, beides oder ein G-Code-Programm und die Datei vom Telefon wählen; die Werkzeuge der Datei mit Anzahl (und Durchmesser, wenn die Datei ihn angibt), Werkzeuge abschalten, bei einem Werkzeug beginnen; ein G-Code-Programm pausieren, fortsetzen, abbrechen und einen angehaltenen Auftrag (jeder Art) dort fortsetzen, wo er angehalten wurde, mit der vom Server gespeicherten Datei; den Schalter für die `$`-Zeilen von GRBL der Maschine lesen. Der Server hat keine Dateiliste, deshalb wird die Datei vom Telefon gesendet. Geschrieben, nie gegen einen echten Server oder eine echte Maschine gelaufen. |
 | 2D- und 3D-Ansicht | 🟠 | Platine, Löcher (ein Ring bis zum Bohren), Bahnen (blass bis zum Fräsen) und Kopf, in 2D und in einer isometrischen Ansicht, die sich mit dem Finger dreht; die Position des Kopfes ist eine Schätzung aus den erledigten Schritten. Als Geometrie getestet, nie auf einem Telefon gesehen. |
@@ -159,9 +160,9 @@ Die Version steht in `eh3d.project.json` und in `project.yml`, und jede Version 
 EH3D-IOS-CONTROL/
 ├── Sources/Eh3dCore/
 │   ├── Models.swift Prepare.swift Geometry.swift     was der Server sagt; die Zeichenregeln
-│   ├── Eh3dApi.swift                                 der Client der Server-API
+│   ├── Eh3dApi.swift Connection.swift                der API-Client und die Verbindung
 │   ├── ServerEndpoint.swift SessionVault.swift       die Adressprüfungen und die verschlüsselte Sitzung
-│   ├── Tr.swift Resources/i18n/                      die 37 Sprachen
+│   ├── Tr.swift ServerErrors.swift Resources/        die 37 Sprachen, die Ablehnungstexte
 │   └── MjpegParser.swift Trust.swift Support.swift   der Kamerastrom, die Pins, die kleinen Teile
 ├── App/
 │   ├── Eh3dApp.swift AppModel.swift                  die App und ihr Zustand
