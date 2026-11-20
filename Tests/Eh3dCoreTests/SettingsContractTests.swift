@@ -82,7 +82,7 @@ final class SettingsContractTests: XCTestCase {
 
     private func copyText() throws -> String { try String(contentsOf: resources.appendingPathComponent("settings-contract.json"), encoding: .utf8) }
     private func textsText() throws -> String { try String(contentsOf: resources.appendingPathComponent("settings-texts.json"), encoding: .utf8) }
-    private func copy() throws -> SettingsContract { try XCTUnwrap(parseContract(try copyText())) }
+    private func contractCopy() throws -> SettingsContract { try XCTUnwrap(parseContract(try copyText())) }
 
     private func words(_ text: String) -> String { contractLanguages.map { "\"\($0)\":\"\(text) \($0)\"" }.joined(separator: ",") }
 
@@ -108,7 +108,7 @@ final class SettingsContractTests: XCTestCase {
     // ---- the copy of the app
 
     func testTheCopyIsTheContractOfTheServerWith89SettingsInFifteenGroups() throws {
-        let contract = try copy()
+        let contract = try contractCopy()
         XCTAssertEqual(contract.schema, "eh3d.settings.contract/1")
         XCTAssertEqual(contract.settings.count, 89)
         XCTAssertEqual(contract.groups.count, 15)
@@ -117,7 +117,7 @@ final class SettingsContractTests: XCTestCase {
     }
 
     func testEveryTextOfTheCopyIsInTheEightLanguages() throws {
-        let contract = try copy()
+        let contract = try contractCopy()
         for s in contract.settings {
             for (field, table) in [("label", s.label), ("help", s.help), ("warning", s.warning)] {
                 for lang in contractLanguages { XCTAssertFalse((table[lang] ?? "").trimmingCharacters(in: .whitespaces).isEmpty, "\(s.key) \(field) \(lang)") }
@@ -127,7 +127,7 @@ final class SettingsContractTests: XCTestCase {
     }
 
     func testTheNineteenKeysOfThePolicyHaveTheirRouteAndTheOthersAreSetInTheFile() throws {
-        let contract = try copy()
+        let contract = try contractCopy()
         let policy = contract.settings.filter { $0.write.via == "policy" }
         let file = contract.settings.filter { $0.write.via == "file" }
         XCTAssertEqual(policy.count, 19)
@@ -137,11 +137,11 @@ final class SettingsContractTests: XCTestCase {
     }
 
     func testAnAdministratorCanChangeEveryKeyOfThePolicyAndNoKeyOfTheFile() throws {
-        for s in try copy().settings { XCTAssertEqual(canWriteSetting(role: "admin", s), s.write.via == "policy", s.key) }
+        for s in try contractCopy().settings { XCTAssertEqual(canWriteSetting(role: "admin", s), s.write.via == "policy", s.key) }
     }
 
     func testTheCopyIsDrawnInItsFifteenGroupsInOrder() throws {
-        let contract = try copy()
+        let contract = try contractCopy()
         let groups = groupSettings(contract)
         XCTAssertEqual(groups.map { $0.id }, contract.groups.map { $0.id })
         XCTAssertEqual(groups.reduce(0) { $0 + $1.settings.count }, contract.settings.count)
@@ -184,7 +184,7 @@ final class SettingsContractTests: XCTestCase {
     }
 
     func testEveryTypeOfTheCopyHasAControlTheAppKnows() throws {
-        let contract = try copy()
+        let contract = try contractCopy()
         XCTAssertTrue(contract.settings.allSatisfy { controlKind($0) != .generic })
         XCTAssertEqual(Set(contract.settings.map { $0.type }), ["boolean", "integer", "string", "list"])
     }
@@ -200,7 +200,7 @@ final class SettingsContractTests: XCTestCase {
         for risk in ["security", "exposure", "machine", "data"] { XCTAssertTrue(isHighRisk(try one(entry("k", risk: risk))), risk) }
         XCTAssertFalse(isHighRisk(try one(entry("k", risk: "none"))))
         XCTAssertFalse(isHighRisk(try one(entry("k", risk: "capacity"))))
-        XCTAssertTrue(try copy().settings.contains { isHighRisk($0) })
+        XCTAssertTrue(try contractCopy().settings.contains { isHighRisk($0) })
     }
 
     // ---- restore, roles and secrets
@@ -381,7 +381,7 @@ final class SettingsContractTests: XCTestCase {
     }
 
     func testTheLiveContractCarriesTheValuesAndTheVersionOfTheServer() async throws {
-        let embedded = try copy()
+        let embedded = try contractCopy()
         let text = live()
         let loaded = await loadContract(read: { text }, embedded: embedded)
         XCTAssertTrue(loaded.live)
@@ -403,7 +403,7 @@ final class SettingsContractTests: XCTestCase {
     }
 
     func testTheCopyIsUsedReadOnlyWhenTheServerRefusesAnOrdinaryUser() async throws {
-        let embedded = try copy()
+        let embedded = try contractCopy()
         let loaded = await loadContract(read: { throw ApiError(status: 403, code: "forbidden", detail: "no") }, embedded: embedded)
         XCTAssertFalse(loaded.live)
         XCTAssertEqual(loaded.why, "forbidden")
@@ -413,7 +413,7 @@ final class SettingsContractTests: XCTestCase {
     }
 
     func testTheCopyIsUsedWhenTheServerIsOutOfReachOrAnswersWhatIsNotAContract() async throws {
-        let embedded = try copy()
+        let embedded = try contractCopy()
         let other = contractOf(entry("a")).replacingOccurrences(of: "eh3d.settings.contract/1", with: "eh3d.settings.contract/9")
         let down = await loadContract(read: { throw Down() }, embedded: embedded)
         let refused = await loadContract(read: { throw ApiError(status: 0, code: "unreachable", detail: "down") }, embedded: embedded)
@@ -492,7 +492,7 @@ final class SettingsContractTests: XCTestCase {
         SettingsSim.reset(contract: live())
         let api = Eh3dApi(origin: "http://sim.test:18200", token: "tok", settings: ConnectionSettings(retries: 0), session: SettingsSim.session())
         api.autoRefresh = false
-        let embedded = try copy()
+        let embedded = try contractCopy()
         let loaded = await loadContract(read: { try await api.settingsContract() }, embedded: embedded)
         XCTAssertTrue(loaded.live)
         let s = try XCTUnwrap(loaded.contract.settings.first { $0.key == "a" })
