@@ -81,31 +81,6 @@ struct MachineCard: View {
     }
 }
 
-/// A machine of a plugin of the server (laser, pick-and-place, printer...): its state and what the plugin says of it in `detail`; a latched one is red.
-struct WorkMachineCard: View {
-    @ObservedObject var model: AppModel
-    let w: WorkMachine
-    var body: some View {
-        let busy = w.state == "busy"
-        let color = w.latched ? Forge.danger : busy ? Forge.amber : Forge.green
-        let word = w.latched ? model.tr("Bloqueada") : busy ? model.tr("Trabajando") : model.tr("Libre")
-        Card(accent: color) {
-            HStack(spacing: 10) {
-                Light(color: color, live: busy && !w.latched)
-                VStack(alignment: .leading) {
-                    Text(w.name).font(.headline).foregroundColor(Forge.text)
-                    Text(w.plugin).font(.caption).foregroundColor(Forge.dim)
-                }
-                Spacer()
-                Pill(text: word, color: color)
-            }
-            ForEach(Array(w.detail.prefix(8).enumerated()), id: \.offset) { _, line in
-                Text("\(line.key): \(line.value)").font(.caption).foregroundColor(Forge.dim)
-            }
-        }
-    }
-}
-
 func jobStateText(_ state: String, _ tr: (String) -> String) -> String {
     switch state {
     case "ready": return tr("Listo")

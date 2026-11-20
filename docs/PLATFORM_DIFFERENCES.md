@@ -9,6 +9,7 @@ This app is a port of the Android app (EH3D-ANDROID-CONTROL): whatever one app l
 * The test of the fields fails when an example of the server carries a field that the app neither reads nor lists as ignored, and when a field listed as read is nowhere in the code.
 * The rules of the connection are the same (`Connection.swift` here, `Connection.kt` there): the settings and their ranges (time-out 1 to 120 s, retries 0 to 5, the search off), the pauses of 200 ms up to 2 s, which requests may be sent again, the renewal of the login in the last quarter of its life, the logins that the server lists, the machines of the plugins with their detail flattened to at most 24 lines, and the candidates found on the network (8 at most).
 * The text of every refusal code of the server is the same table in eight languages (`Sources/Eh3dCore/Resources/server-errors.json` here, `app/src/main/assets/server-errors.json` there), written by the same `tools/gen_server_errors.py` from the catalog of the server; the other 29 languages show the English text.
+* The safety of the machines of the plugins is the same logic in both apps (`Sources/Eh3dCore/WorkSafety.swift` here, `model/WorkSafety.kt` there): the SIMULATOR ONLY badge, the interlocks, who may stop, release, start and cancel, the queue of a machine and the switches of the server. Nothing in them depends on the system.
 * The texts are the same Spanish phrases in the same tables of 37 languages (36 files: Spanish is the source and has none) (`Sources/Eh3dCore/Resources/i18n` here, `app/src/main/assets/i18n` there).
 
 ## What the system makes different
@@ -25,12 +26,15 @@ This app is a port of the Android app (EH3D-ANDROID-CONTROL): whatever one app l
 | The search for the server on the local network (`_eh3d._tcp`, off by default) | Bonjour (`NWBrowser`, `ServerDiscovery.swift`) needs the permission of the local network (`NSLocalNetworkUsageDescription`, with the service in `NSBonjourServices`); IPv4 addresses only, 8 seconds, 8 candidates at most; the person chooses what it found; written without a Mac and to be tried on an iPhone | `NsdManager` (`ServerDiscovery.kt`), the same limits |
 | The clock of the renewal of the login and of the pauses between tries | `DispatchTime.now().uptimeNanoseconds` and `Task.sleep` | `System.currentTimeMillis` and `delay` |
 | What counts as a connection that was never made (a POST may then be sent again) | `URLError` codes `cannotFindHost`, `cannotConnectToHost`, `dnsLookupFailed` and `notConnectedToInternet` | The failure of `connect()` before anything is written |
+| The second touch before a release, a start or a cancel in the queue of a machine of a plugin | A confirmation dialog from the bottom of the screen | A dialog in the middle of the screen |
+| A temperature that ends in exactly half a degree (`24.5`) shown in whole degrees | Rounded to the even degree by the system (`24`) | Rounded up (`25`) |
 | Updates | Tells that a version exists and links to it | Downloads the APK and hands it to the installer |
 | Certificate of a secure server | Pinned the first time it is seen; one extra phrase in the 37 tables says so | Not pinned; the phrase is not in its tables |
 | The stream of the head camera | The camera is read with `URLSession` and stops with its screen | Also stops while the app is out of sight and can decode at a smaller size for the grid |
 
 ## Not there in either app yet
 
+* A stop of a machine of a plugin that the server refused because the session had ended is not sent again after signing in (the stops of the drilling and routing machines are): the person is told at once that it did not arrive and to use the physical stop.
 * Jog (moving an axis by hand) and a live progress stream of a job: the server has no route for jog and sends progress only in the job (`percent`, `items_done`, `holes_done`, `estimate_s`), which both apps already show; they will follow when the server offers the route.
 
 ## Not run yet

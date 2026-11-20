@@ -88,6 +88,7 @@ struct MoreView: View {
                         }
                     }
                 }
+                if model.canAdmin && !model.switches.isEmpty { ServerSwitchesCard(model: model) }
                 Card {
                     Title(model.tr("Actualización desde GitHub"))
                     Text(model.trf("Versión instalada: %s", installed)).foregroundColor(Forge.text)
@@ -129,7 +130,7 @@ struct MoreView: View {
                 }
             }.padding(.horizontal, 16)
         }
-        .onAppear { model.loadSessions() }
+        .onAppear { model.loadSessions(); model.loadSwitches() }
     }
 
     /// Looks at the newest release of this project on GitHub (public, no sign-in); iPhones cannot be updated from outside the store, so the app only tells and links to it.

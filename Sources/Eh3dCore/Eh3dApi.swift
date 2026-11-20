@@ -186,6 +186,43 @@ public final class Eh3dApi: @unchecked Sendable {
     /// The machines of the plugins of the server (laser, pick-and-place, printer...) with what each says of itself in `detail`; the ones of the drilling and routing machines are in the fleet.
     public func workMachines() async throws -> [WorkMachine] { try parseWorkMachines(try await call("/work/machines")) }
 
+    /// The jobs of the generic queue of the server (the newest first, at most 100): the ones that wait, run or are held are the ones the app shows.
+    public func workJobs() async throws -> [WorkJob] { try parseWorkJobs(try await call("/work/jobs?limit=100")) }
+
+    /// Starts a job that waits in the queue. Only ever called from a button that a person pressed twice: nothing in the app starts a job by itself.
+    public func startWorkJob(_ id: String) async throws { _ = try await call("/work/jobs/\(q(id))/start", method: "POST", body: "{}") }
+
+    /// Cancels a job of the queue that waits or is held.
+    public func cancelWorkJob(_ id: String) async throws { _ = try await call("/work/jobs/\(q(id))/cancel", method: "POST", body: "{}") }
+
+    /// The emergency stop of a machine of a plugin, at once and with no question: the route of its plugin when it has one (CNC and 3D printer: heaters off, motors released, machine latched), else the
+    /// cancel of the job that runs on it (a laser: the beam goes off and the machine latches). A machine with neither a route nor a job asks for nothing. A stop that got no answer is sent once more:
+    /// the server takes a stop twice without harm, and one that never arrived is worse than one that arrives twice. Answers false when there was nothing to send.
+    @discardableResult
+    public func emergencyStopWork(_ machine: WorkMachine) async throws -> Bool {
+        let path: String
+        if let route = MachineSafety.stopRoute(machine.plugin) { path = "/work/machines/\(q(machine.id))/\(route)" }
+        else if !machine.job.isEmpty { path = "/work/jobs/\(q(machine.job))/cancel" }
+        else { return false }
+        do { _ = try await call(path, method: "POST", body: "{}") }
+        catch let error as ApiError {
+            if error.status != 0 { throw error }
+            _ = try await call(path, method: "POST", body: "{}")
+        }
+        return true
+    }
+
+    /// Releases the latch of an emergency stop or of a fault (an administrator); a plugin that does not latch has no such route and nothing is asked. Answers false when there was nothing to send.
+    @discardableResult
+    public func releaseWork(_ machine: WorkMachine) async throws -> Bool {
+        guard let route = MachineSafety.releaseRoute(machine.plugin) else { return false }
+        _ = try await call("/work/machines/\(q(machine.id))/\(route)", method: "POST", body: "{}")
+        return true
+    }
+
+    /// The switches of security of the server that the app explains (administrators only; any other role is refused with 403).
+    public func policySwitches() async throws -> [PolicySwitch] { try parsePolicySwitches(try await call("/auth/policy")) }
+
     public func session() async throws -> Login {
         let j = try JSONSerialization.jsonObject(with: Data(try await call("/session").utf8)) as? [String: Any]
         return Login(token: token, name: (j?["name"] as? String) ?? "", role: (j?["role"] as? String) ?? "viewer")

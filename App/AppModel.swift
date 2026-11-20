@@ -81,6 +81,9 @@ final class AppModel: ObservableObject {
     /// The open logins of the person (this phone, Studio, the others) and the machines of the plugins of the server.
     @Published var sessionList: [AuthSession] = []
     @Published var workMachines: [WorkMachine] = []
+    /// The jobs of the generic queue of the server (the ones of the machines of the plugins) and, for an administrator, the switches of security of the server that the app explains.
+    @Published var workJobs: [WorkJob] = []
+    @Published var switches: [PolicySwitch] = []
 
     let translator: Translator
     private let prefs = PreferencesStore()
@@ -196,7 +199,7 @@ final class AppModel: ObservableObject {
         rememberMe = false
         api.token = ""
         login = nil; fleet = .empty; job = nil; head = nil; jobs = []; stack = []
-        sessionList = []; workMachines = []
+        sessionList = []; workMachines = []; workJobs = []; switches = []
         phase = .signedOut
     }
 
@@ -259,6 +262,37 @@ final class AppModel: ObservableObject {
             do { try await api.closeSession(id); sessionList = try await api.sessions() }
             catch let e as ApiError { if e.unauthorized { signOut() } else { message = text(e) } }
             catch { message = error.localizedDescription }
+        }
+    }
+
+    // ---- the machines of the plugins and the switches of the server
+    /// The emergency stop of a machine of a plugin: one touch, no question. A stop that did not get there is said plainly: the machine was NOT stopped.
+    func emergencyStopWork(_ machine: WorkMachine) {
+        Task {
+            do { if try await api.emergencyStopWork(machine) { message = tr("Parada de emergencia enviada.") } }
+            catch let e as ApiError {
+                message = (e.unauthorized || e.status == 0 || e.status >= 500) ? tr("La orden de parada NO ha llegado al servidor. Use la parada física de la máquina.") : text(e)
+                if e.unauthorized { signOut() }
+            } catch { message = tr("La orden de parada NO ha llegado al servidor. Use la parada física de la máquina.") }
+            refreshNow()
+        }
+    }
+
+    /// Releases the latch of a machine of a plugin (an administrator; the screen has asked twice).
+    func releaseWork(_ machine: WorkMachine) { act { if try await self.api.releaseWork(machine) { self.message = self.tr("Se ha soltado el enclavamiento.") } } }
+
+    /// Starts a job of the queue. Only a person's second touch calls this: nothing in the app starts a job by itself.
+    func startWorkJob(_ id: String) { act { try await self.api.startWorkJob(id) } }
+
+    func cancelWorkJob(_ id: String) { act { try await self.api.cancelWorkJob(id) } }
+
+    /// Reads the switches of security of the server that the app explains; only an administrator is allowed to, and a server that does not have them shows none.
+    func loadSwitches() {
+        if !canAdmin { switches = []; return }
+        Task {
+            do { switches = try await api.policySwitches() }
+            catch let e as ApiError { if e.unauthorized { signOut() } else if e.status != 0 { switches = [] } }
+            catch {}
         }
     }
 
@@ -326,6 +360,10 @@ final class AppModel: ObservableObject {
                 // a server without plugins has none
                 do { workMachines = try await api.workMachines() }
                 catch let e as ApiError { if e.unauthorized { throw e } else if e.status != 0 { workMachines = [] } }
+                if !workMachines.isEmpty {
+                    do { workJobs = try await api.workJobs() }
+                    catch let e as ApiError { if e.unauthorized { throw e } else if e.status != 0 { workJobs = [] } }
+                }
             default: break
             }
             link = link.succeeded(nowMs: clock())

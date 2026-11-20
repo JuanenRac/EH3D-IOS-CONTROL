@@ -677,4 +677,89 @@ final class ApiConnectionTests: XCTestCase {
     func testTheSettingsOfTheConnectionAreBroughtIntoTheirRange() {
         XCTAssertEqual(Eh3dApi(origin: origin, settings: ConnectionSettings(timeoutS: 0, retries: 99)).settings, ConnectionSettings(timeoutS: 1, retries: 5))
     }
+
+    // ---- the machines of the plugins
+
+    private func pluginMachine(_ kind: String, job: String = "") -> WorkMachine { WorkMachine(id: "m1", name: "M", plugin: kind, state: "idle", latched: false, detail: [], job: job) }
+
+    func testTheEmergencyStopOfACncMachineOrAPrinterIsItsOwnRouteSentAtOnceWithNoOtherRequest() async throws {
+        for kind in ["cnc", "printer3d"] {
+            StandIn.reset()
+            answer(#"{"ok":true}"#)
+            let sent = try await api(token: "t").emergencyStopWork(pluginMachine(kind))
+            XCTAssertTrue(sent, kind)
+            XCTAssertEqual(seen.map { "\($0.method) \($0.path)" }, ["POST /api/v1/work/machines/m1/emergency-stop"], kind)
+            XCTAssertEqual(seen[0].authorization, "Bearer t")
+        }
+    }
+
+    func testTheEmergencyStopOfAMachineWithoutARouteOfItsOwnCancelsTheJobThatRunsOnIt() async throws {
+        answer(#"{"ok":true}"#)
+        let sent = try await api(token: "t").emergencyStopWork(pluginMachine("laser", job: "w-7"))
+        XCTAssertTrue(sent)
+        XCTAssertEqual(seen.map { "\($0.method) \($0.path)" }, ["POST /api/v1/work/jobs/w-7/cancel"])
+    }
+
+    func testAMachineWithNeitherARouteNorAJobIsAskedNothing() async throws {
+        let sent = try await api(token: "t").emergencyStopWork(pluginMachine("pnp"))
+        XCTAssertFalse(sent)
+        XCTAssertTrue(seen.isEmpty)
+    }
+
+    func testAStopThatTheServerRefusesIsAnErrorToShowAndIsNotHidden() async {
+        answer(#"{"error":"forbidden"}"#, status: 403)
+        let client = api(token: "t")
+        let machine = pluginMachine("cnc")
+        let error = await refusal { _ = try await client.emergencyStopWork(machine) }
+        XCTAssertEqual(error?.forbidden, true)
+        XCTAssertEqual(seen.count, 1, "a refusal is not sent again")
+    }
+
+    func testAStopThatGotNoAnswerIsSentOnceMoreAndThenSaidToHaveFailed() async {
+        StandIn.failure = URLError(.timedOut)
+        let client = api(token: "t")
+        let machine = pluginMachine("printer3d")
+        let error = await refusal { _ = try await client.emergencyStopWork(machine) }
+        XCTAssertEqual(error?.status, 0)
+        XCTAssertEqual(seen.map { $0.path }, ["/api/v1/work/machines/m1/emergency-stop", "/api/v1/work/machines/m1/emergency-stop"])
+    }
+
+    func testTheReleaseOfALatchUsesTheRouteOfThePluginAndAPluginThatDoesNotLatchIsAskedNothing() async throws {
+        for (kind, path) in [("cnc", "release"), ("printer3d", "release"), ("laser", "laser/release")] {
+            StandIn.reset()
+            answer(#"{"released":true}"#)
+            let released = try await api(token: "t").releaseWork(pluginMachine(kind))
+            XCTAssertTrue(released, kind)
+            XCTAssertEqual(seen.map { "\($0.method) \($0.path)" }, ["POST /api/v1/work/machines/m1/\(path)"], kind)
+        }
+        StandIn.reset()
+        let none = try await api(token: "t").releaseWork(pluginMachine("pcb"))
+        XCTAssertFalse(none)
+        XCTAssertTrue(seen.isEmpty)
+    }
+
+    func testTheQueueIsReadFromTheGenericRouteAndAJobIsStartedOrCancelledByItsIdWithAnEmptyBody() async throws {
+        answer(#"{"items":[{"id":"w-2","machine":"p1","state":"queued"}]}"#)
+        let client = api(token: "t")
+        let jobs = try await client.workJobs()
+        XCTAssertEqual(jobs.map { $0.id }, ["w-2"])
+        try await client.startWorkJob("w-2")
+        try await client.cancelWorkJob("w-3")
+        XCTAssertEqual(seen.map { "\($0.method) \($0.path)" }, ["GET /api/v1/work/jobs", "POST /api/v1/work/jobs/w-2/start", "POST /api/v1/work/jobs/w-3/cancel"])
+        XCTAssertEqual(seen[0].query, "limit=100")
+        XCTAssertEqual(seen[1].body, "{}")
+    }
+
+    func testTheSwitchesOfTheServerAreReadFromThePolicyAndARoleThatIsNotAnAdministratorIsRefused() async throws {
+        answer(#"{"switches":[{"key":"mdns_announce","value":false,"safe":true}]}"#)
+        let list = try await api(token: "t").policySwitches()
+        XCTAssertEqual(seen[0].path, "/api/v1/auth/policy")
+        XCTAssertEqual(list.map { $0.key }, ["mdns_announce"])
+        StandIn.reset()
+        answer(#"{"error":"forbidden"}"#, status: 403)
+        let client = api(token: "t")
+        let error = await refusal { _ = try await client.policySwitches() }
+        XCTAssertEqual(error?.forbidden, true)
+        XCTAssertEqual(client.token, "t", "a refusal for the role keeps the login")
+    }
 }

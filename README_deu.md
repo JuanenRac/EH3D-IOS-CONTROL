@@ -31,7 +31,7 @@
 |---|---|
 | Version | `0.1.2` |
 | Reifegrad | Gerüst |
-| Tests | 307 Tests des Swift-Pakets |
+| Tests | 342 Tests des Swift-Pakets |
 | Technologie-Stack | Swift, SwiftUI |
 | Auf echter Hardware | Noch nicht: Die App wurde nicht auf einem iPhone, gegen einen echten Server oder mit einer Maschine ausgeführt; als Erstes ist die Anmeldung am EH3D-SERVER der Werkstatt zu versuchen. |
 
@@ -54,6 +54,7 @@ Jede Zeile ist ein Teil dieses Repositorys, und die Ampel sagt, wie weit er heut
 | 2D- und 3D-Ansicht | 🟠 | Platine, Löcher (ein Ring bis zum Bohren), Bahnen (blass bis zum Fräsen) und Kopf, in 2D und in einer isometrischen Ansicht, die sich mit dem Finger dreht; die Position des Kopfes ist eine Schätzung aus den erledigten Schritten. Als Geometrie getestet, nie auf einem Telefon gesehen. |
 | Kamera des Kopfes | 🟠 | Die Kamera des Bohrkopfes (EH3D-NODE-BUNGARD-AUX) als MJPEG über den Server, ihre Drehzahl, Temperatur und der Schutzausgang sowie eine Tischmessung mit dem Laser. Geschrieben, nie mit einem echten Knoten ausgeführt. |
 | Updates | 🟠 | Sie sucht die neueste Release dieses Projekts auf GitHub und sagt es mit einem Link; eine iPhone-App kann sich außerhalb des App Stores nicht selbst aktualisieren, die neue Version wird also aus der Release installiert, wie die Person es wählt. |
+| Maschinen der Plugins | 🟠 | Die Startseite listet die Laser-, Bestückungs-, Platinen-, CNC-, Gerber-, CAM-, 3D-Drucker-, Vision- und CAD-Maschinen des Servers mit einem Abzeichen NUR SIMULATOR (nichts wird als auf Hardware bewährt gezeigt), ihre Verriegelungen in Rot, einen Not-Halt mit einer Berührung und ohne Rückfrage, das Lösen einer Verriegelung nur für Administratoren (zweimal bestätigt), die Warteschlange jeder Maschine (ein Auftrag wird von einer Person gestartet, zweimal bestätigt, und nie von selbst), die Temperaturgrenzen eines Druckers und für Administratoren die Schalter des Servers, die standardmäßig aus sind. Geschrieben und gegen einen simulierten Server getestet; nie auf einem iPhone oder mit einer echten Maschine gelaufen. |
 | Echter Einsatz | 🔴 | Noch nicht: Die App wurde nicht auf einem iPhone, gegen einen echten Server oder mit einer Maschine ausgeführt; als Erstes ist die Anmeldung am EH3D-SERVER der Werkstatt zu versuchen. |
 | Dokumentation | 🟡 | README in acht Sprachen, die Hilfe der App in 37 Sprachen und die Hinweise zur verwendeten Server-API. |
 

@@ -97,7 +97,9 @@ public func parseSessions(_ body: String) throws -> [AuthSession] {
         .map { AuthSession(id: text($0, "id"), name: text($0, "name"), role: text($0, "role", "viewer"), app: text($0, "app"), ip: text($0, "ip"), current: isTrue($0["current"])) }
 }
 
-/// A machine of a plugin of the server (`GET /work/machines`) with what the plugin says of it in `detail`, flattened to lines of text.
+/// A machine of a plugin of the server (`GET /work/machines`) with what the plugin says of it in `detail`, flattened to lines of text. `latched` is true when an interlock holds it (`interlocks`);
+/// `simulatorOnly` says it has only run against a simulator; `job` is the id of the job that runs on it, or empty; `autoStart` says its queue starts jobs by itself (a warning, never set from the phone);
+/// `limits` and `heaters` are the limits of temperature and the heaters of a 3D printer.
 public struct WorkMachine: Equatable, Sendable {
     public let id: String
     public let name: String
@@ -105,8 +107,16 @@ public struct WorkMachine: Equatable, Sendable {
     public let state: String
     public let latched: Bool
     public let detail: [DetailLine]
-    public init(id: String, name: String, plugin: String, state: String, latched: Bool, detail: [DetailLine]) {
+    public let job: String
+    public let simulatorOnly: Bool
+    public let interlocks: [Interlock]
+    public let autoStart: Bool
+    public let limits: TempLimits?
+    public let heaters: [Heater]
+    public init(id: String, name: String, plugin: String, state: String, latched: Bool, detail: [DetailLine], job: String = "", simulatorOnly: Bool = false,
+                interlocks: [Interlock] = [], autoStart: Bool = false, limits: TempLimits? = nil, heaters: [Heater] = []) {
         self.id = id; self.name = name; self.plugin = plugin; self.state = state; self.latched = latched; self.detail = detail
+        self.job = job; self.simulatorOnly = simulatorOnly; self.interlocks = interlocks; self.autoStart = autoStart; self.limits = limits; self.heaters = heaters
     }
 }
 
@@ -116,9 +126,6 @@ public struct DetailLine: Equatable, Sendable {
     public let value: String
     public init(_ key: String, _ value: String) { self.key = key; self.value = value }
 }
-
-/// The keys of `detail` that say the machine is stopped until an administrator releases it.
-private let latchKeys = ["latched", "estop_latched", "alarm"]
 
 /// The most lines of a detail that are kept (a screen shows the first 8 of them).
 private let maxDetailLines = 24
@@ -130,8 +137,10 @@ public func parseWorkMachines(_ body: String) throws -> [WorkMachine] {
         let detail = m["detail"] as? Json
         var lines: [DetailLine] = []
         if let detail { flatten(prefix: "", detail, into: &lines, depth: 0) }
-        let latched = detail.map { d in latchKeys.contains { isTrue(d[$0]) } } ?? false
-        return WorkMachine(id: text(m, "id"), name: text(m, "name", text(m, "id")), plugin: text(m, "plugin"), state: text(m, "state", "idle"), latched: latched, detail: lines)
+        let held = MachineSafety.interlocks(detail: detail)
+        return WorkMachine(id: text(m, "id"), name: text(m, "name", text(m, "id")), plugin: text(m, "plugin"), state: text(m, "state", "idle"), latched: !held.isEmpty, detail: lines,
+                           job: text(m, "job"), simulatorOnly: MachineSafety.simulatorOnly(detail: detail, capabilities: m["capabilities"] as? Json), interlocks: held,
+                           autoStart: MachineSafety.startsByItself(detail: detail), limits: MachineSafety.limits(detail: detail), heaters: MachineSafety.heaters(detail: detail))
     }
 }
 

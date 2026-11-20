@@ -31,7 +31,7 @@
 |---|---|
 | Versão | `0.1.2` |
 | Maturidade | Estrutura inicial |
-| Testes | 307 testes do pacote Swift |
+| Testes | 342 testes do pacote Swift |
 | Tecnologias | Swift, SwiftUI |
 | Em hardware real | Ainda não: a aplicação não foi executada num iPhone, contra um servidor real nem com uma máquina; o primeiro a experimentar é entrar no EH3D-SERVER da oficina. |
 
@@ -54,6 +54,7 @@ Cada linha é uma parte deste repositório e a luz diz até onde chega hoje. É 
 | Visor 2D e 3D | 🟠 | A placa, os furos (um anel até serem furados), os trajetos (ténues até serem cortados) e o cabeçote, em 2D e numa vista isométrica que roda com o dedo; a posição do cabeçote é uma estimativa a partir dos passos feitos. Testado como geometria, nunca visto num telemóvel. |
 | Câmara do cabeçote | 🟠 | A câmara do cabeçote de furação (EH3D-NODE-BUNGARD-AUX) em MJPEG através do servidor, as suas rotações, temperatura e saída de proteção, e uma medição da mesa com o laser. Escrito, nunca executado com um nó real. |
 | Atualizações | 🟠 | Consulta a última release deste projeto no GitHub e di-lo com uma ligação; uma aplicação de iPhone não se pode atualizar sozinha fora da App Store, por isso a versão nova instala-se a partir da release como a pessoa escolher. |
+| Máquinas dos plugins | 🟠 | A página inicial lista as máquinas de laser, pick-and-place, placas, CNC, Gerber, CAM, impressora 3D, visão e CAD do servidor com um distintivo APENAS SIMULADOR (nada é mostrado como provado em hardware), os seus bloqueios a vermelho, uma paragem de emergência com um toque e sem perguntas, a libertação de um bloqueio apenas para administradores (confirmada duas vezes), a fila de cada máquina (um trabalho é iniciado por uma pessoa, confirmado duas vezes, e nunca sozinho), os limites de temperatura de uma impressora e, para um administrador, os interruptores do servidor desligados por predefinição. Escrito e testado contra um servidor simulado; nunca executado num iPhone nem com uma máquina real. |
 | Uso real | 🔴 | Ainda não: a aplicação não foi executada num iPhone, contra um servidor real nem com uma máquina; o primeiro a experimentar é entrar no EH3D-SERVER da oficina. |
 | Documentação | 🟡 | README em oito idiomas, a ajuda da aplicação em 37 idiomas e as notas da API do servidor que usa. |
 
