@@ -107,13 +107,14 @@ final class AppModel: ObservableObject {
         origin = prefs.get("origin") ?? ""
         confirmStart = prefs.get("confirm_start") != "0"
         let store = prefs
-        connection = ConnectionSettings.read(int: { key, fallback in store.get(key).flatMap { Int($0) } ?? fallback }, bool: { key, fallback in store.get(key).map { $0 == "1" } ?? fallback })
+        let loadedConnection = ConnectionSettings.read(int: { key, fallback in store.get(key).flatMap { Int($0) } ?? fallback }, bool: { key, fallback in store.get(key).map { $0 == "1" } ?? fallback })
+        connection = loadedConnection
         ServerErrors.ensureBundled()
         vault = SessionVault(secrets: KeychainSecrets(), prefs: prefs)
         let delegate = TrustDelegate(pins: PinStore(prefs))
         trust = delegate
         pinnedSession = URLSession(configuration: .ephemeral, delegate: delegate, delegateQueue: nil)
-        api = Eh3dApi(origin: prefs.get("origin") ?? "", settings: connection, session: pinnedSession)
+        api = Eh3dApi(origin: prefs.get("origin") ?? "", settings: loadedConnection, session: pinnedSession)
         vault.forgetIfReinstalled(hasOtherSettings: prefs.get("origin") != nil)   // a reinstalled app does not inherit the session the Keychain kept
         vault.purgeLegacy()   // the user and the password that an earlier version kept are deleted at the first start
         rememberMe = vault.loadSession(origin: origin) != nil
