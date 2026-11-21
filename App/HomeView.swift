@@ -46,6 +46,11 @@ struct HomeView: View {
                     Title(model.tr("Otras máquinas"))
                     ForEach(model.workMachines, id: \.id) { w in WorkMachineCard(model: model, w: w) }
                 }
+                if !model.pnpNodes.isEmpty {
+                    Title(model.tr("Nodos de las máquinas pick-and-place"))
+                    ForEach(model.pnpNodes, id: \.id) { n in PnpNodeCard(model: model, n: n) }
+                    Text(model.tr("Se registran y se cambian en EH3D-STUDIO.")).font(.caption).foregroundColor(Forge.dim)
+                }
             }.padding(.horizontal, 16).padding(.top, 12)
         }
         .confirmationDialog(model.tr("PARADA DE EMERGENCIA"), isPresented: $askAll, titleVisibility: .visible) {

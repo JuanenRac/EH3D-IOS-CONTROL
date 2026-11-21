@@ -34,6 +34,39 @@ func switchNote(_ key: String, _ tr: (String) -> String) -> String {
     }
 }
 
+/// The word of the kind of a node of a pick-and-place machine.
+func pnpKindWord(_ kind: String, _ tr: (String) -> String) -> String { kind == "head" ? tr("Cabezal") : tr("Alimentador") }
+
+/// A node of a pick-and-place machine, read only: its kind, address and machine, whether the server counts it ready (green) or not (red; a node that is switched off is grey), its health as the server says it,
+/// the last error of its poll and the numbers it said last. The token is never shown (the phone never reads it). The nodes are registered and changed in EH3D-STUDIO.
+struct PnpNodeCard: View {
+    @ObservedObject var model: AppModel
+    let n: PnpNode
+
+    var body: some View {
+        let color = !n.enabled ? Forge.dim : n.ready ? Forge.green : Forge.danger
+        let place = n.machine.isEmpty ? n.address : n.address + " · " + n.machine
+        let kind = pnpKindWord(n.kind, model.tr)
+        let health = n.lastError.isEmpty ? "health: " + n.health : "health: " + n.health + " · " + n.lastError
+        Card(accent: color) {
+            HStack(spacing: 10) {
+                Light(color: color, live: n.ready)
+                VStack(alignment: .leading) {
+                    Text(n.name).font(.headline).foregroundColor(Forge.text)
+                    Text(kind + " · " + place).font(.caption).foregroundColor(Forge.dim)
+                }
+                Spacer()
+                Pill(text: n.ready ? model.tr("Listo") : model.tr("No listo"), color: color)
+            }
+            if n.simulatorOnly { Pill(text: model.tr("SOLO SIMULADOR"), color: Forge.orange) }
+            Text(health).font(.caption).foregroundColor(Forge.text)
+            ForEach(Array(n.facts.enumerated()), id: \.offset) { _, line in
+                Text("\(line.key): \(line.value)").font(.caption).foregroundColor(Forge.dim)
+            }
+        }
+    }
+}
+
 /// What a button of the card asks a second time before it does anything.
 private enum Pending: Equatable {
     case release

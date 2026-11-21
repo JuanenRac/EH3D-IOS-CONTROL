@@ -220,6 +220,9 @@ public final class Eh3dApi: @unchecked Sendable {
     /// The machines of the plugins of the server (laser, pick-and-place, printer...) with what each says of itself in `detail`; the ones of the drilling and routing machines are in the fleet.
     public func workMachines() async throws -> [WorkMachine] { try parseWorkMachines(try await call("/work/machines")) }
 
+    /// The feeder and head nodes of the pick-and-place machines, with their health as the server last saw it (read only; a server where the nodes are switched off answers 501).
+    public func pnpNodes() async throws -> [PnpNode] { try parsePnpNodes(try await call("/pnp/nodes")) }
+
     /// The jobs of the generic queue of the server (the newest first, at most 100): the ones that wait, run or are held are the ones the app shows.
     public func workJobs() async throws -> [WorkJob] { try parseWorkJobs(try await call("/work/jobs?limit=100")) }
 

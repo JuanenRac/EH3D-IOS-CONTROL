@@ -11,12 +11,14 @@ final class ServerErrorsContractTests: XCTestCase {
     private var serverCatalog: URL { repository.deletingLastPathComponent().appendingPathComponent("EH3D-SERVER/docs/error-codes.json") }
     private var keptCatalog: URL { here.deletingLastPathComponent().appendingPathComponent("Catalog/error-codes.json") }
 
-    /// The codes that the server added after the copy of the catalog in Tests/Eh3dCoreTests/Catalog: the phone has to tell every one of them.
+    /// The codes that the server added after the first copy of the catalog (the copy in Tests/Eh3dCoreTests/Catalog has them all now): the phone has to tell every one of them.
     private let addedLater: [String] = [
         "air_assist_off", "bad_axis", "bad_feed", "bad_gerber", "bad_heater", "bad_mesh", "bad_operation", "bad_placement_list", "bad_rules", "compat_off", "compat_write_off", "enclosure_open",
         "farm_no_free_printer", "focus_not_checked", "heater_timeout", "input_too_large", "jog_while_running", "laser_estop_latched", "laser_feed_limit", "laser_power_limit", "machine_alarm",
         "missing_layer", "out_of_travel", "pnp_feeder_short", "printer_disconnected", "printer_latched", "printer_untrusted", "program_over_limit", "sensor_fault", "slice_failed", "slice_limit",
         "slice_off", "temperature_over_limit", "test_fire_refused", "thermal_runaway", "unit_unknown",
+        "authorization_required", "bad_bgcode", "bad_pnp_node", "bambu_lan_off", "bgcode_unsupported", "pnp_node_disabled", "pnp_node_exists", "pnp_node_not_ready", "pnp_nodes_full", "pnp_nodes_off",
+        "stale_authorization", "unknown_pnp_node",
     ]
 
     override func setUpWithError() throws {
@@ -44,7 +46,7 @@ final class ServerErrorsContractTests: XCTestCase {
     func testTheCodesAddedAfterTheCopyOfTheCatalogHaveTheirEightTexts() {
         let without = addedLater.filter { code in ServerErrors.languages.contains { ServerErrors.text(code, language: $0) == nil } }
         XCTAssertEqual(without, [])
-        XCTAssertEqual(addedLater.count, 36)
+        XCTAssertEqual(addedLater.count, 48)
         XCTAssertEqual(addedLater.count, Set(addedLater).count)
     }
 
@@ -52,7 +54,8 @@ final class ServerErrorsContractTests: XCTestCase {
         let kept = try codes(of: keptCatalog)
         let table = ServerErrors.codes()
         XCTAssertTrue((kept + addedLater).allSatisfy { table.contains($0) })
-        XCTAssertGreaterThanOrEqual(table.count, kept.count + addedLater.count)
+        XCTAssertTrue(addedLater.allSatisfy { kept.contains($0) })
+        XCTAssertEqual(table, Set(kept))
     }
 
     func testTheNewCodesAreToldInEachLanguageAndNotInEnglishAlone() {

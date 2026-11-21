@@ -169,6 +169,48 @@ private func numberText(_ number: NSNumber) -> String {
     return "\(value)"
 }
 
+/// A feeder or head node of a pick-and-place machine as `GET /pnp/nodes` lists it. The phone only reads them (EH3D-STUDIO registers, changes and removes them). `ready` is the verdict of the server:
+/// only the healths `ok` and `warn` are ready and every other one is not, so an answer that does not say is not ready. The token of a node never comes in the answer (the server sends `********`) and is
+/// not read here. `facts` are the few numbers the node said last, as lines of text.
+public struct PnpNode: Equatable, Sendable {
+    public let id: String
+    public let kind: String
+    public let name: String
+    public let address: String
+    public let machine: String
+    public let enabled: Bool
+    public let health: String
+    public let ready: Bool
+    public let lastError: String
+    public let simulatorOnly: Bool
+    public let facts: [DetailLine]
+    public init(id: String, kind: String, name: String, address: String, machine: String, enabled: Bool, health: String, ready: Bool, lastError: String, simulatorOnly: Bool, facts: [DetailLine]) {
+        self.id = id; self.kind = kind; self.name = name; self.address = address; self.machine = machine; self.enabled = enabled
+        self.health = health; self.ready = ready; self.lastError = lastError; self.simulatorOnly = simulatorOnly; self.facts = facts
+    }
+}
+
+/// The keys of what a node said last that the phone lists, in this order.
+private let pnpFactKeys = ["safe", "selfcheck", "online", "slots", "low", "empty", "faulted", "nozzle_count", "pump"]
+
+/// The nodes of the answer `{"nodes": [...]}`; an item without an id is left out, and anything that is not a list is an empty list.
+public func parsePnpNodes(_ body: String) throws -> [PnpNode] {
+    let list = (try rootObject(body)["nodes"] as? [Any]) ?? []
+    return list.compactMap { $0 as? Json }.filter { !text($0, "id").isEmpty }.map { n in
+        var facts: [DetailLine] = []
+        if let status = n["status"] as? Json {
+            for key in pnpFactKeys {
+                guard let value = status[key], !(value is NSNull) else { continue }
+                if let number = value as? NSNumber { facts.append(DetailLine(key, numberText(number))) } else { facts.append(DetailLine(key, String(describing: value))) }
+            }
+        }
+        let enabled = (n["enabled"] as? NSNumber).map { $0.boolValue } ?? true
+        return PnpNode(id: text(n, "id"), kind: text(n, "kind"), name: text(n, "name", text(n, "id")), address: text(n, "address"), machine: text(n, "machine"), enabled: enabled,
+                       health: text(n, "health", "unknown"), ready: isTrue(n["ready"]), lastError: text(n, "last_error"),
+                       simulatorOnly: text(n, "evidence") == "simulator" || isTrue(n["simulator_only"]), facts: facts)
+    }
+}
+
 /// A server found on the local network: shown to the person, who chooses; nothing connects by itself.
 public struct Candidate: Equatable, Sendable {
     public let host: String

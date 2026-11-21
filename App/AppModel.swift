@@ -89,6 +89,8 @@ final class AppModel: ObservableObject {
     /// The open logins of the person (this phone, Studio, the others) and the machines of the plugins of the server.
     @Published var sessionList: [AuthSession] = []
     @Published var workMachines: [WorkMachine] = []
+    /// The feeder and head nodes of the pick-and-place machines, read only; empty while the server has none or has the nodes switched off.
+    @Published var pnpNodes: [PnpNode] = []
     /// The jobs of the generic queue of the server (the ones of the machines of the plugins) and, for an administrator, the switches of security of the server that the app explains.
     @Published var workJobs: [WorkJob] = []
     @Published var switches: [PolicySwitch] = []
@@ -216,7 +218,7 @@ final class AppModel: ObservableObject {
         rememberMe = false
         api.token = ""
         login = nil; fleet = .empty; job = nil; head = nil; jobs = []; stack = []
-        sessionList = []; workMachines = []; workJobs = []; switches = []
+        sessionList = []; workMachines = []; pnpNodes = []; workJobs = []; switches = []
         phase = .signedOut
     }
 
@@ -424,6 +426,11 @@ final class AppModel: ObservableObject {
                 // a server without plugins has none
                 do { workMachines = try await api.workMachines() }
                 catch let e as ApiError { if e.unauthorized { throw e } else if e.status != 0 { workMachines = [] } }
+                if workMachines.contains(where: { $0.plugin == "pnp" }) {
+                    // a 501 means the nodes are switched off on the server
+                    do { pnpNodes = try await api.pnpNodes() }
+                    catch let e as ApiError { if e.unauthorized { throw e } else if e.status != 0 { pnpNodes = [] } }
+                } else { pnpNodes = [] }
                 if !workMachines.isEmpty {
                     do { workJobs = try await api.workJobs() }
                     catch let e as ApiError { if e.unauthorized { throw e } else if e.status != 0 { workJobs = [] } }
