@@ -73,7 +73,8 @@ public enum Prepare {
         let ns = head as NSString
         var out: [Int: Double] = [:]
         for m in re.matches(in: head, range: NSRange(location: 0, length: ns.length)) {
-            guard let n = Int(ns.substring(with: m.range(at: 1))), let d = Double(ns.substring(with: m.range(at: 2))) else { continue }
+            // a tool number beyond 32 bits is a damaged file, as on the Android app (whose Int has 32 bits)
+            guard let n = Int(ns.substring(with: m.range(at: 1))), n <= Int(Int32.max), let d = Double(ns.substring(with: m.range(at: 2))) else { continue }
             if out[n] == nil { out[n] = d }
         }
         return out
@@ -90,7 +91,7 @@ public enum Prepare {
         if side == .drill { files["ncd"] = text; if !tableText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { files["dtd"] = tableText } }
         else { files["plt"] = text; if !tableText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { files["rtd"] = tableText } }
         var body: [String: Any] = ["kind": side.kind, "files": files]
-        if !name.trimmingCharacters(in: .whitespaces).isEmpty { body["name"] = name }
+        if !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { body["name"] = name }
         if !skipTools.isEmpty { body["skip_tools"] = skipTools }
         return encode(body)
     }
@@ -98,7 +99,7 @@ public enum Prepare {
     /// The request that plans a free G-code program: `skip` lines already done; the spindle and the coolant are started again only with `restoreOutputs` (off by default).
     public static func gcodeBody(name: String, gcode: String, skip: Int, restoreOutputs: Bool) -> String {
         var body: [String: Any] = ["kind": "gcode", "gcode": gcode, "skip": max(skip, 0), "restore_outputs": restoreOutputs]
-        if !name.trimmingCharacters(in: .whitespaces).isEmpty { body["name"] = name }
+        if !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { body["name"] = name }
         return encode(body)
     }
 
@@ -109,7 +110,12 @@ public enum Prepare {
     }
 
     /// The number of lines of a program (counting blank and comment lines, as `skip` does).
-    public static func lineCount(_ text: String) -> Int { text.isEmpty ? 0 : text.filter { $0 == "\n" }.count + (text.hasSuffix("\n") ? 0 : 1) }
+    /// Counted by scalars: Swift reads a carriage return and a line feed together as one character, so counting characters would take a file of Windows line ends for a single line.
+    public static func lineCount(_ text: String) -> Int {
+        if text.isEmpty { return 0 }
+        let feeds = text.unicodeScalars.reduce(0) { $1 == "\n" ? $0 + 1 : $0 }
+        return feeds + (text.unicodeScalars.last == "\n" ? 0 : 1)
+    }
 
     /// The `skip` to go on with after a stop: the line the job says, never beyond the program.
     public static func resumeSkip(line: Int, total: Int) -> Int { min(max(line, 0), max(total, 0)) }

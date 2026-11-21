@@ -31,7 +31,7 @@
 |---|---|
 | Versión | `0.1.6` |
 | Madurez | Andamiaje |
-| Pruebas | 444 pruebas del paquete Swift |
+| Pruebas | 474 pruebas del paquete Swift |
 | Pila tecnológica | Swift, SwiftUI |
 | En hardware real | Todavía no: la app no se ha ejecutado en un iPhone, contra un servidor real ni con una máquina; lo primero que hay que probar es entrar en el EH3D-SERVER del taller. |
 

@@ -7,10 +7,12 @@ public struct ServerEndpoint: Equatable, Sendable {
 
     /// Builds the origin typed by an operator: a host (with or without http:// or https://) and a port.
     public static func fromHostAndPort(_ hostInput: String, _ portInput: String) -> ServerEndpoint? {
-        let source = hostInput.trimmingCharacters(in: .whitespaces)
+        let source = hostInput.trimmingCharacters(in: .whitespacesAndNewlines)
         let scheme = source.lowercased().hasPrefix("https://") ? "https" : "http"
         let host = hostOf(source)
-        guard let port = Int(portInput.trimmingCharacters(in: .whitespaces)), (1...65535).contains(port) else { return nil }
+        // only plain digits are a port (Int() also takes a sign)
+        let portText = portInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !portText.isEmpty, portText.allSatisfy({ $0 >= "0" && $0 <= "9" }), let port = Int(portText), (1...65535).contains(port) else { return nil }
         return parse("\(scheme)://\(host):\(port)")
     }
 
@@ -23,7 +25,7 @@ public struct ServerEndpoint: Equatable, Sendable {
 
     /// True when what was typed names a place outside the home network without asking for a secure connection: the app refuses to send the password that way.
     public static func needsSecureConnection(_ hostInput: String) -> Bool {
-        let source = hostInput.trimmingCharacters(in: .whitespaces)
+        let source = hostInput.trimmingCharacters(in: .whitespacesAndNewlines)
         if source.isEmpty || source.lowercased().hasPrefix("https://") { return false }
         let host = hostOf(source)
         return !host.isEmpty && !isPrivateLanHost(host)
@@ -31,7 +33,7 @@ public struct ServerEndpoint: Equatable, Sendable {
 
     /// True when what was typed is a public IPv4 address (not a name, not an address of the house): it stops working the day the operator changes it.
     public static func usesPublicIpAddress(_ hostInput: String) -> Bool {
-        let source = hostInput.trimmingCharacters(in: .whitespaces)
+        let source = hostInput.trimmingCharacters(in: .whitespacesAndNewlines)
         if source.isEmpty { return false }
         let host = hostOf(source)
         return octets(host) != nil && !isPrivateLanHost(host)
@@ -57,12 +59,14 @@ public struct ServerEndpoint: Equatable, Sendable {
     }
 
     public static func parse(_ value: String) -> ServerEndpoint? {
-        guard let url = URL(string: value.trimmingCharacters(in: .whitespaces)), let scheme = url.scheme, let host = url.host, !host.isEmpty else { return nil }
+        guard let url = URL(string: value.trimmingCharacters(in: .whitespacesAndNewlines)), let scheme = url.scheme, let host = url.host, !host.isEmpty else { return nil }
         if let port = url.port, !(1...65535).contains(port) { return nil }
         let accepted = scheme == "https" || (scheme == "http" && isPrivateLanHost(host))
         if !accepted || url.user != nil || url.password != nil || url.query != nil || url.fragment != nil { return nil }
         if !(url.path.isEmpty || url.path == "/") { return nil }
-        return ServerEndpoint(origin: "\(scheme)://\(host)" + (url.port.map { ":\($0)" } ?? ""))
+        // an address of version 6 is written between brackets in an origin, as the Android app writes it
+        let shown = host.contains(":") && !host.hasPrefix("[") ? "[\(host)]" : host
+        return ServerEndpoint(origin: "\(scheme)://\(shown)" + (url.port.map { ":\($0)" } ?? ""))
     }
 }
 

@@ -31,7 +31,7 @@
 |---|---|
 | Versão | `0.1.6` |
 | Maturidade | Estrutura inicial |
-| Testes | 444 testes do pacote Swift |
+| Testes | 474 testes do pacote Swift |
 | Tecnologias | Swift, SwiftUI |
 | Em hardware real | Ainda não: a aplicação não foi executada num iPhone, contra um servidor real nem com uma máquina; o primeiro a experimentar é entrar no EH3D-SERVER da oficina. |
 

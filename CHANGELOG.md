@@ -3,6 +3,7 @@
 All notable changes to this project are documented here.
 
 ## [Unreleased]
+- **A program with Windows line ends is counted by its lines, the address typed with capitals or a line break is read, and a port is plain digits (the same rules as the Android app):** `Prepare.lineCount` counted characters, and Swift reads a carriage return and a line feed as one character, so a program of Windows line ends was one line and the line to go on from after a stop was cut to it; a line break around an address, a sign in a port and a name made of line breaks were not treated as on the Android app; an address of the version 6 lost its brackets in the origin; a tool number beyond 32 bits is skipped as there. The case files of the address, shared with the Android app, grow by 51 cases, and 30 new tests cover them.
 
 ## [0.1.6] - Authorization of a job by the hash of its toolpath, the eight official languages only and a parity check that follows the branch
 
