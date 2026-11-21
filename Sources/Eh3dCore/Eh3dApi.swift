@@ -116,6 +116,40 @@ public final class Eh3dApi: @unchecked Sendable {
         return text
     }
 
+    /// One try of the light view of the settings: `If-None-Match` carries the ETag of the last answer, a `304` is `.notModified`, and an answer longer than `lightMaxBytes` is never read to the end (it ends as
+    /// the error `download_too_big`). The text is not checked here: the model reads it whole or refuses it. The cache of the system is not used: the tag is kept by the app.
+    private func onceLight(etag: String?) async throws -> LightReply {
+        var r = try request(lightPath, method: "GET", body: nil)
+        r.cachePolicy = .reloadIgnoringLocalCacheData
+        if let etag { r.setValue(etag, forHTTPHeaderField: "If-None-Match") }
+        let (bytes, response): (URLSession.AsyncBytes, URLResponse)
+        do { (bytes, response) = try await urlSession.bytes(for: r) }
+        catch let error as ApiError { throw error }
+        catch let error as URLError { throw ApiError(status: 0, code: "unreachable", detail: error.localizedDescription, neverSent: Eh3dApi.neverSent(error.code)) }
+        catch { throw ApiError(status: 0, code: "unreachable", detail: error.localizedDescription) }
+        let http = response as? HTTPURLResponse
+        let status = http?.statusCode ?? 0
+        if status == 304 { return .notModified }
+        if !(200...299).contains(status) {
+            var body = Data()
+            do { for try await byte in bytes { body.append(byte); if body.count >= 4096 { break } } } catch {}
+            let e = describeError(status: status, body: String(data: body, encoding: .utf8) ?? "")
+            if status == 401 && !token.isEmpty { forgetToken() }
+            throw ApiError(status: status, code: e.code, detail: e.detail.isEmpty ? e.code : e.detail)
+        }
+        if response.expectedContentLength > Int64(lightMaxBytes) { throw ApiError(status: status, code: "download_too_big", detail: "the answer is longer than \(lightMaxBytes) bytes") }
+        var data = Data()
+        do {
+            for try await byte in bytes {
+                data.append(byte)
+                if data.count > lightMaxBytes { throw ApiError(status: status, code: "download_too_big", detail: "the answer is longer than \(lightMaxBytes) bytes") }
+            }
+        }
+        catch let error as ApiError { throw error }
+        catch { throw ApiError(status: 0, code: "unreachable", detail: error.localizedDescription) }
+        return .fresh(text: String(data: data, encoding: .utf8) ?? "", etag: http?.value(forHTTPHeaderField: "ETag"))
+    }
+
     /// Renews the login first when it is in the last quarter of its life; a failure here is left to the request itself to find out.
     private func renewIfDue(_ path: String) async {
         if !autoRefresh || token.isEmpty || path.hasPrefix("/auth/") || path.hasSuffix("/login") { return }
@@ -225,6 +259,21 @@ public final class Eh3dApi: @unchecked Sendable {
 
     /// The contract of the settings of the server with the values in force (`GET /settings/contract`): administrators only, any other role is refused with 403. Answers the text of the reply.
     public func settingsContract() async throws -> String { try await call("/settings/contract") }
+
+    /// The values in force of the settings, light and read only (`GET /settings/values`): any login. `etag` is the tag of the last answer; the server answers `304` when nothing changed. The text of a new answer
+    /// is read by the model (`parseLight`), which refuses what it does not trust.
+    public func settingsValues(etag: String?) async throws -> LightReply {
+        await renewIfDue(lightPath)
+        var retry = 0
+        while true {
+            do { return try await onceLight(etag: etag) }
+            catch let error as ApiError {
+                if Task.isCancelled || retry >= settings.retries || !RetryRules.mayRepeat(method: "GET", status: error.status, neverSent: error.neverSent) { throw error }
+                await pause(RetryRules.delayMs(retry))
+                retry += 1
+            }
+        }
+    }
 
     /// Writes one setting by the method and the route its entry of the contract names (path without `/api/v1`). Answers the text of the reply: the new policy and, in `changed`, what the server did.
     public func writeSetting(method: String, path: String, body: String) async throws -> String { try await call(path, method: method, body: body) }

@@ -81,7 +81,7 @@ struct ServerSettingsView: View {
                         Title(contractText(group.label, model.language).isEmpty ? group.id : contractText(group.label, model.language))
                         ForEach(group.settings, id: \.key) { s in card(view, s, notInCopy: view.live && !known.contains(s.key)) }
                     }
-                    let unlisted = view.live ? unlistedSettings(view.contract, view.values) : []
+                    let unlisted = view.live || view.light ? unlistedSettings(view.contract, view.values, kept: view.secretKeys + view.hiddenKeys) : []
                     if !unlisted.isEmpty {
                         Title(st("ssc_other"))
                         ForEach(unlisted, id: \.key) { s in card(view, s, notInCopy: false) }
@@ -105,8 +105,11 @@ struct ServerSettingsView: View {
         if let view = model.settingsView {
             if view.live {
                 Text(st("ssc_live", ["v": view.serverVersion ?? "-"])).font(.caption).foregroundColor(Forge.green)
+            } else if view.light {
+                Text(st("ssc_light", ["v": view.serverVersion ?? "-"])).font(.caption).foregroundColor(Forge.green)
+                if view.hash == .differs { Text(st("ssc_hash_differs")).font(.caption).foregroundColor(Forge.orange) }
             } else {
-                Text(st("ssc_embedded", ["why": view.why ?? ""])).font(.caption).foregroundColor(Forge.orange)
+                Text(st(role == "admin" ? "ssc_embedded" : "ssc_embedded_values", ["why": view.why ?? ""])).font(.caption).foregroundColor(Forge.orange)
             }
             if !view.live || role != "admin" { Text(st("ssc_readonly_role")).font(.caption).foregroundColor(Forge.dim) }
         } else {
@@ -120,6 +123,9 @@ struct ServerSettingsView: View {
         let kind = controlKind(s)
         let editable = view.live && canWriteSetting(role: role, s)
         let busy = model.settingsBusy == s.key
+        let serverSecret = view.secretKeys.contains(s.key)
+        let keptBack = view.hiddenKeys.contains(s.key)
+        let cut = view.truncatedKeys.contains(s.key)
         let draft = drafts[s.key]
         let typed = draft.map { parseTyped(s, $0) }
         let note = model.settingsNotes[s.key]
@@ -145,10 +151,12 @@ struct ServerSettingsView: View {
                 Text("\(low)–\(high)" + ((s.unit ?? "").isEmpty ? "" : " " + (s.unit ?? ""))).font(.caption).foregroundColor(Forge.dim)
             }
             if kind == .list { Text(st("ssc_list_hint")).font(.caption).foregroundColor(Forge.dim) }
-            if s.secret {
+            if s.secret || serverSecret {
                 Text("●●●  " + st("ssc_secret")).font(.caption).foregroundColor(Forge.dim)
+            } else if keptBack {
+                Text(st("ssc_hidden")).font(.caption).foregroundColor(Forge.dim)
             } else {
-                Text(st("ssc_in_force") + ": " + (current == nil ? "-" : said(current))).foregroundColor(Forge.text)
+                Text(st("ssc_in_force") + ": " + (current == nil ? "-" : said(current) + (cut ? "…" : ""))).foregroundColor(Forge.text)
                 if let fallback = s.defaultValue { Text(st("ssc_default") + ": " + said(fallback)).font(.caption).foregroundColor(Forge.dim) }
                 if !editable {
                     if s.write.via == "file" { Text(st("ssc_in_file")).font(.caption).foregroundColor(Forge.dim) }

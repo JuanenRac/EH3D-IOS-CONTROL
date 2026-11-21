@@ -76,13 +76,28 @@ public struct SettingsContract: Equatable, Sendable {
     public let settings: [Setting]
 }
 
-/// The contract as the page holds it: where it came from, the values in force (none for the copy) and why the live one was not used (a code of the server, `unreachable`, `shape`); nil for a live one.
+/// The contract as the page holds it: where it came from, the values in force (none for the copy) and why the live one was not used (a code of the server, `unreachable`, `shape`, `newer`); nil for a live one.
+/// `live` is the full contract of an administrator; `light` is the copy of the app with the values of `GET /settings/values` (any login, read only); neither is the copy alone. For a light answer `hash` says
+/// whether the list of settings of the server is the copy of the app, and the lists name the keys the server marks secret (never any value), keeps back, cut or changed through the security page.
 public struct LoadedContract: Equatable, Sendable {
     public let contract: SettingsContract
     public let live: Bool
     public let values: [String: SettingValue]
     public let serverVersion: String?
     public let why: String?
+    public let light: Bool
+    public let hash: HashState?
+    public let secretKeys: [String]
+    public let hiddenKeys: [String]
+    public let truncatedKeys: [String]
+    public let overriddenKeys: [String]
+
+    public init(contract: SettingsContract, live: Bool, values: [String: SettingValue], serverVersion: String?, why: String?, light: Bool = false, hash: HashState? = nil,
+                secretKeys: [String] = [], hiddenKeys: [String] = [], truncatedKeys: [String] = [], overriddenKeys: [String] = []) {
+        self.contract = contract; self.live = live; self.values = values; self.serverVersion = serverVersion; self.why = why
+        self.light = light; self.hash = hash
+        self.secretKeys = secretKeys; self.hiddenKeys = hiddenKeys; self.truncatedKeys = truncatedKeys; self.overriddenKeys = overriddenKeys
+    }
 }
 
 /// One group of the page: its id, its label and its settings in the order of the contract.
@@ -226,10 +241,11 @@ public func genericSetting(_ key: String, _ value: SettingValue?) -> Setting {
         confirmWhenLooser: false, secret: false, risk: "none", min: nil, max: nil, unit: nil, maxLength: nil, format: nil, choices: [], label: ["en": key], help: [:], warning: [:])
 }
 
-/// The keys the server reports a value for and the contract does not list (a key newer than both the contract and the copy of the app): drawn read-only, so nothing the server holds is hidden.
-public func unlistedSettings(_ contract: SettingsContract, _ values: [String: SettingValue]) -> [Setting] {
+/// The keys the server reports a value for (or marks secret or keeps back, `kept`) and the contract does not list (a key newer than both the contract and the copy of the app): drawn read-only, so nothing the
+/// server holds is hidden.
+public func unlistedSettings(_ contract: SettingsContract, _ values: [String: SettingValue], kept: [String] = []) -> [Setting] {
     let known = Set(contract.settings.map { $0.key })
-    return values.keys.filter { !known.contains($0) }.sorted().map { genericSetting($0, values[$0]) }
+    return Set(values.keys).union(kept).filter { !known.contains($0) }.sorted().map { genericSetting($0, values[$0]) }
 }
 
 public func controlKind(_ s: Setting) -> ControlKind {

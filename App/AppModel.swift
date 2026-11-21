@@ -96,6 +96,9 @@ final class AppModel: ObservableObject {
     @Published var settingsView: LoadedContract?
     @Published var settingsNotes: [String: SettingNote] = [:]
     @Published var settingsBusy: String?
+    /// The tag and the answer of the last light view of the settings (`GET /settings/values`), and the token they were read with: another login forgets them.
+    private let lightCache = LightCache()
+    private var lightOwner = ""
 
     let translator: Translator
     private let prefs = PreferencesStore()
@@ -310,13 +313,23 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// Reads the contract of the settings of the server: the live one for an administrator; when the server does not give it, the copy of the app, read-only, with the reason.
+    /// Reads the settings of the server: the full contract for an administrator; for any other login (or an administrator whose token cannot read the contract) the values in force of the light view with the
+    /// labels of the copy of the app, read-only, asking again with the ETag of the last answer; when neither can be read, the copy alone with the reason.
     func loadSettings() {
         Task {
-            settingsView = await loadContract(read: { () async throws -> String in
-                do { return try await self.api.settingsContract() }
-                catch let e as ApiError { if e.unauthorized { self.signOut() }; throw e }
-            }, embedded: EmbeddedContract.get())
+            if lightOwner != api.token { lightCache.clear(); lightOwner = api.token }
+            let read = await readSettings(
+                role: login?.role,
+                full: { () async throws -> String in
+                    do { return try await self.api.settingsContract() }
+                    catch let e as ApiError { if e.unauthorized { self.signOut() }; throw e }
+                },
+                light: { (tag: String?) async throws -> LightReply in
+                    do { return try await self.api.settingsValues(etag: tag) }
+                    catch let e as ApiError { if e.unauthorized { self.signOut() }; throw e }
+                },
+                embedded: EmbeddedContract.get(), cache: lightCache)
+            settingsView = read.loaded
         }
     }
 
