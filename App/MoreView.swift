@@ -147,7 +147,7 @@ struct MoreView: View {
 struct LanguageView: View {
     @ObservedObject var model: AppModel
     var body: some View {
-        // 37 languages do not fit on a phone screen: the list scrolls.
+        // the list scrolls on a small phone screen.
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
                 Button("‹ " + model.tr("Volver")) { model.back() }

@@ -226,8 +226,14 @@ public final class Eh3dApi: @unchecked Sendable {
     /// The jobs of the generic queue of the server (the newest first, at most 100): the ones that wait, run or are held are the ones the app shows.
     public func workJobs() async throws -> [WorkJob] { try parseWorkJobs(try await call("/work/jobs?limit=100")) }
 
-    /// Starts a job that waits in the queue. Only ever called from a button that a person pressed twice: nothing in the app starts a job by itself.
-    public func startWorkJob(_ id: String) async throws { _ = try await call("/work/jobs/\(q(id))/start", method: "POST", body: "{}") }
+    /// Starts a job that waits in the queue. Only ever called from a button that a person pressed twice: nothing in the app starts a job by itself. With `hash` the start names the hash the person was
+    /// shown, so a job that changed since is refused (`stale_authorization`) and nothing starts; without it the body is empty, as before.
+    public func startWorkJob(_ id: String, hash: String = "") async throws {
+        _ = try await call("/work/jobs/\(q(id))/start", method: "POST", body: hash.isEmpty ? "{}" : json(["toolpath_sha256": hash]))
+    }
+
+    /// Authorizes the hash of a job that waits (scope `jobs:authorize`): the server records who authorised which hash. Only ever called from the second touch of a button.
+    public func authorizeWorkJob(_ id: String, hash: String) async throws { _ = try await call("/work/jobs/\(q(id))/authorize", method: "POST", body: json(["toolpath_sha256": hash])) }
 
     /// Cancels a job of the queue that waits or is held.
     public func cancelWorkJob(_ id: String) async throws { _ = try await call("/work/jobs/\(q(id))/cancel", method: "POST", body: "{}") }

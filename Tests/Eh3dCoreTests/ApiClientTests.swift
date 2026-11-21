@@ -762,4 +762,31 @@ final class ApiConnectionTests: XCTestCase {
         XCTAssertEqual(error?.forbidden, true)
         XCTAssertEqual(client.token, "t", "a refusal for the role keeps the login")
     }
+
+    func testAStartNamesTheHashThatWasShownAndAnAuthorizationSendsItInItsOwnRoute() async throws {
+        StandIn.reset()
+        answer(#"{"ok":true}"#)
+        let client = api(token: "t")
+        try await client.authorizeWorkJob("w-2", hash: "H1")
+        try await client.startWorkJob("w-2", hash: "H1")
+        try await client.startWorkJob("w-3")
+        XCTAssertEqual(seen.map { "\($0.method) \($0.path)" }, ["POST /api/v1/work/jobs/w-2/authorize", "POST /api/v1/work/jobs/w-2/start", "POST /api/v1/work/jobs/w-3/start"])
+        let sent = try [0, 1].map { try XCTUnwrap(JSONSerialization.jsonObject(with: Data(seen[$0].body.utf8)) as? [String: String]) }
+        XCTAssertEqual(sent[0]["toolpath_sha256"], "H1")
+        XCTAssertEqual(sent[1]["toolpath_sha256"], "H1")
+        XCTAssertEqual(seen[2].body, "{}", "a start with no hash keeps the empty body")
+    }
+
+    func testTheRefusalsOfTheAuthorizationAreToldApartAndNothingIsRetried() async throws {
+        for code in ["stale_authorization", "authorization_required"] {
+            StandIn.reset()
+            answer(#"{"error":"\#(code)","detail":"x"}"#, status: 409)
+            let client = api(token: "t")
+            let error = await refusal { try await client.startWorkJob("w-2", hash: "H1") }
+            XCTAssertEqual(error?.status, 409)
+            XCTAssertEqual(error?.code, code)
+            XCTAssertTrue(MachineSafety.needsReview(error?.code ?? ""))
+            XCTAssertEqual(seen.count, 1, "a refused start is sent once")
+        }
+    }
 }

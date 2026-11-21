@@ -72,6 +72,16 @@ private enum Pending: Equatable {
     case release
     case start(WorkJob)
     case cancel(WorkJob)
+    case authorize(WorkJob)
+}
+
+/// The badge of the authorization of a job: green when the present hash is authorized, red when the authorization is for another hash, orange when nobody has authorized it.
+func authBadge(_ auth: JobAuth, _ tr: (String) -> String) -> Pill {
+    switch auth {
+    case .authorized: return Pill(text: tr("Autorizado"), color: Forge.green)
+    case .stale: return Pill(text: tr("Caducado"), color: Forge.danger)
+    case .none: return Pill(text: tr("Sin autorizar"), color: Forge.orange)
+    }
 }
 
 /// A machine of a plugin of the server: its state, the badge of the simulator, its interlocks in red, what the plugin says of it, the emergency stop (an operator: one touch, no question), the release of a
@@ -131,8 +141,13 @@ struct WorkMachineCard: View {
                         VStack(alignment: .leading) {
                             Text(job.name.isEmpty ? job.id : job.name).foregroundColor(Forge.text)
                             Text(workJobWord(job, model.tr)).font(.caption).foregroundColor(Forge.dim)
+                            if !job.toolpathSha256.isEmpty {
+                                Text(model.trf("Código del trabajo: %s", MachineSafety.shortHash(job.toolpathSha256))).font(.caption).foregroundColor(Forge.dim)
+                                authBadge(MachineSafety.authOf(job), model.tr)
+                            }
                         }
                         Spacer()
+                        if MachineSafety.canAuthorize(isOperator: model.canOperate, job) { Button(model.tr("Autorizar")) { pending = .authorize(job) } }
                         if !w.latched && MachineSafety.canStartJob(isOperator: model.canOperate, job) { Button(model.tr("Empezar")) { pending = .start(job) } }
                         if MachineSafety.canCancelJob(isOperator: model.canOperate, job) { Button(model.tr("Cancelar")) { pending = .cancel(job) } }
                     }
@@ -145,8 +160,11 @@ struct WorkMachineCard: View {
                 Button(model.tr("SOLTAR"), role: .destructive) { model.releaseWork(w) }
                 Button(model.tr("No soltar"), role: .cancel) {}
             case .start(let job):
-                Button(model.tr("INICIAR")) { model.startWorkJob(job.id) }
+                Button(model.tr("INICIAR")) { model.startWorkJob(job) }
                 Button(model.tr("No iniciar"), role: .cancel) {}
+            case .authorize(let job):
+                Button(model.tr("AUTORIZAR")) { model.authorizeWorkJob(job) }
+                Button(model.tr("No autorizar"), role: .cancel) {}
             case .cancel(let job):
                 Button(model.tr("Cancelar"), role: .destructive) { model.cancelWorkJob(job.id) }
                 Button(model.tr("No cancelar"), role: .cancel) {}
@@ -161,6 +179,7 @@ struct WorkMachineCard: View {
         case .release: return model.tr("Soltar el enclavamiento")
         case .start: return model.tr("Empezar el trabajo")
         case .cancel: return model.tr("Cancelar")
+        case .authorize: return model.tr("Autorizar el trabajo")
         case nil: return ""
         }
     }
@@ -168,7 +187,10 @@ struct WorkMachineCard: View {
     private func askText(_ ask: Pending) -> String {
         switch ask {
         case .release: return model.tr("¿Soltar el enclavamiento de esta máquina? Compruebe antes que es seguro volver a trabajar.")
-        case .start: return model.tr("¿Iniciar este trabajo? Compruebe que la máquina está lista y que nadie está en la zona de trabajo.")
+        case .start(let job):
+            let shown = job.toolpathSha256.isEmpty ? "" : "\n\n" + model.trf("Código del trabajo: %s", MachineSafety.shortHash(job.toolpathSha256))
+            return model.tr("¿Iniciar este trabajo? Compruebe que la máquina está lista y que nadie está en la zona de trabajo.") + shown
+        case .authorize(let job): return model.trf("¿Autorizar este trabajo con el código %s? Compruebe que es el que se le mostró al prepararlo.", MachineSafety.shortHash(job.toolpathSha256))
         case .cancel(let job): return model.tr("¿Cancelar este trabajo?") + "\n\n" + (job.name.isEmpty ? job.id : job.name)
         }
     }

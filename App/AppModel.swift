@@ -300,8 +300,23 @@ final class AppModel: ObservableObject {
     /// Releases the latch of a machine of a plugin (an administrator; the screen has asked twice).
     func releaseWork(_ machine: WorkMachine) { act { if try await self.api.releaseWork(machine) { self.message = self.tr("Se ha soltado el enclavamiento.") } } }
 
-    /// Starts a job of the queue. Only a person's second touch calls this: nothing in the app starts a job by itself.
-    func startWorkJob(_ id: String) { act { try await self.api.startWorkJob(id) } }
+    /// Starts a job of the queue naming the hash that was shown. Only a person's second touch calls this: nothing in the app starts a job by itself.
+    func startWorkJob(_ job: WorkJob) { review { try await self.api.startWorkJob(job.id, hash: job.toolpathSha256) } }
+
+    /// Authorizes the hash that was shown for a job of the queue (a person's second touch).
+    func authorizeWorkJob(_ job: WorkJob) { review { try await self.api.authorizeWorkJob(job.id, hash: job.toolpathSha256); self.message = self.tr("Se ha autorizado el trabajo.") } }
+
+    /// An action on a job with a hash: when the server says the hash is not the one of the job now (or that none was authorised) the queue is read again, so the job shows its present hash.
+    private func review(_ work: @escaping () async throws -> Void) {
+        Task {
+            do { try await work(); await refresh() }
+            catch let e as ApiError {
+                if e.unauthorized { signOut() }
+                else if MachineSafety.needsReview(e.code) { message = text(e) + " " + tr("Se ha vuelto a leer el trabajo: compruebe su código y autorícelo de nuevo."); await refresh() }
+                else { message = text(e) }
+            } catch { message = error.localizedDescription }
+        }
+    }
 
     func cancelWorkJob(_ id: String) { act { try await self.api.cancelWorkJob(id) } }
 

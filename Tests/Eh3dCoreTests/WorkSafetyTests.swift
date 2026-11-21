@@ -157,4 +157,43 @@ final class WorkSafetyTests: XCTestCase {
         XCTAssertFalse(list[0].simulatorOnly)
         XCTAssertEqual(list[0].job, "")
     }
+
+    private func hashed(_ hash: String, _ authorized: String = "", state: String = "queued") -> WorkJob {
+        WorkJob(id: "w-9", machine: "l1", plugin: "laser", name: "Badge", owner: "ana", state: state, percent: 0, position: 0, toolpathSha256: hash, authorizedHash: authorized, authorizedBy: authorized.isEmpty ? "" : "ana")
+    }
+
+    func testTheHashAndTheAuthorizationOfAJobAreReadFromTheQueue() throws {
+        let text = #"{"items":[{"id":"w-1","machine":"l1","state":"queued","toolpath_sha256":"H0","authorization":{"by":"ana","at":5,"toolpath_sha256":"H0"}},{"id":"w-2","machine":"l1","state":"queued","toolpath_sha256":"H0","authorization":null},{"id":"w-3","machine":"l1","state":"queued"}]}"#
+        let jobs = try parseWorkJobs(text)
+        XCTAssertEqual(jobs.map { $0.toolpathSha256 }, ["H0", "H0", ""])
+        XCTAssertEqual(jobs.map { $0.authorizedHash }, ["H0", "", ""])
+        XCTAssertEqual(jobs[0].authorizedBy, "ana")
+        XCTAssertEqual(jobs.map { MachineSafety.authOf($0) }, [.authorized, .none, .none])
+    }
+
+    func testAnAuthorizationOfAnotherHashIsExpiredAndTheBadgeSaysSo() {
+        XCTAssertEqual(MachineSafety.authOf(hashed("aa")), .none)
+        XCTAssertEqual(MachineSafety.authOf(hashed("aa", "aa")), .authorized)
+        XCTAssertEqual(MachineSafety.authOf(hashed("bb", "aa")), .stale)
+        XCTAssertEqual(MachineSafety.authOf(hashed("", "aa")), .stale, "a job with no hash cannot be told authorized")
+    }
+
+    func testTheButtonToAuthorizeIsOfferedToAnOperatorForAQueuedJobWhosePresentHashIsNotAuthorized() {
+        XCTAssertTrue(MachineSafety.canAuthorize(isOperator: true, hashed("aa")))
+        XCTAssertTrue(MachineSafety.canAuthorize(isOperator: true, hashed("bb", "aa")), "an expired authorization can be given again")
+        XCTAssertFalse(MachineSafety.canAuthorize(isOperator: true, hashed("aa", "aa")), "already authorized")
+        XCTAssertFalse(MachineSafety.canAuthorize(isOperator: false, hashed("aa")), "a viewer")
+        XCTAssertFalse(MachineSafety.canAuthorize(isOperator: true, hashed("")), "no hash to authorize")
+        for state in ["running", "paused", "done", "failed", "cancelled"] { XCTAssertFalse(MachineSafety.canAuthorize(isOperator: true, hashed("aa", state: state)), state) }
+    }
+
+    func testTheShortHashIsTheFirstTwelveCharactersAndTheRefusalsThatAskForANewLookAreTheTwoOfTheAuthorization() {
+        XCTAssertEqual(MachineSafety.shortHash("a3f9c2d1e4b7a3f9c2d1"), "a3f9c2d1e4b7")
+        XCTAssertEqual(MachineSafety.shortHash("abc"), "abc")
+        XCTAssertEqual(MachineSafety.shortHash(""), "-")
+        XCTAssertTrue(MachineSafety.needsReview("stale_authorization"))
+        XCTAssertTrue(MachineSafety.needsReview("authorization_required"))
+        XCTAssertFalse(MachineSafety.needsReview("machine_busy"))
+        XCTAssertFalse(MachineSafety.needsReview("forbidden_scope"))
+    }
 }

@@ -1,14 +1,11 @@
 import XCTest
 @testable import Eh3dCore
 
-/// The app is in 37 languages: every phrase of the source has its text in the 34 complete tables (all but Spanish, which is the source, and the two variants), with the same holes (the tables are the ones of the Android app);
-/// the variants (Brazilian Portuguese, Canadian French) hold only what differs and take the rest from their main language; and the choice of language falls back to English.
+/// The app is in eight languages: every phrase of the source has its text in the seven complete tables (all but Spanish, which is the source), with the same holes (the tables are the ones of the Android app);
+/// a variant, if one is ever added, holds only what differs and takes the rest from its main language; and the choice of language falls back to English.
 final class TrTests: XCTestCase {
-    private let codes = [
-        "en", "it", "de", "fr", "pt", "zh", "ja",
-        "bg", "hr", "cs", "da", "nl", "et", "fi", "el", "hu", "ga", "lv", "lt", "mt", "pl", "ro", "sk", "sl", "sv", "no", "is", "uk", "ru", "sr", "sq", "ca", "gl", "eu",
-    ]
-    private let variants = ["pt-br", "fr-ca"]
+    private let codes = ["en", "it", "de", "fr", "pt", "zh", "ja"]
+    private let variants: [String] = []
     private let hole = try! NSRegularExpression(pattern: #"%(?:\d+\$)?[-#+ 0,(]*\d*(?:\.\d+)?[a-zA-Z]"#)
 
     private func table(_ code: String) throws -> [String: String] {
@@ -22,14 +19,14 @@ final class TrTests: XCTestCase {
         return found.map { $0.replacingOccurrences(of: #"\d+\$"#, with: "", options: .regularExpression) }.sorted()
     }
 
-    func testTheListHasThe37LanguagesOfThePrograms() throws {
+    func testTheListHasTheEightLanguagesOfThePrograms() throws {
         let listed = Translator.languages.map { $0.code }
-        XCTAssertEqual(listed.count, 37)
-        XCTAssertEqual(Set(listed).count, 37)
+        XCTAssertEqual(listed.count, 8)
+        XCTAssertEqual(Set(listed).count, 8)
         XCTAssertEqual(Array(listed.prefix(8)), ["en", "es", "it", "de", "fr", "pt", "zh", "ja"])
         XCTAssertTrue(Translator.languages.allSatisfy { !$0.name.isEmpty })
         XCTAssertEqual(Set(listed).subtracting(["es"]), Set(codes + variants))
-        XCTAssertEqual(Translator.fallbacks, ["pt-br": "pt", "fr-ca": "fr"])
+        XCTAssertTrue(Translator.fallbacks.isEmpty)
         for code in codes + variants { _ = try table(code) }
     }
 
@@ -45,7 +42,7 @@ final class TrTests: XCTestCase {
         }
     }
 
-    func testAVariantHoldsOnlyPhrasesOfTheSourceAndNoBlankText() throws {
+    func testAVariantIfAnyHoldsOnlyPhrasesOfTheSourceAndNoBlankText() throws {
         let known = Set(try table("en").keys)
         for code in variants {
             let t = try table(code)
@@ -86,23 +83,21 @@ final class TrTests: XCTestCase {
     func testTheLanguageIsTheSavedOneThenThePhonesThenEnglish() {
         XCTAssertEqual(Translator.pick(saved: "de", phone: "fr"), "de")
         XCTAssertEqual(Translator.pick(saved: nil, phone: "fr"), "fr")
-        XCTAssertEqual(Translator.pick(saved: nil, phone: "pt-br"), "pt-br")
-        XCTAssertEqual(Translator.pick(saved: "fr-ca", phone: "de"), "fr-ca")
-        XCTAssertEqual(Translator.pick(saved: nil, phone: "pl"), "pl")
+        XCTAssertEqual(Translator.pick(saved: nil, phone: "pt-br"), "en")
+        XCTAssertEqual(Translator.pick(saved: "fr-ca", phone: "de"), "de")
+        XCTAssertEqual(Translator.pick(saved: nil, phone: "pl"), "en")
         XCTAssertEqual(Translator.pick(saved: nil, phone: "ar"), "en")
         XCTAssertEqual(Translator.pick(saved: "xx", phone: "ar"), "en")
     }
 
-    func testThePhoneAsksForAVariantOnlyWhenTheRegionIsOne() {
-        XCTAssertEqual(Translator.phoneCode(tag: "pt-BR"), "pt-br")
+    func testTheRegionOfThePhoneNeverMakesAnotherLanguage() {
+        XCTAssertEqual(Translator.phoneCode(tag: "pt-BR"), "pt")
         XCTAssertEqual(Translator.phoneCode(tag: "pt-PT"), "pt")
-        XCTAssertEqual(Translator.phoneCode(tag: "fr-CA"), "fr-ca")
+        XCTAssertEqual(Translator.phoneCode(tag: "fr-CA"), "fr")
         XCTAssertEqual(Translator.phoneCode(tag: "fr-BE"), "fr")
         XCTAssertEqual(Translator.phoneCode(tag: "es-MX"), "es")
         XCTAssertEqual(Translator.phoneCode(tag: "zh-Hans-CN"), "zh")
-        XCTAssertEqual(Translator.phoneCode(tag: "nb-NO"), "no")
-        XCTAssertEqual(Translator.phoneCode(tag: "nn"), "no")
-        XCTAssertEqual(Translator.phoneCode(tag: "sr"), "sr")
+        XCTAssertEqual(Translator.phoneCode(tag: "nb-NO"), "nb")
     }
 
     func testAPhraseIsSpokenInTheLanguageOfTheAppAndFallsBackToSpanish() {
@@ -114,10 +109,10 @@ final class TrTests: XCTestCase {
         XCTAssertEqual(t.tr("Máquinas"), "Máquinas")
     }
 
-    func testAVariantTakesTheRestFromItsMainLanguageAndEverythingFromEnglishAtTheEnd() {
-        let all: [String: [String: String]] = ["en": ["c": "C-en", "a": "A-en"], "pt": ["a": "A-pt", "b": "B-pt"], "pt-br": ["a": "A-br"]]
-        let t = Translator(language: "pt-br", loader: { all[$0] })
-        XCTAssertEqual(t.tr("a"), "A-br")
+    func testALanguageTakesWhatItLacksFromEnglishAndThenFromSpanish() {
+        let all: [String: [String: String]] = ["en": ["c": "C-en", "a": "A-en"], "pt": ["a": "A-pt", "b": "B-pt"]]
+        let t = Translator(language: "pt", loader: { all[$0] })
+        XCTAssertEqual(t.tr("a"), "A-pt")
         XCTAssertEqual(t.tr("b"), "B-pt")
         XCTAssertEqual(t.tr("c"), "C-en")
         XCTAssertEqual(t.tr("d"), "d")

@@ -24,7 +24,11 @@ public struct TempLimits: Equatable, Sendable {
     public init(hotendC: Double, bedC: Double, chamberC: Double) { self.hotendC = hotendC; self.bedC = bedC; self.chamberC = chamberC }
 }
 
-/// A job of the generic queue of the server (`GET /work/jobs`), as much of it as the phone shows.
+/// Where the authorization of a job stands: nobody authorised it, a person authorised the hash it has now, or the hash that was authorised is not the one it has now.
+public enum JobAuth: Equatable, Sendable { case none, authorized, stale }
+
+/// A job of the generic queue of the server (`GET /work/jobs`), as much of it as the phone shows. `toolpathSha256` is the hash of what the job will do (made when it was prepared); `authorizedHash` and
+/// `authorizedBy` are what a person authorised (empty when nobody has).
 public struct WorkJob: Equatable, Sendable {
     public let id: String
     public let machine: String
@@ -34,8 +38,12 @@ public struct WorkJob: Equatable, Sendable {
     public let state: String
     public let percent: Int
     public let position: Int
-    public init(id: String, machine: String, plugin: String, name: String, owner: String, state: String, percent: Int, position: Int) {
+    public let toolpathSha256: String
+    public let authorizedHash: String
+    public let authorizedBy: String
+    public init(id: String, machine: String, plugin: String, name: String, owner: String, state: String, percent: Int, position: Int, toolpathSha256: String = "", authorizedHash: String = "", authorizedBy: String = "") {
         self.id = id; self.machine = machine; self.plugin = plugin; self.name = name; self.owner = owner; self.state = state; self.percent = percent; self.position = position
+        self.toolpathSha256 = toolpathSha256; self.authorizedHash = authorizedHash; self.authorizedBy = authorizedBy
     }
 }
 
@@ -164,6 +172,22 @@ public enum MachineSafety {
     /// Whether a person may start this job from the phone: an operator, and only a job that waits in the queue.
     public static func canStartJob(isOperator: Bool, _ job: WorkJob) -> Bool { isOperator && job.state == "queued" }
 
+    /// Where the authorization of the job stands (the server decides in the end; this only tells the badge).
+    public static func authOf(_ job: WorkJob) -> JobAuth {
+        if job.authorizedHash.isEmpty { return .none }
+        if !job.toolpathSha256.isEmpty && job.authorizedHash == job.toolpathSha256 { return .authorized }
+        return .stale
+    }
+
+    /// The first characters of a hash, enough for a person to compare it with the one on the other screen.
+    public static func shortHash(_ hash: String) -> String { hash.isEmpty ? "-" : String(hash.prefix(12)) }
+
+    /// Whether the button to authorize is offered: an operator, a job that waits, that has a hash and whose present hash is not authorized yet. The scope `jobs:authorize` is the server's to check.
+    public static func canAuthorize(isOperator: Bool, _ job: WorkJob) -> Bool { isOperator && job.state == "queued" && !job.toolpathSha256.isEmpty && authOf(job) != .authorized }
+
+    /// The refusals that say the hash the person saw is not the one the server has (or that none was authorised): the job is read again and shown with its present hash.
+    public static func needsReview(_ code: String) -> Bool { code == "stale_authorization" || code == "authorization_required" }
+
     /// Whether a person may cancel this job from the phone: an operator, and only a job that has not finished.
     public static func canCancelJob(isOperator: Bool, _ job: WorkJob) -> Bool { isOperator && (job.state == "queued" || job.state == "paused") }
 
@@ -184,9 +208,11 @@ private func safetyRoot(_ body: String) throws -> SafetyJson {
 /// The jobs of the answer `{"items": [...]}` of `GET /work/jobs`; an item without an id is left out and anything else is an empty list.
 public func parseWorkJobs(_ body: String) throws -> [WorkJob] {
     let list = (try safetyRoot(body)["items"] as? [Any]) ?? []
-    return list.compactMap { $0 as? SafetyJson }.filter { !wordValue($0, "id").isEmpty }.map { item in
-        WorkJob(id: wordValue(item, "id"), machine: wordValue(item, "machine"), plugin: wordValue(item, "plugin"), name: wordValue(item, "name"), owner: wordValue(item, "owner"),
-                state: wordValue(item, "state", "queued"), percent: wholeValue(item["percent"]), position: wholeValue(item["position"]))
+    return list.compactMap { $0 as? SafetyJson }.filter { !wordValue($0, "id").isEmpty }.map { item -> WorkJob in
+        let authorization = item["authorization"] as? SafetyJson
+        return WorkJob(id: wordValue(item, "id"), machine: wordValue(item, "machine"), plugin: wordValue(item, "plugin"), name: wordValue(item, "name"), owner: wordValue(item, "owner"),
+                       state: wordValue(item, "state", "queued"), percent: wholeValue(item["percent"]), position: wholeValue(item["position"]),
+                       toolpathSha256: wordValue(item, "toolpath_sha256"), authorizedHash: authorization.map { wordValue($0, "toolpath_sha256") } ?? "", authorizedBy: authorization.map { wordValue($0, "by") } ?? "")
     }
 }
 

@@ -11,7 +11,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/License-GPL%203.0--or--later-blue.svg" alt="GPL 3.0 or later">
   <img src="https://img.shields.io/badge/Stack-Swift%20%2B%20SwiftUI-F05138.svg" alt="Swift, SwiftUI">
-  <img src="https://img.shields.io/badge/Languages-37-00E5FF.svg" alt="Languages">
+  <img src="https://img.shields.io/badge/Languages-8-00E5FF.svg" alt="Languages">
   <img src="https://img.shields.io/badge/Version-0.1.5-0f6cbd.svg" alt="Version">
   <img src="https://img.shields.io/badge/Maturity-scaffolding-FFB020.svg" alt="Maturity">
 </p>
@@ -54,11 +54,11 @@ Cada línea es una parte de este repositorio y la luz dice hasta dónde llega ho
 | Visor 2D y 3D | 🟠 | La placa, los agujeros (un anillo hasta taladrarlos), las trayectorias (tenues hasta cortarlas) y el cabezal, en 2D y en una vista isométrica que gira con el dedo; la posición del cabezal es una estimación a partir de los pasos hechos. Probado como geometría, nunca visto en un teléfono. |
 | Cámara del cabezal | 🟠 | La cámara del cabezal de taladrado (EH3D-NODE-BUNGARD-AUX) en MJPEG a través del servidor, sus vueltas, temperatura y salida de protección, y una medida de la mesa con el láser. Escrito, nunca ejecutado con un nodo real. |
 | Actualizaciones | 🟠 | Mira la última release de este proyecto en GitHub y lo dice con un enlace; una app de iPhone no puede actualizarse sola fuera de la App Store, así que la versión nueva se instala desde la release como decida la persona. |
-| Máquinas de los plugins | 🟠 | La página de inicio lista las máquinas de láser, pick-and-place, placas, CNC, Gerber, CAM, impresora 3D, visión y CAD del servidor con una insignia SOLO SIMULADOR (nada se muestra como probado en hardware), sus enclavamientos en rojo, una parada de emergencia con un toque y sin preguntas, la liberación de un enclavamiento solo para administradores (con doble confirmación), la cola de cada máquina (un trabajo lo inicia una persona, con doble confirmación, y nunca solo), los límites de temperatura de una impresora y, para un administrador, los interruptores del servidor que vienen apagados por defecto. Escrito y probado contra un servidor simulado; nunca ejecutado en un iPhone ni con una máquina real. |
+| Máquinas de los plugins | 🟠 | La página de inicio lista las máquinas de láser, pick-and-place, placas, CNC, Gerber, CAM, impresora 3D, visión y CAD del servidor con una insignia SOLO SIMULADOR (nada se muestra como probado en hardware), sus enclavamientos en rojo, una parada de emergencia con un toque y sin preguntas, la liberación de un enclavamiento solo para administradores (con doble confirmación), la cola de cada máquina (cada trabajo muestra un código corto de su hash con una insignia -sin autorizar, autorizado o caducado-; una persona lo autoriza con un segundo toque y lo inicia, con doble confirmación, enviando el código mostrado; nunca solo), los límites de temperatura de una impresora y, para un administrador, los interruptores del servidor que vienen apagados por defecto. Escrito y probado contra un servidor simulado; nunca ejecutado en un iPhone ni con una máquina real. |
 | Ajustes del servidor | 🟠 | Una página en Más dibuja cada ajuste e interruptor del servidor desde su contrato (95 claves en 16 grupos; se lee del servidor y, si no se puede, de la copia guardada en la app, en solo lectura): etiqueta, ayuda y aviso en ocho idiomas, el valor en vigor, el valor por defecto con un botón para restaurarlo, si el cambio se aplica ya o necesita reinicio y el control de su tipo. Cualquier otro usuario (visor, operador) lee la vista ligera de los valores en vigor (`GET /settings/values`, con ETag para que una página sin cambios cueste unos pocos bytes) con las etiquetas de la copia, en solo lectura, y se le avisa cuando la lista de ajustes del servidor no es la copia de la app; una clave que el servidor no muestra se marca como tal. Un administrador cambia las 19 claves que el servidor cambia en marcha y se le pregunta una segunda vez en las de riesgo; las otras 76 se muestran con la nota de que se fijan en server.cfg; un secreto nunca se muestra. Escrito y probado contra un servidor simulado; nunca ejecutado contra uno real. |
 | Nodos pick-and-place | 🟠 | La pantalla de inicio lista, solo en lectura, los nodos de alimentadores y de cabezal de las máquinas pick-and-place que guarda el servidor: tipo, dirección y máquina, listo (verde) o no (rojo) según lo cuenta el servidor, la salud que informa, el último error de su consulta y los números que dijo por última vez; el token nunca se lee ni se muestra, y los nodos se registran y se cambian en EH3D-STUDIO. Escrito y probado contra un servidor simulado; nunca ejecutado con un alimentador, un cabezal ni un servidor reales. |
 | Uso real | 🔴 | Todavía no: la app no se ha ejecutado en un iPhone, contra un servidor real ni con una máquina; lo primero que hay que probar es entrar en el EH3D-SERVER del taller. |
-| Documentación | 🟡 | README en ocho idiomas, la ayuda de la app en 37 idiomas y las notas de la API del servidor que usa. |
+| Documentación | 🟡 | README en ocho idiomas, la ayuda de la app en 8 idiomas y las notas de la API del servidor que usa. |
 
 ## 🎯 Resumen
 
@@ -146,7 +146,7 @@ Abra la app, escriba la dirección del servidor (y el puerto 18200), pulse Conec
 
 ## 🧪 Pruebas
 
-`swift test` ejecuta las pruebas del paquete Eh3dCore: los lectores del JSON del servidor (flota, trabajos, cabezal, medida), la posición del cabezal y la geometría de las dos vistas, la comprobación de la dirección, la conservación cifrada de la sesión, la comparación de versiones y los idiomas (las siete tablas tienen las mismas frases y cada frase de las pantallas está en ellas). Las pantallas se compilan con Xcode y no las cubren las pruebas. También leen los ejemplos de respuestas que hacen las pruebas del servidor, de modo que una respuesta que cambia sin que la app la siga falla aquí. La CI también compila el target de la app para el simulador con XcodeGen y comprueba que la app compilada muestra la versión y el número de compilación del proyecto; esa compilación solo se puede comprobar en GitHub. Las dos apps móviles recorren además los mismos ficheros de casos (el resumen, la conexión, la parada, los avisos, las direcciones y los campos que leen), así que una no puede diferir de la otra sin que falle un test. `python -I tools/check_app_parity.py` comprueba que los ejemplos de las respuestas, el catálogo de rechazos y las tablas de los 37 idiomas son los mismos en las dos apps de móvil (la única frase del certificado fijado es la única diferencia permitida), y el CI imprime cuánto del código que guarda reglas cubren estas pruebas. Un servidor simulado que se va y vuelve (el cliente habla con un sustituto que no responde, contesta 503, contesta como otro servicio o rechaza una sesión antigua, con una ejecución de semilla fija) comprueba que la aplicación dice conectado, datos antiguos, sin conexión o servidor equivocado en el momento justo, espera más entre reintentos y vuelve a estar conectada con la primera respuesta buena. No se ha ejecutado contra un servidor real en un teléfono. `python -I tools/sync_settings_contract.py --check` comprueba que la copia del contrato de ajustes del servidor (y la tabla de las frases de su página) es válida y, con EH3D-SERVER junto a este repositorio, que es el mismo fichero que el del servidor; `check_app_parity.py` comprueba además que las dos apps llevan la misma copia y la misma tabla. La misma comprobación escribe en `ContractHash.swift` el SHA-256 de la copia y lo verifica, y la app lo compara con el `contract_hash` que da el servidor para poder avisar cuando la lista de ajustes del servidor no es su copia.
+`swift test` ejecuta las pruebas del paquete Eh3dCore: los lectores del JSON del servidor (flota, trabajos, cabezal, medida), la posición del cabezal y la geometría de las dos vistas, la comprobación de la dirección, la conservación cifrada de la sesión, la comparación de versiones y los idiomas (las siete tablas tienen las mismas frases y cada frase de las pantallas está en ellas). Las pantallas se compilan con Xcode y no las cubren las pruebas. También leen los ejemplos de respuestas que hacen las pruebas del servidor, de modo que una respuesta que cambia sin que la app la siga falla aquí. La CI también compila el target de la app para el simulador con XcodeGen y comprueba que la app compilada muestra la versión y el número de compilación del proyecto; esa compilación solo se puede comprobar en GitHub. Las dos apps móviles recorren además los mismos ficheros de casos (el resumen, la conexión, la parada, los avisos, las direcciones y los campos que leen), así que una no puede diferir de la otra sin que falle un test. `python -I tools/check_app_parity.py` comprueba que los ejemplos de las respuestas, el catálogo de rechazos y las tablas de los 8 idiomas son los mismos en las dos apps de móvil (la única frase del certificado fijado es la única diferencia permitida), y el CI imprime cuánto del código que guarda reglas cubren estas pruebas. Un servidor simulado que se va y vuelve (el cliente habla con un sustituto que no responde, contesta 503, contesta como otro servicio o rechaza una sesión antigua, con una ejecución de semilla fija) comprueba que la aplicación dice conectado, datos antiguos, sin conexión o servidor equivocado en el momento justo, espera más entre reintentos y vuelve a estar conectada con la primera respuesta buena. No se ha ejecutado contra un servidor real en un teléfono. `python -I tools/sync_settings_contract.py --check` comprueba que la copia del contrato de ajustes del servidor (y la tabla de las frases de su página) es válida y, con EH3D-SERVER junto a este repositorio, que es el mismo fichero que el del servidor; `check_app_parity.py` comprueba además que las dos apps llevan la misma copia y la misma tabla. La misma comprobación escribe en `ContractHash.swift` el SHA-256 de la copia y lo verifica, y la app lo compara con el `contract_hash` que da el servidor para poder avisar cuando la lista de ajustes del servidor no es su copia.
 
 ## 🏗️ Compilación y publicación
 
@@ -167,7 +167,7 @@ EH3D-IOS-CONTROL/
 │   ├── Models.swift Prepare.swift Geometry.swift     lo que dice el servidor; las reglas del dibujo
 │   ├── Eh3dApi.swift Connection.swift                el cliente de la API y la conexión
 │   ├── ServerEndpoint.swift SessionVault.swift       las comprobaciones de dirección y la sesión cifrada
-│   ├── Tr.swift ServerErrors.swift Resources/        los 37 idiomas, los textos de las negativas
+│   ├── Tr.swift ServerErrors.swift Resources/        los 8 idiomas, los textos de las negativas
 │   ├── SettingsContract.swift                        los ajustes del servidor y su contrato
 │   └── MjpegParser.swift Trust.swift Support.swift   el flujo de la cámara, los pines, las piezas pequeñas
 ├── App/
@@ -213,20 +213,12 @@ EH3D-IOS-CONTROL/
 
 ## 🌍 Idiomas
 
-El README existe en inglés, español, francés, italiano, alemán, chino, japonés y portugués de Portugal. La propia app habla 37 idiomas (los ocho primeros son los de los programas EH3D del ordenador); los 29 restantes los ha traducido el modelo y esperan la revisión de hablantes nativos. El portugués de Brasil y el francés de Canadá solo guardan las frases que difieren del portugués de Portugal y del francés; una frase que un idioma no tiene se muestra en inglés.
+El README existe en inglés, español, francés, italiano, alemán, chino, japonés y portugués de Portugal. La propia app habla esos mismos ocho idiomas (los de los programas EH3D del ordenador); una frase que un idioma no tiene se muestra en inglés.
 
 | Código | Idioma | Código | Idioma | Código | Idioma | Código | Idioma |
 |---|---|---|---|---|---|---|---|
 | `en` | English | `es` | Español | `it` | Italiano | `de` | Deutsch |
 | `fr` | Français | `pt` | Português | `zh` | 中文 | `ja` | 日本語 |
-| `bg` | Български | `hr` | Hrvatski | `cs` | Čeština | `da` | Dansk |
-| `nl` | Nederlands | `et` | Eesti | `fi` | Suomi | `el` | Ελληνικά |
-| `hu` | Magyar | `ga` | Gaeilge | `lv` | Latviešu | `lt` | Lietuvių |
-| `mt` | Malti | `pl` | Polski | `ro` | Română | `sk` | Slovenčina |
-| `sl` | Slovenščina | `sv` | Svenska | `no` | Norsk | `is` | Íslenska |
-| `uk` | Українська | `ru` | Русский | `sr` | Српски | `sq` | Shqip |
-| `ca` | Català | `gl` | Galego | `eu` | Euskara | `pt-br` | Português (Brasil) |
-| `fr-ca` | Français (Canada) |  |  |  |  |  |  |
 
 ## 🔗 Proyectos relacionados
 
@@ -245,7 +237,7 @@ El README existe en inglés, español, francés, italiano, alemán, chino, japon
 ## 🤝 Contribuir y comunidad
 
 * Antes de un pull request ejecute `swift test` y `python -I tools/ci_validate.py`: ambos deben pasar. Vea [CONTRIBUTING.md](CONTRIBUTING.md) y el [código de conducta](CODE_OF_CONDUCT.md).
-* Cada texto que muestra la app está en las tablas de `Sources/Eh3dCore/Resources/i18n` en los 37 idiomas; una prueba las mantiene completas.
+* Cada texto que muestra la app está en las tablas de `Sources/Eh3dCore/Resources/i18n` en los 8 idiomas; una prueba las mantiene completas.
 * Informe de una vulnerabilidad en privado: [SECURITY.md](SECURITY.md). Preguntas, ideas e informes: electrohobby3d@gmail.com ([SUPPORT.md](SUPPORT.md)).
 
 ## 👤 AUTOR

@@ -1,6 +1,6 @@
 // EH3D-IOS-CONTROL - the text of every refusal code of the server in the eight languages of the suite (English, Spanish, Italian, German, French, European Portuguese, Chinese, Japanese).
 // The table is Resources/server-errors.json, written by tools/gen_server_errors.py from the catalog of EH3D-SERVER and the rows `err_<code>` of Studio, so the app says what Studio says. A language the
-// table does not have (the other 29 of the app) shows the English text; a code a newer server has and this table does not is not hidden: the caller shows the message of the server.
+// table does not have (a language of the app that is not one of the eight) shows the English text; a code a newer server has and this table does not is not hidden: the caller shows the message of the server.
 // The same table and the same rules as the Android app (ServerErrors.kt).
 // Copyright (C) 2026 JuanenRac (Electro Hobby 3D). GPL-3.0-or-later.
 import Foundation
@@ -53,7 +53,7 @@ public enum ServerErrors {
     /// The codes of the table.
     public static func codes() -> Set<String> { Set(store.get().keys) }
 
-    /// The index of the text for a language of the app: the language, its main language for a variant (`pt-br`, `fr-ca`), else English.
+    /// The index of the text for a language of the app: the language, its main language for a variant (`pt-br` is `pt`), else English.
     public static func indexOf(_ language: String) -> Int {
         let main = language.lowercased().split(separator: "-", maxSplits: 1, omittingEmptySubsequences: false).first.map(String.init) ?? ""
         return languages.firstIndex(of: main) ?? 0
