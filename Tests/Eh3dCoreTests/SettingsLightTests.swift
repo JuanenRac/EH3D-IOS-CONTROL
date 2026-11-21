@@ -98,7 +98,7 @@ final class SettingsLightTests: XCTestCase {
     private let here = URL(fileURLWithPath: #filePath)
     private var resources: URL { here.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Sources/Eh3dCore/Resources") }
     private func copyText() throws -> String { try String(contentsOf: resources.appendingPathComponent("settings-contract.json"), encoding: .utf8) }
-    private func copy() throws -> SettingsContract { try XCTUnwrap(parseContract(try copyText())) }
+    private func embeddedCopy() throws -> SettingsContract { try XCTUnwrap(parseContract(try copyText())) }
 
     /// One key of the answer: the value as JSON text (or none), with the origin and whether the policy changes it; `extra` is more members.
     private func item(_ v: String? = nil, origin: String = "file", editable: Bool = false, extra: String = "") -> String {
@@ -195,7 +195,7 @@ final class SettingsLightTests: XCTestCase {
             let entry = try XCTUnwrap(light.entries[key], key)
             XCTAssertTrue(entry.secret, key); XCTAssertNil(entry.value, key)
         }
-        let loaded = loadedFromLight(light, embedded: try copy())
+        let loaded = loadedFromLight(light, embedded: try embeddedCopy())
         XCTAssertEqual(loaded.secretKeys, ["four", "one", "three", "two"])
         XCTAssertTrue(loaded.values.isEmpty)
     }
@@ -204,7 +204,7 @@ final class SettingsLightTests: XCTestCase {
         let light = try read(body([("data_dir", item(extra: "\"hidden\":true")), ("other", item("\"/home/x\"", extra: "\"hidden\":true")), ("a", item("1"))]))
         XCTAssertEqual(light.entries["data_dir"]?.hidden, true); XCTAssertNil(light.entries["data_dir"]?.value)
         XCTAssertNil(light.entries["other"]?.value)
-        let loaded = loadedFromLight(light, embedded: try copy())
+        let loaded = loadedFromLight(light, embedded: try embeddedCopy())
         XCTAssertEqual(loaded.hiddenKeys, ["data_dir", "other"])
         let expected: [String: SettingValue] = ["a": .int(1)]
         XCTAssertEqual(loaded.values, expected)
@@ -212,14 +212,14 @@ final class SettingsLightTests: XCTestCase {
 
     func testACutValueAndAKeyChangedThroughTheSecurityPageAreListed() throws {
         let light = try read(body([("a", item("\"long te\"", extra: "\"truncated\":true")), ("b", item("1", origin: "override")), ("c", item("\"***\"", origin: "override", extra: "\"secret\":true"))]))
-        let loaded = loadedFromLight(light, embedded: try copy())
+        let loaded = loadedFromLight(light, embedded: try embeddedCopy())
         XCTAssertEqual(loaded.truncatedKeys, ["a"])
         XCTAssertEqual(loaded.overriddenKeys, ["b"])
         XCTAssertEqual(loaded.values["a"], SettingValue.text("long te"))
     }
 
     func testTheLightViewIsTheCopyOfTheAppWithTheValuesAndIsNeitherLiveNorEditable() throws {
-        let embedded = try copy()
+        let embedded = try embeddedCopy()
         let loaded = loadedFromLight(try read(good()), embedded: embedded)
         XCTAssertTrue(loaded.light); XCTAssertFalse(loaded.live); XCTAssertNil(loaded.why)
         XCTAssertEqual(loaded.serverVersion, "0.2.1")
@@ -230,7 +230,7 @@ final class SettingsLightTests: XCTestCase {
     }
 
     func testAKeyNobodyDescribedIsDrawnReadOnlyAlsoWhenItIsSecretOrKeptBack() throws {
-        let loaded = loadedFromLight(try read(body([("future", item("3")), ("future_secret", item("\"***\"", extra: "\"secret\":true")), ("future_path", item(extra: "\"hidden\":true")), ("session_hours", item("12"))])), embedded: try copy())
+        let loaded = loadedFromLight(try read(body([("future", item("3")), ("future_secret", item("\"***\"", extra: "\"secret\":true")), ("future_path", item(extra: "\"hidden\":true")), ("session_hours", item("12"))])), embedded: try embeddedCopy())
         let rows = unlistedSettings(loaded.contract, loaded.values, kept: loaded.secretKeys + loaded.hiddenKeys)
         XCTAssertEqual(rows.map { $0.key }, ["future", "future_path", "future_secret"])
         XCTAssertEqual(rows[0].group, "other")
@@ -328,7 +328,7 @@ final class SettingsLightTests: XCTestCase {
     }
 
     func testAnAnswerSaysWhetherTheCopyIsTheListOfTheServer() throws {
-        let embedded = try copy()
+        let embedded = try embeddedCopy()
         XCTAssertEqual(loadedFromLight(try read(good()), embedded: embedded).hash, HashState.same)
         XCTAssertEqual(loadedFromLight(try read(body([("a", item("1"))], hash: String(repeating: "1", count: 64))), embedded: embedded).hash, HashState.differs)
         XCTAssertEqual(loadedFromLight(try read(body([("a", item("1"))], hash: nil)), embedded: embedded).hash, HashState.unknown)
@@ -370,7 +370,7 @@ final class SettingsLightTests: XCTestCase {
     // ---- one round of reading, by role
 
     func testALoginThatIsNotAnAdministratorNeverAsksForTheFullContract() async throws {
-        let embedded = try copy()
+        let embedded = try embeddedCopy()
         for role in ["viewer", "operator", nil, "hmi", ""] as [String?] {
             let script = Script([fresh(good())])
             let read = await readSettings(role: role, full: script.full, light: script.light, embedded: embedded, cache: LightCache())
@@ -385,7 +385,7 @@ final class SettingsLightTests: XCTestCase {
         let script = Script([fresh(good())])
         script.fullAnswer = { #"{"schema":"eh3d.settings.contract/1","groups":[],"settings":[],"values":{"a":true},"server_version":"0.2.1"}"# }
         let cache = LightCache()
-        let read = await readSettings(role: "admin", full: script.full, light: script.light, embedded: try copy(), cache: cache)
+        let read = await readSettings(role: "admin", full: script.full, light: script.light, embedded: try embeddedCopy(), cache: cache)
         XCTAssertEqual(script.fullCalls, 1); XCTAssertEqual(script.lightCalls, 0)
         XCTAssertTrue(read.loaded.live); XCTAssertFalse(read.loaded.light); XCTAssertTrue(read.changed)
         XCTAssertNil(cache.etag)
@@ -393,7 +393,7 @@ final class SettingsLightTests: XCTestCase {
 
     func testAnAdministratorWhoseTokenCannotReadTheContractFallsBackToTheLightView() async throws {
         let script = Script([fresh(good())])
-        let read = await readSettings(role: "admin", full: script.full, light: script.light, embedded: try copy(), cache: LightCache())
+        let read = await readSettings(role: "admin", full: script.full, light: script.light, embedded: try embeddedCopy(), cache: LightCache())
         XCTAssertEqual(script.fullCalls, 1); XCTAssertEqual(script.lightCalls, 1)
         XCTAssertTrue(read.loaded.light); XCTAssertFalse(read.loaded.live)
         XCTAssertEqual(read.loaded.values["session_hours"], SettingValue.int(12))
@@ -402,14 +402,14 @@ final class SettingsLightTests: XCTestCase {
     func testAnAdministratorWhoseFullContractIsNotOneAlsoFallsBackToTheLightView() async throws {
         let script = Script([fresh(good())])
         script.fullAnswer = { #"{"schema":"other"}"# }
-        let read = await readSettings(role: "admin", full: script.full, light: script.light, embedded: try copy(), cache: LightCache())
+        let read = await readSettings(role: "admin", full: script.full, light: script.light, embedded: try embeddedCopy(), cache: LightCache())
         XCTAssertTrue(read.loaded.light)
     }
 
     func testTheTagOfTheLastAnswerIsSentBackAndA304KeepsThePage() async throws {
         let script = Script([fresh(good(), "\"t1\""), notModified()])
         let cache = LightCache()
-        let embedded = try copy()
+        let embedded = try embeddedCopy()
         let first = await readSettings(role: "viewer", full: script.full, light: script.light, embedded: embedded, cache: cache)
         XCTAssertTrue(first.changed); XCTAssertEqual(cache.etag, "\"t1\"")
         let second = await readSettings(role: "viewer", full: script.full, light: script.light, embedded: embedded, cache: cache)
@@ -421,7 +421,7 @@ final class SettingsLightTests: XCTestCase {
     func testANewAnswerReplacesTheTag() async throws {
         let script = Script([fresh(good(), "\"t1\""), fresh(body([("a", item("1"))]), "\"t2\""), notModified()])
         let cache = LightCache()
-        let embedded = try copy()
+        let embedded = try embeddedCopy()
         _ = await readSettings(role: "viewer", full: script.full, light: script.light, embedded: embedded, cache: cache)
         let second = await readSettings(role: "viewer", full: script.full, light: script.light, embedded: embedded, cache: cache)
         XCTAssertTrue(second.changed); XCTAssertEqual(cache.etag, "\"t2\"")
@@ -432,7 +432,7 @@ final class SettingsLightTests: XCTestCase {
     }
 
     func testAnAnswerWithNoTagOrWithATagThatIsNotValidIsNeverCachedOrSentBack() async throws {
-        let embedded = try copy()
+        let embedded = try embeddedCopy()
         for tag in [nil, "no quotes", "\"a b\"", ""] as [String?] {
             let script = Script([fresh(good(), tag)])
             let cache = LightCache()
@@ -445,7 +445,7 @@ final class SettingsLightTests: XCTestCase {
 
     func testA304ForATagNobodySentIsTheCopyWithAReasonAndNothingIsDrawn() async throws {
         let script = Script([notModified()])
-        let read = await readSettings(role: "viewer", full: script.full, light: script.light, embedded: try copy(), cache: LightCache())
+        let read = await readSettings(role: "viewer", full: script.full, light: script.light, embedded: try embeddedCopy(), cache: LightCache())
         XCTAssertFalse(read.loaded.light); XCTAssertFalse(read.loaded.live); XCTAssertEqual(read.loaded.why, "shape")
         XCTAssertTrue(read.loaded.values.isEmpty)
     }
@@ -453,7 +453,7 @@ final class SettingsLightTests: XCTestCase {
     func testALoginThatChangesForgetsTheTag() async throws {
         let script = Script([fresh(good())])
         let cache = LightCache()
-        let embedded = try copy()
+        let embedded = try embeddedCopy()
         _ = await readSettings(role: "viewer", full: script.full, light: script.light, embedded: embedded, cache: cache)
         XCTAssertNotNil(cache.etag)
         cache.clear()
@@ -465,7 +465,7 @@ final class SettingsLightTests: XCTestCase {
     func testAFailedReadForgetsTheTagAndShowsTheCopyWithTheCodeOfTheServer() async throws {
         let script = Script([fresh(good()), failing(ApiError(status: 500, code: "internal", detail: "boom")), fresh(good())])
         let cache = LightCache()
-        let embedded = try copy()
+        let embedded = try embeddedCopy()
         _ = await readSettings(role: "viewer", full: script.full, light: script.light, embedded: embedded, cache: cache)
         let failed = await readSettings(role: "viewer", full: script.full, light: script.light, embedded: embedded, cache: cache)
         XCTAssertEqual(failed.loaded.why, "internal"); XCTAssertTrue(failed.changed)
@@ -476,7 +476,7 @@ final class SettingsLightTests: XCTestCase {
     }
 
     func testAnOldServerWithoutTheRouteAndARefusedLoginShowTheCopyWithTheirCode() async throws {
-        let embedded = try copy()
+        let embedded = try embeddedCopy()
         let old = Script([failing(ApiError(status: 404, code: "not_found", detail: "no route"))])
         let a = await readSettings(role: "viewer", full: old.full, light: old.light, embedded: embedded, cache: LightCache())
         XCTAssertEqual(a.loaded.why, "not_found"); XCTAssertFalse(a.loaded.light); XCTAssertEqual(a.loaded.contract, embedded)
@@ -489,7 +489,7 @@ final class SettingsLightTests: XCTestCase {
     }
 
     func testAnAnswerThatIsHostileOrOfAnotherSchemaIsNotDrawnHalfAndForgetsTheTag() async throws {
-        let embedded = try copy()
+        let embedded = try embeddedCopy()
         let cases: [(String, String)] = [
             (String(good().dropLast(7)), "shape"), (body([("a", item("{\"x\":1}"))]), "shape"), (body([("a", item("1"))], schema: "eh3d.settings.values/2"), "newer"), ("<html>", "shape"),
         ]
@@ -505,7 +505,7 @@ final class SettingsLightTests: XCTestCase {
     }
 
     func testTheKeysOfTheCopyThatTheAnswerDoesNotHaveHaveNoValueAndNothingIsHidden() throws {
-        let embedded = try copy()
+        let embedded = try embeddedCopy()
         let loaded = loadedFromLight(try read(body([("session_hours", item("12"))])), embedded: embedded)
         let minimum = try XCTUnwrap(embedded.settings.first { $0.key == "password_min_len" })
         XCTAssertNil(valueOf(minimum, loaded.values))
@@ -543,7 +543,7 @@ final class SettingsLightTests: XCTestCase {
         LightSim.reset { hit in hit.ifNoneMatch == "\"abc\"" ? LightSim.Reply(status: 304, text: "") : LightSim.Reply(status: 200, text: text, headers: ["ETag": "\"abc\""]) }
         let api = client()
         let cache = LightCache()
-        let embedded = try copy()
+        let embedded = try embeddedCopy()
         let first = await readSettings(role: "operator", full: { try await api.settingsContract() }, light: { try await api.settingsValues(etag: $0) }, embedded: embedded, cache: cache)
         XCTAssertTrue(first.loaded.light); XCTAssertTrue(first.changed)
         XCTAssertEqual(first.loaded.values["session_hours"], SettingValue.int(12))
@@ -596,7 +596,7 @@ final class SettingsLightTests: XCTestCase {
         LightSim.reset { _ in LightSim.Reply(status: 200, text: big, headers: ["ETag": "\"big\"", "Content-Length": String(big.utf8.count)]) }
         let api = client()
         let cache = LightCache()
-        let read = await readSettings(role: "viewer", full: { try await api.settingsContract() }, light: { try await api.settingsValues(etag: $0) }, embedded: try copy(), cache: cache)
+        let read = await readSettings(role: "viewer", full: { try await api.settingsContract() }, light: { try await api.settingsValues(etag: $0) }, embedded: try embeddedCopy(), cache: cache)
         XCTAssertEqual(read.loaded.why, "download_too_big"); XCTAssertFalse(read.loaded.light); XCTAssertNil(cache.etag)
     }
 
@@ -604,7 +604,7 @@ final class SettingsLightTests: XCTestCase {
         LightSim.reset { _ in LightSim.Reply(status: 200, text: "{}") }
         LightSim.lock.lock(); LightSim.failure = URLError(.cannotConnectToHost); LightSim.lock.unlock()
         let api = client()
-        let read = await readSettings(role: "viewer", full: { try await api.settingsContract() }, light: { try await api.settingsValues(etag: $0) }, embedded: try copy(), cache: LightCache())
+        let read = await readSettings(role: "viewer", full: { try await api.settingsContract() }, light: { try await api.settingsValues(etag: $0) }, embedded: try embeddedCopy(), cache: LightCache())
         XCTAssertEqual(read.loaded.why, "unreachable")
     }
 }
