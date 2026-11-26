@@ -150,6 +150,27 @@ final class PnpNodesTests: XCTestCase {
         }
     }
 
+    func testTheWarningOfANodeThatIsAskedTooSlowlyGoesToItsNodeAndOnlyToIt() throws {
+        let nodes = try parsePnpNodes(#"{"nodes":[{"id":"h","kind":"head","link_lost_ms":2000,"link_lost_declared":false,"poll_too_slow":true},{"id":"f","kind":"feeder"}],"warnings":[{"code":"poll_too_slow","node":"h","poll_s":5,"link_lost_ms":2000,"link_lost_declared":false}]}"#)
+        XCTAssertEqual(nodes[0].slow, PnpSlow(pollS: 5, linkLostMs: 2000, declared: false))
+        XCTAssertNil(nodes[1].slow)
+    }
+
+    func testAWarningOfAnotherKindWithoutItsNumbersOrInAListThatIsNotOneIsNotAWarning() throws {
+        let answers = [
+            #"{"nodes":[{"id":"h"}]}"#,
+            #"{"nodes":[{"id":"h"}],"warnings":"x"}"#,
+            #"{"nodes":[{"id":"h"}],"warnings":[5,{"code":"another","node":"h","poll_s":5,"link_lost_ms":2000}]}"#,
+            #"{"nodes":[{"id":"h"}],"warnings":[{"code":"poll_too_slow","node":"h","poll_s":"5","link_lost_ms":2000},{"code":"poll_too_slow","node":"h","poll_s":5}]}"#,
+        ]
+        for answer in answers {
+            let nodes = try parsePnpNodes(answer)
+            XCTAssertNil(nodes.first?.slow, answer)
+        }
+        let declared = try parsePnpNodes(#"{"nodes":[{"id":"h"}],"warnings":[{"code":"poll_too_slow","node":"h","poll_s":20,"link_lost_ms":15000,"link_lost_declared":true}]}"#)
+        XCTAssertEqual(declared.first?.slow, PnpSlow(pollS: 20, linkLostMs: 15000, declared: true))
+    }
+
     func testTheCallAsksGetPnpNodesWithTheTokenAndReadsTheList() async throws {
         let nodes = try await phone().pnpNodes()
         XCTAssertEqual(nodes.count, 2)

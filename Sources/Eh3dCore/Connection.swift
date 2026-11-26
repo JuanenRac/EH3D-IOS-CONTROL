@@ -171,7 +171,7 @@ private func numberText(_ number: NSNumber) -> String {
 
 /// A feeder or head node of a pick-and-place machine as `GET /pnp/nodes` lists it. The phone only reads them (EH3D-STUDIO registers, changes and removes them). `ready` is the verdict of the server:
 /// only the healths `ok` and `warn` are ready and every other one is not, so an answer that does not say is not ready. The token of a node never comes in the answer (the server sends `********`) and is
-/// not read here. `facts` are the few numbers the node said last, as lines of text.
+/// not read here. `facts` are the few numbers the node said last, as lines of text. `slow` is the warning of the server when it asks the node too slowly to keep it out of its safe state.
 public struct PnpNode: Equatable, Sendable {
     public let id: String
     public let kind: String
@@ -184,10 +184,35 @@ public struct PnpNode: Equatable, Sendable {
     public let lastError: String
     public let simulatorOnly: Bool
     public let facts: [DetailLine]
-    public init(id: String, kind: String, name: String, address: String, machine: String, enabled: Bool, health: String, ready: Bool, lastError: String, simulatorOnly: Bool, facts: [DetailLine]) {
+    public let slow: PnpSlow?
+    public init(id: String, kind: String, name: String, address: String, machine: String, enabled: Bool, health: String, ready: Bool, lastError: String, simulatorOnly: Bool, facts: [DetailLine], slow: PnpSlow? = nil) {
         self.id = id; self.kind = kind; self.name = name; self.address = address; self.machine = machine; self.enabled = enabled
-        self.health = health; self.ready = ready; self.lastError = lastError; self.simulatorOnly = simulatorOnly; self.facts = facts
+        self.health = health; self.ready = ready; self.lastError = lastError; self.simulatorOnly = simulatorOnly; self.facts = facts; self.slow = slow
     }
+}
+
+/// The server asks a node every `pollS` seconds and the node goes to its safe state after `linkLostMs` without being asked; `declared` is false when that time is the default of its contract.
+public struct PnpSlow: Equatable, Sendable {
+    public let pollS: Int
+    public let linkLostMs: Int
+    public let declared: Bool
+    public init(pollS: Int, linkLostMs: Int, declared: Bool) { self.pollS = pollS; self.linkLostMs = linkLostMs; self.declared = declared }
+}
+
+/// A number of an answer that is not a truth value.
+private func wireNumber(_ value: Any?) -> Int? {
+    guard let number = value as? NSNumber, String(cString: number.objCType) != "c" else { return nil }
+    return number.intValue
+}
+
+/// The warnings `poll_too_slow` of the answer, by node; a warning of another kind or without its numbers is left out.
+private func slowWarnings(_ root: Json) -> [String: PnpSlow] {
+    var out: [String: PnpSlow] = [:]
+    for w in ((root["warnings"] as? [Any]) ?? []).compactMap({ $0 as? Json }) {
+        guard text(w, "code") == "poll_too_slow", !text(w, "node").isEmpty, let poll = wireNumber(w["poll_s"]), let lost = wireNumber(w["link_lost_ms"]) else { continue }
+        out[text(w, "node")] = PnpSlow(pollS: poll, linkLostMs: lost, declared: isTrue(w["link_lost_declared"]))
+    }
+    return out
 }
 
 /// The keys of what a node said last that the phone lists, in this order.
@@ -195,7 +220,9 @@ private let pnpFactKeys = ["safe", "selfcheck", "online", "slots", "low", "empty
 
 /// The nodes of the answer `{"nodes": [...]}`; an item without an id is left out, and anything that is not a list is an empty list.
 public func parsePnpNodes(_ body: String) throws -> [PnpNode] {
-    let list = (try rootObject(body)["nodes"] as? [Any]) ?? []
+    let root = try rootObject(body)
+    let list = (root["nodes"] as? [Any]) ?? []
+    let slow = slowWarnings(root)
     return list.compactMap { $0 as? Json }.filter { !text($0, "id").isEmpty }.map { n in
         var facts: [DetailLine] = []
         if let status = n["status"] as? Json {
@@ -207,7 +234,7 @@ public func parsePnpNodes(_ body: String) throws -> [PnpNode] {
         let enabled = (n["enabled"] as? NSNumber).map { $0.boolValue } ?? true
         return PnpNode(id: text(n, "id"), kind: text(n, "kind"), name: text(n, "name", text(n, "id")), address: text(n, "address"), machine: text(n, "machine"), enabled: enabled,
                        health: text(n, "health", "unknown"), ready: isTrue(n["ready"]), lastError: text(n, "last_error"),
-                       simulatorOnly: text(n, "evidence") == "simulator" || isTrue(n["simulator_only"]), facts: facts)
+                       simulatorOnly: text(n, "evidence") == "simulator" || isTrue(n["simulator_only"]), facts: facts, slow: slow[text(n, "id")])
     }
 }
 
