@@ -31,7 +31,7 @@
 |---|---|
 | Version | `0.1.6` |
 | Reifegrad | Gerüst |
-| Tests | 488 Tests des Swift-Pakets |
+| Tests | 490 Tests des Swift-Pakets |
 | Technologie-Stack | Swift, SwiftUI |
 | Auf echter Hardware | Noch nicht: Die App wurde nicht auf einem iPhone, gegen einen echten Server oder mit einer Maschine ausgeführt; als Erstes ist die Anmeldung am EH3D-SERVER der Werkstatt zu versuchen. |
 

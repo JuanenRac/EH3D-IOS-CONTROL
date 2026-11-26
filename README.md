@@ -31,7 +31,7 @@
 |---|---|
 | Version | `0.1.6` |
 | Maturity | Scaffolding |
-| Tests | 488 tests of the Swift package |
+| Tests | 490 tests of the Swift package |
 | Stack | Swift, SwiftUI |
 | On real hardware | Not yet: the app has not been run on a iPhone, against a real server or with a machine; the first thing to try is signing in to the EH3D-SERVER of the workshop. |
 
