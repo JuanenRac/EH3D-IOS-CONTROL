@@ -1,4 +1,4 @@
-# EH3D-IOS-CONTROL - tools/test_check_ios_build.py: the check of the versions of the app, with small project descriptions made for the test.   python -I tools/test_check_ios_build.py
+# EH3D-IOS-CONTROL - tools/test_check_ios_build.py: the check of the versions and the languages of the app, with small project descriptions made for the test.   python -I tools/test_check_ios_build.py
 import importlib.util
 import json
 import plistlib
@@ -29,7 +29,18 @@ class Versions(unittest.TestCase):
         root = Path(self._tmp.name)
         (root / "eh3d.project.json").write_text(json.dumps({"version": version}), encoding="utf-8")
         (root / "project.yml").write_text((project or PROJECT).format(marketing=marketing, build=build), encoding="utf-8")
+        for language in C.LANGUAGES:
+            (root / "App" / "Resources" / f"{language}.lproj").mkdir(parents=True, exist_ok=True)
         return root
+
+    def bundle(self, root: Path, name="EH3D.app", languages=None, listed=None, version="0.0.6") -> Path:
+        app = root / name
+        app.mkdir()
+        for language in C.LANGUAGES if languages is None else languages:
+            (app / f"{language}.lproj").mkdir()
+        info = {"CFBundleShortVersionString": version, "CFBundleVersion": "6", "CFBundleLocalizations": C.LANGUAGES if listed is None else listed}
+        (app / "Info.plist").write_bytes(plistlib.dumps(info))
+        return app
 
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -59,15 +70,43 @@ class Versions(unittest.TestCase):
         short = PROJECT.replace(", pt-PT", "")
         self.assertTrue(any("eight languages" in p for p in C.source_problems(self.make(project=short))))
 
+    def test_a_language_too_many_in_the_description_is_a_problem(self):
+        for extra in ("pl", "pt-BR", "fr-CA"):
+            found = C.source_problems(self.make(project=PROJECT.replace("pt-PT]", f"pt-PT, {extra}]")))
+            self.assertEqual(len(found), 1, found)
+            self.assertIn(extra, found[0])
+        self.assertTrue(any("twice" in p for p in C.source_problems(self.make(project=PROJECT.replace("pt-PT]", "pt-PT, en]")))))
+        none = PROJECT.replace("CFBundleLocalizations: [en, es, de, fr, it, ja, zh-Hans, pt-PT]", "UILaunchScreen: x")
+        self.assertTrue(any("eight languages" in p for p in C.source_problems(self.make(project=none))))
+
+    def test_a_language_folder_too_many_or_missing_is_a_problem(self):
+        root = self.make()
+        resources = root / "App" / "Resources"
+        (resources / "Base.lproj").mkdir()
+        self.assertEqual(C.source_problems(root), [])
+        (root / "App" / "Other" / "ca.lproj").mkdir(parents=True)
+        found = C.source_problems(root)
+        self.assertEqual(len(found), 1, found)
+        self.assertIn("ca", found[0])
+        (root / "App" / "Other" / "ca.lproj").rmdir()
+        (resources / "ja.lproj").rmdir()
+        self.assertTrue(any("lacks" in p and "ja" in p for p in C.source_problems(root)))
+
     def test_the_built_app_must_show_the_version_and_the_build_of_the_project(self):
         root = self.make()
-        app = root / "EH3D.app"
-        app.mkdir()
-        self.assertTrue(any("Info.plist" in p for p in C.built_problems(root, app)))
-        (app / "Info.plist").write_bytes(plistlib.dumps({"CFBundleShortVersionString": "0.0.6", "CFBundleVersion": "6"}))
-        self.assertEqual(C.built_problems(root, app), [])
-        (app / "Info.plist").write_bytes(plistlib.dumps({"CFBundleShortVersionString": "0.0.5", "CFBundleVersion": "6"}))
-        self.assertEqual(len(C.built_problems(root, app)), 1)
+        empty = root / "Empty.app"
+        empty.mkdir()
+        self.assertTrue(any("Info.plist" in p for p in C.built_problems(root, empty)))
+        self.assertEqual(C.built_problems(root, self.bundle(root)), [])
+        self.assertEqual(len(C.built_problems(root, self.bundle(root, name="Old.app", version="0.0.5"))), 1)
+
+    def test_the_built_app_must_carry_the_eight_languages_and_no_other(self):
+        root = self.make()
+        self.assertEqual(len(C.built_problems(root, self.bundle(root, name="Listed.app", listed=C.LANGUAGES + ["pl"]))), 1)
+        more = C.built_problems(root, self.bundle(root, name="More.app", languages=C.LANGUAGES + ["pt-BR"]))
+        self.assertTrue(any("pt-BR" in p for p in more))
+        less = C.built_problems(root, self.bundle(root, name="Less.app", languages=[x for x in C.LANGUAGES if x != "de"]))
+        self.assertTrue(any("lacks" in p and "de" in p for p in less))
 
     def test_the_project_of_this_repository_passes(self):
         self.assertEqual(C.source_problems(C.ROOT), [])

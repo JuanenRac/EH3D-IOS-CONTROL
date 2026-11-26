@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The app declares the eight languages and no other:** `CFBundleLocalizations` of `project.yml` still listed 37 languages and variants and `App/Resources` still held their `.lproj` folders, so the system offered languages the app does not speak. Both now hold only English, Spanish, German, French, Italian, Japanese, Chinese and European Portuguese. `tools/check_ios_build.py` fails on a language too many, one missing or one named twice, in the project description, in the `.lproj` folders and in the app that was built.
+
 ## [0.1.7] - Live status of 3D printers, warnings of pick-and-place nodes and the new permissions of the server
 
 - **A node of a pick-and-place machine that is asked too slowly says so:** its card shows the warning of the server (`poll_too_slow`): how often the server asks it, after how long without being asked it goes to its safe state, whether that time is the one the node says or the default of its contract, and what to change (`pnp_node_poll_s`). Eight languages. Seen against a simulator only.
