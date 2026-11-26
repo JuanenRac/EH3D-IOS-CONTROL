@@ -60,6 +60,11 @@ struct PnpNodeCard: View {
             }
             if n.simulatorOnly { Pill(text: model.tr("SOLO SIMULADOR"), color: Forge.orange) }
             Text(health).font(.caption).foregroundColor(Forge.text)
+            if let slow = n.slow {
+                Text(model.trf("Consultado demasiado despacio: el servidor lo consulta cada %d s y pasa a su estado seguro tras %d ms sin consultas.", slow.pollS, slow.linkLostMs)).font(.caption).foregroundColor(Forge.danger)
+                if !slow.declared { Text(model.tr("El nodo no ha dicho su tiempo: se usa el valor por defecto de su contrato.")).font(.caption).foregroundColor(Forge.dim) }
+                Text(model.tr("Baje pnp_node_poll_s en server.cfg (1 por defecto) y reinicie el servidor. Un nodo ajustado a menos de 1000 ms no se puede mantener atendido con este ajuste.")).font(.caption).foregroundColor(Forge.dim)
+            }
             ForEach(Array(n.facts.enumerated()), id: \.offset) { _, line in
                 Text("\(line.key): \(line.value)").font(.caption).foregroundColor(Forge.dim)
             }

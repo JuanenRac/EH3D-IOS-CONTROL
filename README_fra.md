@@ -31,7 +31,7 @@
 |---|---|
 | Version | `0.1.6` |
 | Maturité | Échafaudage |
-| Tests | 488 tests du paquet Swift |
+| Tests | 490 tests du paquet Swift |
 | Pile technique | Swift, SwiftUI |
 | Sur du matériel réel | Pas encore : l'application n'a pas été exécutée sur un iPhone, contre un vrai serveur ni avec une machine ; la première chose à essayer est de se connecter au EH3D-SERVER de l'atelier. |
 
