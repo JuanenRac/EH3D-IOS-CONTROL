@@ -223,6 +223,13 @@ public final class Eh3dApi: @unchecked Sendable {
     /// The feeder and head nodes of the pick-and-place machines, with their health as the server last saw it (read only; a server where the nodes are switched off answers 501).
     public func pnpNodes() async throws -> [PnpNode] { try parsePnpNodes(try await call("/pnp/nodes")) }
 
+    /// The 3D printers the server watches, read only: this GET is the only thing the phone asks about them (a server with the list switched off answers 501). An answer that is not the contract
+    /// is `bad_json`, never an empty list.
+    public func printers() async throws -> [Printer] {
+        guard let list = parsePrinters(try await call("/printers")) else { throw ApiError(status: 200, code: "bad_json", detail: "the answer is not the list of printers") }
+        return list
+    }
+
     /// The jobs of the generic queue of the server (the newest first, at most 100): the ones that wait, run or are held are the ones the app shows.
     public func workJobs() async throws -> [WorkJob] { try parseWorkJobs(try await call("/work/jobs?limit=100")) }
 
