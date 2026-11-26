@@ -51,6 +51,7 @@ struct HomeView: View {
                     ForEach(model.pnpNodes, id: \.id) { n in PnpNodeCard(model: model, n: n) }
                     Text(model.tr("Se registran y se cambian en EH3D-STUDIO.")).font(.caption).foregroundColor(Forge.dim)
                 }
+                PrintersSection(model: model)
             }.padding(.horizontal, 16).padding(.top, 12)
         }
         .confirmationDialog(model.tr("PARADA DE EMERGENCIA"), isPresented: $askAll, titleVisibility: .visible) {

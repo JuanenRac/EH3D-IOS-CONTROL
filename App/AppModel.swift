@@ -91,6 +91,8 @@ final class AppModel: ObservableObject {
     @Published var workMachines: [WorkMachine] = []
     /// The feeder and head nodes of the pick-and-place machines, read only; empty while the server has none or has the nodes switched off.
     @Published var pnpNodes: [PnpNode] = []
+    /// The 3D printers the server watches, read only; hidden while the server has the list switched off or does not have it.
+    @Published var printers = PrinterListing.hidden
     /// The jobs of the generic queue of the server (the ones of the machines of the plugins) and, for an administrator, the switches of security of the server that the app explains.
     @Published var workJobs: [WorkJob] = []
     @Published var switches: [PolicySwitch] = []
@@ -218,7 +220,7 @@ final class AppModel: ObservableObject {
         rememberMe = false
         api.token = ""
         login = nil; fleet = .empty; job = nil; head = nil; jobs = []; stack = []
-        sessionList = []; workMachines = []; pnpNodes = []; workJobs = []; switches = []
+        sessionList = []; workMachines = []; pnpNodes = []; workJobs = []; switches = []; printers = .hidden
         phase = .signedOut
     }
 
@@ -450,11 +452,13 @@ final class AppModel: ObservableObject {
                     do { workJobs = try await api.workJobs() }
                     catch let e as ApiError { if e.unauthorized { throw e } else if e.status != 0 { workJobs = [] } }
                 }
+                do { printers = PrinterListing(.listed, printers: try await api.printers()) }
+                catch let e as ApiError { if e.unauthorized { throw e } else { printers = printersAfterFailure(printers, status: e.status, code: e.code) } }
             default: break
             }
             link = link.succeeded(nowMs: clock())
         } catch let e as ApiError {
-            if e.unauthorized { vault.dropSession(); api.token = ""; login = nil; phase = .signedOut; poller?.cancel() }
+            if e.unauthorized { vault.dropSession(); api.token = ""; login = nil; printers = .hidden; phase = .signedOut; poller?.cancel() }
             else if let why = classifyFailure(status: e.status, code: e.code) { link = link.failed(why, nowMs: clock()) }
             else { link = link.succeeded(nowMs: clock()) }   // an answer of the server itself (a job that is gone) is a link that works
         } catch { link = link.failed(.unreachable, nowMs: clock()) }
