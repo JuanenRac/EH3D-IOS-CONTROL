@@ -60,6 +60,19 @@ final class PrepareTests: XCTestCase {
         XCTAssertTrue(Prepare.declaredDiameters("%\nT01\nX1000Y1000\n").isEmpty)
     }
 
+    func testTheDrillFormatGoesOnlyWithADrillingFileAndOnlyWhenOneIsChosen() throws {
+        XCTAssertEqual(try dict(Prepare.fileBody(side: .drill, name: "j", text: "n", tableText: "", skipTools: [], drillFormat: "mils"))["drill_format"] as? String, "mils")
+        XCTAssertNil(try dict(Prepare.fileBody(side: .drill, name: "j", text: "n", tableText: "", skipTools: []))["drill_format"])
+        XCTAssertNil(try dict(Prepare.fileBody(side: .drill, name: "j", text: "n", tableText: "", skipTools: [], drillFormat: "anything"))["drill_format"])
+        XCTAssertNil(try dict(Prepare.fileBody(side: .route, name: "j", text: "p", tableText: "", skipTools: [], drillFormat: "mils"))["drill_format"])
+    }
+
+    func testARefusalForTheNumberFormatIsToldApartFromAFileThatCannotBeRead() {
+        XCTAssertTrue(Prepare.needsDrillFormat(code: "bad_ncd", detail: "EH3D-FORMATS-014: line 3: the format is not declared (drill_format)"))
+        XCTAssertFalse(Prepare.needsDrillFormat(code: "bad_ncd", detail: "line 3 is not a hole"))
+        XCTAssertFalse(Prepare.needsDrillFormat(code: "bad_request", detail: "EH3D-FORMATS-014"))
+    }
+
     func testTheRequestOfAFileCarriesTheTextTheToolsOffAndNoHolesAtTheSameTime() throws {
         let body = try dict(Prepare.fileBody(side: .drill, name: "board 1", text: "T1\nX1Y1", tableText: "table", skipTools: [1, 2]))
         XCTAssertEqual(body["kind"] as? String, "drill")
