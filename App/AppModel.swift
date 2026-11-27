@@ -794,9 +794,8 @@ final class AppModel: ObservableObject {
         if e.code == "not_stopped" { return tr("Solo se puede seguir desde un trabajo cancelado o fallido.") }
         if e.code == "no_work" { return tr("No queda nada por hacer: todas las herramientas están desactivadas o el trabajo ya está hecho.") }
         if e.code == "head_unreachable" { return tr("El nodo del cabezal no responde.") }
-        if e.code == "bad_gcode" { return withDetail(refusalText(e.code) ?? e.code, code: e.code, detail: e.detail) }
         if e.code == "bad_policy" || e.code == "weak_confirm_required" || e.code == "forbidden_scope" { return policyText(e) }
-        if let words = refusalText(e.code) { return words }
+        if let words = refusalText(e.code) { return keepsDetail(e.code) ? withDetail(words, code: e.code, detail: e.detail) : words }
         if let words = ServerErrors.text(e.code, language: language) { return words }
         if e.status == 403 { return tr("Su usuario solo puede ver: no puede hacer esto.") }
         return trf("El servidor respondió: %s", e.detail.isEmpty ? e.code : e.detail)

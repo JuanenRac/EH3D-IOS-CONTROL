@@ -38,6 +38,8 @@ final class OrdersTests: XCTestCase {
     }
 
     func testARefusedProgramKeepsTheLineAndTheReasonOfTheServer() {
+        XCTAssertTrue(keepsDetail("bad_gcode"))
+        XCTAssertFalse(keepsDetail("machine_busy"))
         XCTAssertEqual(withDetail("No", code: "bad_gcode", detail: " line 3: a canned cycle "), "No (line 3: a canned cycle)")
         XCTAssertEqual(withDetail("No", code: "bad_gcode", detail: "bad_gcode"), "No")
         XCTAssertEqual(withDetail("No", code: "bad_gcode", detail: ""), "No")

@@ -28,6 +28,9 @@ public func mayHaveArrived(status: Int, neverSent: Bool) -> Bool { (status == 0 
 /// Whether a machine may be set going (started, confirmed, let go): an operator, and only while what is on the screen is what the server says now. A stop never asks this.
 public func mayOrder(operator canOperate: Bool, link: LinkState) -> Bool { canOperate && link == .connected }
 
+/// The refusals whose detail names the line and the reason: the sentence of the code alone does not say where to look.
+public func keepsDetail(_ code: String) -> Bool { code == "bad_gcode" }
+
 /// The sentence of a refusal with what the server added (the line and the reason of a refused program), when it added something.
 public func withDetail(_ words: String, code: String, detail: String) -> String {
     var extra = Substring(detail)
