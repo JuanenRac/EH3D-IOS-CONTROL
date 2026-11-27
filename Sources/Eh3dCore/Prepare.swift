@@ -96,7 +96,7 @@ public enum Prepare {
         return encode(body)
     }
 
-    /// The request that plans a free G-code program: `skip` lines already done; the spindle and the coolant are started again only with `restoreOutputs` (off by default).
+    /// The request that plans a free G-code program: `skip` lines already done; `restoreOutputs` (off by default) turns the coolant on again. The spindle does not depend on it: the server starts the one the program had on, after the operator confirms.
     public static func gcodeBody(name: String, gcode: String, skip: Int, restoreOutputs: Bool) -> String {
         var body: [String: Any] = ["kind": "gcode", "gcode": gcode, "skip": max(skip, 0), "restore_outputs": restoreOutputs]
         if !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { body["name"] = name }
