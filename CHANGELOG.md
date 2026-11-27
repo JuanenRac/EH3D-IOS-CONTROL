@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+## [0.2.0] - The current settings contract of the server
+
 - **The contract of the settings of the server is the current one:** `answer_needs_question` is now on by default there (an answer to a job names its question, as this program already sends it). No other change.
 
 ## [0.1.9] - Answer the new questions of the server when a job resumes, and the spindle and drill settings
