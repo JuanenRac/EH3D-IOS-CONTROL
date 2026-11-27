@@ -10,7 +10,7 @@ extension AppModel {
         case "bad_address": return tr("Un nodo necesita su dirección (host:puerto).")
         case "bad_cfg": return tr("La configuración tiene una clave que no existe o un valor fuera de rango.")
         case "bad_days": return tr("Los días deben ser un número de 1 a 3650.")
-        case "bad_gcode": return tr("El programa tiene una línea que no es G-code: los ajustes y órdenes en tiempo real del controlador ($, !, ~, ?), los caracteres de control y las líneas de más de 200 caracteres se rechazan.")
+        case "bad_gcode": return tr("El servidor no acepta el programa: una línea no se puede enviar a la máquina o no se puede juzgar con certeza. Corrija esa línea en el programa.")
         case "bad_id": return tr("El id debe ser letras minúsculas, dígitos y guiones, hasta 32 caracteres.")
         case "bad_light": return tr("Al anillo de LEDs se le pidió algo que el nodo no usa (un nivel, un tono o sectores que no conoce).")
         case "bad_request": return tr("El servidor no aceptó lo enviado.")

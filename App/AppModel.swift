@@ -120,6 +120,9 @@ final class AppModel: ObservableObject {
     var page: Page { stack.last ?? .home }
     var canOperate: Bool { Roles.canOperate(login?.role ?? "") }
     var canAdmin: Bool { Roles.canAdmin(login?.role ?? "") }
+    /// Whether the buttons that set a machine going are on: an operator and a link that is answering now.
+    var canOrder: Bool { mayOrder(operator: canOperate, link: linkState) }
+    private var orders = OrderGate()
     func tr(_ s: String) -> String { _ = language; return translator.tr(s) }
     func trf(_ s: String, _ args: Any...) -> String { _ = language; return Translator.fill(translator.tr(s), args) }
 
@@ -488,8 +491,24 @@ final class AppModel: ObservableObject {
         }
     }
 
-    func start(_ id: String) { act { try await self.api.start(id) } }
-    func confirm(_ id: String) { act { try await self.api.confirm(id) } }
+    /// An order that sets a machine going: sent once, and one with no answer says that it may have arrived.
+    private func order(_ key: String, _ work: @escaping () async throws -> Void) {
+        if !orders.take(key, nowMs: clock()) { return }
+        Task {
+            var taken = false
+            do { try await work(); taken = true; await refresh() }
+            catch let e as ApiError { if e.unauthorized { signOut() } else { message = orderText(e); await refresh() } }
+            catch { message = error.localizedDescription }
+            orders.done(key, taken: taken, nowMs: clock())
+        }
+    }
+
+    private func orderText(_ e: ApiError) -> String { mayHaveArrived(status: e.status, neverSent: e.neverSent) ? unanswered() : text(e) }
+
+    private func unanswered() -> String { tr("El servidor no respondió: la orden puede haber llegado y la máquina puede estar moviéndose. Mire la máquina antes de repetirla.") }
+
+    func start(_ id: String) { order("start \(id)") { try await self.api.start(id) } }
+    func confirm(_ id: String) { order("answer \(id)") { try await self.api.confirm(id) } }
     func cancel(_ id: String) { stopping(job.flatMap { $0.summary.id == id ? $0.summary.machine : nil }) { try await self.api.cancel(id) } }
     func delete(_ id: String) { act { try await self.api.delete(id); if case .job = self.page { self.back() } } }
 
@@ -521,14 +540,19 @@ final class AppModel: ObservableObject {
         }
     }
     func pause(_ id: String) { act { try await self.api.pause(id) } }
-    func resume(_ id: String) { act { try await self.api.resume(id) } }
+    func resume(_ id: String) { order("answer \(id)") { try await self.api.resume(id) } }
 
     /// Goes on from a job that failed or was cancelled: the server made a new job from the request it kept (no file is asked for again), and it waits ready for a person to start it.
     func goOn(_ summary: JobSummary) {
+        let key = "go-on \(summary.id)"
+        if !orders.take(key, nowMs: clock()) { return }
         resumeRefused = nil
         Task {
+            var taken = false
+            defer { orders.done(key, taken: taken, nowMs: clock()) }
             do {
                 let next = try await api.resumeFrom(summary.id)
+                taken = true
                 message = tr("Se creó un trabajo nuevo a partir de este. Empiécelo cuando la máquina esté lista.")
                 await refresh()
                 open(.job(next.summary.id))
@@ -539,7 +563,7 @@ final class AppModel: ObservableObject {
                     resumeRefused = (summary.id, reason)
                     message = trf("El servidor no continúa este trabajo por sí solo: %s. Deje la máquina en condiciones, prepare de nuevo el trabajo e indique por dónde empezar.", reason)
                 } else {
-                    message = text(e)
+                    message = orderText(e)
                 }
             } catch { message = error.localizedDescription }
         }
@@ -551,6 +575,7 @@ final class AppModel: ObservableObject {
 
     /// Opens the page that prepares a job on a machine, with the first work its connection takes.
     func openPrepare(_ machineId: String) {
+        previewing?.cancel()
         open(.prepare(machineId))
         prepare = PrepareUi(work: Prepare.works(fleet.machine(machineId)?.connection ?? "").first ?? .drill)
     }
@@ -559,6 +584,7 @@ final class AppModel: ObservableObject {
     func openResume(_ summary: JobSummary) {
         let source = gcodeSources[summary.id]
         let text = source?.text ?? ""
+        previewing?.cancel()
         open(.prepare(summary.machine))
         prepare = PrepareUi(work: .gcode, gcodeName: source?.name ?? "", gcode: text, skip: Prepare.resumeSkip(line: summary.line, total: text.isEmpty ? summary.line : Prepare.lineCount(text)))
         if !text.isEmpty { previewGcode(summary.machine) }
@@ -622,11 +648,15 @@ final class AppModel: ObservableObject {
         let st = prepare.side(side)
         do {
             let view = try await api.preview(machineId, body: Prepare.fileBody(side: side, name: Prepare.jobName(st.fileName), text: st.text, tableText: st.tableText, skipTools: []))
-            var now = prepare.side(side); now.view = view; now.error = ""; prepare.set(side, now)
+            var now = prepare.side(side)
+            if !Prepare.samePlanInput(st, now) { return }
+            now.view = view; now.error = ""; prepare.set(side, now)
         } catch let e as ApiError {
             if e.unauthorized { signOut() }
-            var now = prepare.side(side); now.view = nil; now.error = prepareError(e); prepare.set(side, now)
-        } catch { var now = prepare.side(side); now.view = nil; now.error = error.localizedDescription; prepare.set(side, now) }
+            var now = prepare.side(side)
+            if !Prepare.samePlanInput(st, now) { return }
+            now.view = nil; now.error = prepareError(e); prepare.set(side, now)
+        } catch { var now = prepare.side(side); if !Prepare.samePlanInput(st, now) { return }; now.view = nil; now.error = error.localizedDescription; prepare.set(side, now) }
     }
 
     /// The G-code program: its text is read and planned from the line `prepare.skip`.
@@ -644,6 +674,8 @@ final class AppModel: ObservableObject {
 
     private func previewGcode(_ machineId: String) {
         previewing?.cancel()
+        // the plan on screen is of what was there before: Start stays off until the new one arrives
+        prepare.gcodeView = nil; prepare.gcodeError = ""
         let p = prepare
         previewing = Task {
             do {
@@ -665,6 +697,7 @@ final class AppModel: ObservableObject {
         Task {
             prepare.busy = true; defer { prepare.busy = false }
             var made = 0
+            var starting = false
             do {
                 var jobs: [Job] = []
                 if p.work == .gcode {
@@ -680,12 +713,15 @@ final class AppModel: ObservableObject {
                         made += 1
                     }
                 }
+                starting = true
                 try await api.start(jobs[0].summary.id)
                 message = jobs.count > 1 ? tr("El primer trabajo está en marcha. El segundo queda listo: arránquelo desde la pestaña Trabajos cuando termine.") : nil
                 if case .prepare = page { back() }
                 await refresh()
             } catch let e as ApiError {
-                if e.unauthorized { signOut() } else { message = prepareError(e) + (made > 0 ? " " + tr("Lo que ya se creó queda listo en la pestaña Trabajos.") : "") }
+                if e.unauthorized { signOut() }
+                else if starting && mayHaveArrived(status: e.status, neverSent: e.neverSent) { message = unanswered() }
+                else { message = prepareError(e) + (made > 0 ? " " + tr("Lo que ya se creó queda listo en la pestaña Trabajos.") : "") }
             } catch { message = error.localizedDescription }
         }
     }
@@ -693,7 +729,6 @@ final class AppModel: ObservableObject {
     private func prepareError(_ e: ApiError) -> String {
         switch e.code {
         case "too_big": return tr("El archivo es demasiado grande.")
-        case "bad_gcode": return trf("Hay una línea que no es G-code válido: %s", e.detail)
         case "bad_ncd": return tr("El archivo de taladrado no se entiende.")
         case "unknown_tool": return trf("Una herramienta del archivo no está en la tabla de herramientas de la máquina: %s", e.detail)
         case "bad_tool": return trf("Herramienta no válida: %s", e.detail)
@@ -760,7 +795,7 @@ final class AppModel: ObservableObject {
         if e.code == "no_work" { return tr("No queda nada por hacer: todas las herramientas están desactivadas o el trabajo ya está hecho.") }
         if e.code == "head_unreachable" { return tr("El nodo del cabezal no responde.") }
         if e.code == "bad_policy" || e.code == "weak_confirm_required" || e.code == "forbidden_scope" { return policyText(e) }
-        if let words = refusalText(e.code) { return words }
+        if let words = refusalText(e.code) { return keepsDetail(e.code) ? withDetail(words, code: e.code, detail: e.detail) : words }
         if let words = ServerErrors.text(e.code, language: language) { return words }
         if e.status == 403 { return tr("Su usuario solo puede ver: no puede hacer esto.") }
         return trf("El servidor respondió: %s", e.detail.isEmpty ? e.code : e.detail)
