@@ -107,10 +107,10 @@ final class SettingsContractTests: XCTestCase {
 
     // ---- the copy of the app
 
-    func testTheCopyIsTheContractOfTheServerWith105SettingsInSeventeenGroups() throws {
+    func testTheCopyIsTheContractOfTheServerWith106SettingsInSeventeenGroups() throws {
         let contract = try contractCopy()
         XCTAssertEqual(contract.schema, "eh3d.settings.contract/1")
-        XCTAssertEqual(contract.settings.count, 105)
+        XCTAssertEqual(contract.settings.count, 106)
         XCTAssertEqual(contract.groups.count, 17)
         XCTAssertEqual(contract.languages, contractLanguages)
         XCTAssertEqual(Set(contract.settings.map { $0.key }).count, contract.settings.count)
@@ -150,7 +150,7 @@ final class SettingsContractTests: XCTestCase {
         let policy = contract.settings.filter { $0.write.via == "policy" }
         let file = contract.settings.filter { $0.write.via == "file" }
         XCTAssertEqual(policy.count, 19)
-        XCTAssertEqual(file.count, 86)
+        XCTAssertEqual(file.count, 87)
         XCTAssertTrue(policy.allSatisfy { $0.write.method == "PUT" && writePath($0) == "/auth/policy" && $0.role == "admin" })
         XCTAssertTrue(file.allSatisfy { $0.write.path == nil && $0.write.file == "server.cfg" })
     }
@@ -174,7 +174,7 @@ final class SettingsContractTests: XCTestCase {
         SettingsTexts.ensureBundled()
         XCTAssertTrue(EmbeddedContract.loaded)
         XCTAssertTrue(SettingsTexts.loaded)
-        XCTAssertEqual(EmbeddedContract.get().settings.count, 105)
+        XCTAssertEqual(EmbeddedContract.get().settings.count, 106)
     }
 
     // ---- the groups
