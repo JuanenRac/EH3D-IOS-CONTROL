@@ -103,6 +103,9 @@ public enum Prepare {
         return encode(body)
     }
 
+    /// True while a side still holds the files a plan was asked for: a plan that comes back after another file was chosen is thrown away.
+    public static func samePlanInput(_ asked: SideState, _ now: SideState) -> Bool { asked.text == now.text && asked.tableText == now.tableText }
+
     /// The name of the job: the file without its extension.
     public static func jobName(_ fileName: String) -> String {
         let base = (fileName as NSString).deletingPathExtension

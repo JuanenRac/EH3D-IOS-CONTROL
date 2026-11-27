@@ -65,7 +65,7 @@ struct PrepareView: View {
                 if p.work == .route || p.work == .both { sideCard(.route, p.route) }
                 if p.work == .gcode { gcodeCard(p) }
                 Button { askStart = true } label: { Text(p.busy ? model.tr("Preparando…") : model.tr("Empezar")).font(.headline).frame(maxWidth: .infinity).padding(.vertical, 8) }
-                    .buttonStyle(.borderedProminent).disabled(!model.canOperate || !prepareReady(p))
+                    .buttonStyle(.borderedProminent).disabled(!model.canOrder || !prepareReady(p))
                 Text(model.tr("Un trabajo nunca arranca solo: se pone en marcha cuando usted lo confirma.")).font(.caption).foregroundColor(Forge.dim)
             }.padding(.horizontal, 16)
         }

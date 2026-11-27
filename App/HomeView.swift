@@ -179,8 +179,8 @@ struct MachineView: View {
                         Card(accent: Forge.orange) {
                             Title(model.tr("La máquina espera"))
                             Text(pauseText(p, model)).foregroundColor(Forge.text)
-                            if a.kind == "gcode" { Button(model.tr("Reanudar")) { model.resume(a.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
-                            else { Button(model.tr("Confirmar")) { model.confirm(a.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
+                            if a.kind == "gcode" { Button(model.tr("Reanudar")) { model.resume(a.id) }.buttonStyle(.borderedProminent).disabled(!model.canOrder) }
+                            else { Button(model.tr("Confirmar")) { model.confirm(a.id) }.buttonStyle(.borderedProminent).disabled(!model.canOrder) }
                         }
                     }
                     if a.kind == "gcode" && a.state == "running" { Button(model.tr("Pausar")) { model.pause(a.id) }.buttonStyle(.bordered).frame(maxWidth: .infinity).disabled(!model.canOperate) }
@@ -346,12 +346,12 @@ struct JobDetailView: View {
                         }
                     }
                     HStack(spacing: 8) {
-                        if s.state == "ready" { Button(model.tr("Empezar")) { askStart = true }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
+                        if s.state == "ready" { Button(model.tr("Empezar")) { askStart = true }.buttonStyle(.borderedProminent).disabled(!model.canOrder) }
                         if JobStates.active(s.state) { Button(model.tr("PARAR")) { askStop = true }.buttonStyle(.borderedProminent).tint(Forge.danger).disabled(!model.canOperate) }
                         if s.kind == "gcode" && s.state == "running" { Button(model.tr("Pausar")) { model.pause(s.id) }.buttonStyle(.bordered).disabled(!model.canOperate) }
-                        if s.state == "waiting_operator" && s.kind == "gcode" { Button(model.tr("Reanudar")) { model.resume(s.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
-                        else if s.state == "waiting_operator" { Button(model.tr("Confirmar")) { model.confirm(s.id) }.buttonStyle(.borderedProminent).disabled(!model.canOperate) }
-                        if JobStates.canGoOn(s.state) { Button(model.tr("Seguir desde donde se detuvo")) { model.goOn(s) }.buttonStyle(.bordered).disabled(!model.canOperate) }
+                        if s.state == "waiting_operator" && s.kind == "gcode" { Button(model.tr("Reanudar")) { model.resume(s.id) }.buttonStyle(.borderedProminent).disabled(!model.canOrder) }
+                        else if s.state == "waiting_operator" { Button(model.tr("Confirmar")) { model.confirm(s.id) }.buttonStyle(.borderedProminent).disabled(!model.canOrder) }
+                        if JobStates.canGoOn(s.state) { Button(model.tr("Seguir desde donde se detuvo")) { model.goOn(s) }.buttonStyle(.bordered).disabled(!model.canOrder) }
                         if !JobStates.active(s.state) { Button(model.tr("Borrar")) { askDelete = true }.buttonStyle(.bordered).disabled(!model.canOperate) }
                     }
                     if let p = s.pause { Text(pauseText(p, model)).foregroundColor(Forge.orange) }
