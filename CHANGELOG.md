@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **The contract of the settings of the server is the current one:** `answer_needs_question` is now on by default there (an answer to a job names its question, as this program already sends it). No other change.
+
 ## [0.1.9] - Answer the new questions of the server when a job resumes, and the spindle and drill settings
 
 - **Before the tool goes down into the work:** when a job that goes on after a stop waits with `pause.plunge`, the app says that the head is over the point and that confirming takes the tool down, in the eight languages. Needs the server that asks it; not tried on a machine.
