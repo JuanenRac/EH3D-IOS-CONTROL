@@ -86,15 +86,23 @@ public enum Prepare {
     }
 
     /// The request that plans a drilling or routing job from the text of the files.
-    public static func fileBody(side: Side, name: String, text: String, tableText: String, skipTools: [Int]) -> String {
+    public static func fileBody(side: Side, name: String, text: String, tableText: String, skipTools: [Int], drillFormat: String = "") -> String {
         var files: [String: Any] = [:]
         if side == .drill { files["ncd"] = text; if !tableText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { files["dtd"] = tableText } }
         else { files["plt"] = text; if !tableText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { files["rtd"] = tableText } }
         var body: [String: Any] = ["kind": side.kind, "files": files]
+        // the format of a drilling file that does not declare one goes only when a person chose it
+        if side == .drill && drillFormats.contains(drillFormat) { body["drill_format"] = drillFormat }
         if !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { body["name"] = name }
         if !skipTools.isEmpty { body["skip_tools"] = skipTools }
         return encode(body)
     }
+
+    /// The number formats the server takes for a drilling file that does not declare one. None is chosen unless a person chooses it.
+    public static let drillFormats = ["mils", "inch-2.4-tz", "inch-2.4-lz", "metric-3.3-tz", "metric-3.3-lz"]
+
+    /// True when the server refused a drilling file because it does not declare how its numbers are written (or the chosen format does not fit it).
+    public static func needsDrillFormat(code: String, detail: String) -> Bool { code == "bad_ncd" && detail.contains("EH3D-FORMATS-014") }
 
     /// The request that plans a free G-code program: `skip` lines already done; `restoreOutputs` (off by default) turns the coolant on again. The spindle does not depend on it: the server starts the one the program had on, after the operator confirms.
     public static func gcodeBody(name: String, gcode: String, skip: Int, restoreOutputs: Bool) -> String {

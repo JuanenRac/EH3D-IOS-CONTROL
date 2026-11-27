@@ -109,8 +109,21 @@ struct PrepareView: View {
                 Button(model.tr("Tabla de herramientas")) { pick(.table(side)) }.buttonStyle(.bordered).disabled(!model.canOperate)
             }
             if !st.tableName.isEmpty { Text(model.trf("Tabla: %s", st.tableName)).font(.caption).foregroundColor(Forge.dim) }
+            if side == .drill && st.hasFile { drillFormatChoice() }
             if !st.error.isEmpty { Text(st.error).foregroundColor(Forge.orange) }
             if let view = st.view { toolsList(side, st, view) }
+        }
+    }
+
+    /// The number format of a drilling file that does not declare one: nothing is chosen until the person taps one.
+    @ViewBuilder private func drillFormatChoice() -> some View {
+        Text(model.tr("Formato numérico del archivo de taladrado")).font(.subheadline).foregroundColor(Forge.text)
+        Text(model.tr("Solo para un archivo que no lo declara: lo que declara el archivo manda.")).font(.caption).foregroundColor(Forge.dim)
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+            ForEach([""] + Prepare.drillFormats, id: \.self) { format in
+                Button(format.isEmpty ? model.tr("Sin elegir") : format) { model.chooseDrillFormat(machineId, format) }
+                    .buttonStyle(.bordered).tint(model.drillFormat == format ? Forge.amber : Forge.dim).disabled(!model.canOperate)
+            }
         }
     }
 

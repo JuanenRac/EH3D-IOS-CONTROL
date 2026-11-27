@@ -75,6 +75,8 @@ final class AppModel: ObservableObject {
     @Published var dollarAllowed: Bool?
     /// The job being prepared, and the text of the G-code programs started from here (to go on from the line where one stopped without choosing the file again).
     @Published var prepare = PrepareUi()
+    /// The number format a person chose for the drilling files that declare none; empty while none is chosen. Kept on the phone.
+    @Published private(set) var drillFormat = ""
     private var gcodeSources: [String: (name: String, text: String)] = [:]
     private var previewing: Task<Void, Never>?
     @Published var stack: [Page] = []
@@ -578,6 +580,7 @@ final class AppModel: ObservableObject {
         previewing?.cancel()
         open(.prepare(machineId))
         prepare = PrepareUi(work: Prepare.works(fleet.machine(machineId)?.connection ?? "").first ?? .drill)
+        loadDrillFormat()
     }
 
     /// Goes on with a G-code job that failed or was stopped: the same program from the line it says (the text is asked for again when this session does not have it).
@@ -644,17 +647,40 @@ final class AppModel: ObservableObject {
         }
     }
 
+    /// The kept format, read when the page of a job opens.
+    private func loadDrillFormat() {
+        let kept = prefs.get("drill_format") ?? ""
+        drillFormat = Prepare.drillFormats.contains(kept) ? kept : ""
+    }
+
+    /// Chooses the format, remembers it and plans the drilling file again with it.
+    func chooseDrillFormat(_ machineId: String, _ chosen: String) {
+        let next = Prepare.drillFormats.contains(chosen) ? chosen : ""
+        if next == drillFormat { return }
+        drillFormat = next
+        prefs.put("drill_format", next)
+        var st = prepare.side(.drill)
+        if !st.hasFile { return }
+        // the plan on screen was read with another format: Start stays off until the new one arrives
+        st.view = nil; st.error = ""; prepare.set(.drill, st)
+        Task {
+            prepare.loading = true; defer { prepare.loading = false }
+            await planSide(machineId, .drill)
+        }
+    }
+
     private func planSide(_ machineId: String, _ side: Side) async {
         let st = prepare.side(side)
+        let format = drillFormat
         do {
-            let view = try await api.preview(machineId, body: Prepare.fileBody(side: side, name: Prepare.jobName(st.fileName), text: st.text, tableText: st.tableText, skipTools: []))
+            let view = try await api.preview(machineId, body: Prepare.fileBody(side: side, name: Prepare.jobName(st.fileName), text: st.text, tableText: st.tableText, skipTools: [], drillFormat: format))
             var now = prepare.side(side)
-            if !Prepare.samePlanInput(st, now) { return }
+            if format != drillFormat || !Prepare.samePlanInput(st, now) { return }
             now.view = view; now.error = ""; prepare.set(side, now)
         } catch let e as ApiError {
             if e.unauthorized { signOut() }
             var now = prepare.side(side)
-            if !Prepare.samePlanInput(st, now) { return }
+            if format != drillFormat || !Prepare.samePlanInput(st, now) { return }
             now.view = nil; now.error = prepareError(e); prepare.set(side, now)
         } catch { var now = prepare.side(side); if !Prepare.samePlanInput(st, now) { return }; now.view = nil; now.error = error.localizedDescription; prepare.set(side, now) }
     }
@@ -709,7 +735,7 @@ final class AppModel: ObservableObject {
                     for side in sides {
                         let st = p.side(side)
                         let skipTools = Prepare.skipTools(order: st.view.map { Prepare.toolOrder($0) } ?? [], off: st.off, startAt: st.startAt)
-                        jobs.append(try await api.createJob(machineId, body: Prepare.fileBody(side: side, name: Prepare.jobName(st.fileName), text: st.text, tableText: st.tableText, skipTools: skipTools)))
+                        jobs.append(try await api.createJob(machineId, body: Prepare.fileBody(side: side, name: Prepare.jobName(st.fileName), text: st.text, tableText: st.tableText, skipTools: skipTools, drillFormat: drillFormat)))
                         made += 1
                     }
                 }
@@ -729,7 +755,7 @@ final class AppModel: ObservableObject {
     private func prepareError(_ e: ApiError) -> String {
         switch e.code {
         case "too_big": return tr("El archivo es demasiado grande.")
-        case "bad_ncd": return tr("El archivo de taladrado no se entiende.")
+        case "bad_ncd": return Prepare.needsDrillFormat(code: e.code, detail: e.detail) ? tr("El archivo de taladrado no declara cómo están escritos sus números, o el formato elegido no le sirve, y la escala no se adivina. Elija el formato: mils (milésimas de pulgada enteras), inch-2.4-tz, inch-2.4-lz, metric-3.3-tz o metric-3.3-lz (tz: se omiten los ceros de delante; lz: se omiten los ceros del final).") : tr("El archivo de taladrado no se entiende.")
         case "unknown_tool": return trf("Una herramienta del archivo no está en la tabla de herramientas de la máquina: %s", e.detail)
         case "bad_tool": return trf("Herramienta no válida: %s", e.detail)
         case "out_of_table": return tr("Un agujero o un punto queda fuera del recorrido de la máquina.")
