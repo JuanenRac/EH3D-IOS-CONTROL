@@ -159,6 +159,7 @@ final class ModelEdgesTests: XCTestCase {
     func testAPauseWithoutAToolHasNoToolNumber() throws {
         let pause = try XCTUnwrap(try parseJobs(#"[{"id":"a","pause":{"kind":"spindle_start"}}]"#)[0].pause)
         XCTAssertEqual(pause, Pause(kind: "spindle_start", tool: nil))
+        XCTAssertEqual(try parseJobs(#"[{"id":"a","pause":{"kind":"hold","question":"q0a1b2c3"}}]"#)[0].pause?.question, "q0a1b2c3")
         XCTAssertEqual(try parseJobs(#"[{"id":"a","pause":{"kind":"tool_change","tool":3}}]"#)[0].pause?.tool, 3)
     }
 

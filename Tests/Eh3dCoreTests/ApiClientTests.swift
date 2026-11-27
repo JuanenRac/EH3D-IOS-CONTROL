@@ -262,6 +262,13 @@ final class ApiClientTests: XCTestCase {
         XCTAssertEqual(seen[0].body, "{}")
     }
 
+    func testAnAnswerCarriesTheQuestionOnTheScreenAndNothingWhenThereIsNone() async throws {
+        answer(#"{"ok":true}"#)
+        let client = api(token: "t")
+        try await client.confirm("j", question: "q0a1b2c3"); try await client.resume("j", question: "q4d5e6f7"); try await client.confirm("j")
+        XCTAssertEqual(seen.map { $0.body }, [#"{"question":"q0a1b2c3"}"#, #"{"question":"q4d5e6f7"}"#, "{}"])
+    }
+
     func testGoingOnFromAStoppedJobReadsTheNewJobItMakes() async throws {
         answer(#"{"id":"j2","resumed_from":"j1","state":"ready"}"#)
         let job = try await api().resumeFrom("j1")
