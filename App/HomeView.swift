@@ -123,7 +123,7 @@ func jobKindText(_ kind: String, _ tr: (String) -> String) -> String {
 func pauseText(_ p: Pause, _ model: AppModel) -> String {
     switch p.kind {
     case "hold": return model.tr("Trabajo en pausa: pulse Reanudar para que siga.")
-    case "resume": return p.powerOn ? model.tr("Antes de volver a encender el husillo o el láser, confírmelo: mire el cabezal y la pieza, y apártese. Al pulsar Reanudar, se enciende y el trabajo continúa.") : model.tr("El trabajo sigue tras una parada: compruebe la máquina, el cero de trabajo y la herramienta, y apártese. Al pulsar Reanudar, la máquina vuelve sola al punto donde se paró y arranca el husillo si el programa lo tenía encendido.")
+    case "resume": return p.plunge ? model.tr("Antes de que la herramienta baje a la pieza, confírmelo: el cabezal está sobre el punto; compruebe que el husillo gira, mire la pieza y apártese. Al pulsar Reanudar, baja y el trabajo continúa.") : p.powerOn ? model.tr("Antes de volver a encender el husillo o el láser, confírmelo: mire el cabezal y la pieza, y apártese. Al pulsar Reanudar, se enciende y el trabajo continúa.") : model.tr("El trabajo sigue tras una parada: compruebe la máquina, el cero de trabajo y la herramienta, y apártese. Al pulsar Reanudar, la máquina vuelve sola al punto donde se paró y arranca el husillo si el programa lo tenía encendido.")
     case "tool_change": return model.trf("Ponga la herramienta %d y confirme.", p.tool ?? 0)
     case "spindle_start": return model.tr("Compruebe que el husillo gira y confirme.")
     default: return model.tr("La máquina espera una confirmación.")
