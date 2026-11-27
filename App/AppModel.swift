@@ -508,7 +508,7 @@ final class AppModel: ObservableObject {
     private func unanswered() -> String { tr("El servidor no respondió: la orden puede haber llegado y la máquina puede estar moviéndose. Mire la máquina antes de repetirla.") }
 
     func start(_ id: String) { order("start \(id)") { try await self.api.start(id) } }
-    func confirm(_ id: String) { order("answer \(id)") { try await self.api.confirm(id) } }
+    func confirm(_ id: String, question: String? = nil) { order("answer \(id)") { try await self.api.confirm(id, question: question) } }
     func cancel(_ id: String) { stopping(job.flatMap { $0.summary.id == id ? $0.summary.machine : nil }) { try await self.api.cancel(id) } }
     func delete(_ id: String) { act { try await self.api.delete(id); if case .job = self.page { self.back() } } }
 
@@ -540,7 +540,7 @@ final class AppModel: ObservableObject {
         }
     }
     func pause(_ id: String) { act { try await self.api.pause(id) } }
-    func resume(_ id: String) { order("answer \(id)") { try await self.api.resume(id) } }
+    func resume(_ id: String, question: String? = nil) { order("answer \(id)") { try await self.api.resume(id, question: question) } }
 
     /// Goes on from a job that failed or was cancelled: the server made a new job from the request it kept (no file is asked for again), and it waits ready for a person to start it.
     func goOn(_ summary: JobSummary) {

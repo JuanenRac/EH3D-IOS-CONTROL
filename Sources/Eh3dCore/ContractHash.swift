@@ -1,4 +1,4 @@
 // The SHA-256 of the copy of the settings contract kept in the app (settings-contract.json, line ends as LF): the `contract_hash` that the server gives when its contract is this
 // document. Written by tools/sync_settings_contract.py --write and checked by --check and by the tests; do not edit by hand. GPL-3.0-or-later.
 
-public let contractCopyHash = "cad88bba04a384951bfac129bd8a52bdce369f2dcd012844ed12ef235a61ba66"
+public let contractCopyHash = "074ac65348237ead5daf04c1fce1090ddbdf416f134f3331188ad12c05f062d9"

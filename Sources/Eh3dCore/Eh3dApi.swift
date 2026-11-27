@@ -305,12 +305,17 @@ public final class Eh3dApi: @unchecked Sendable {
     public func jobs(machine: String? = nil) async throws -> [JobSummary] { try parseJobs(try await call("/jobs" + (machine.map { "?machine=\(q($0))" } ?? ""))) }
     public func job(_ id: String) async throws -> Job { try parseJob(try await call("/jobs/\(q(id))")) }
     public func start(_ id: String) async throws { _ = try await call("/jobs/\(q(id))/start", method: "POST", body: "{}") }
-    public func confirm(_ id: String) async throws { _ = try await call("/jobs/\(q(id))/confirm", method: "POST", body: "{}") }
+    /// `question` is the one on the screen (`pause.question`): the server refuses the answer when the job asks something else by then. A server of an earlier version gives none.
+    public func confirm(_ id: String, question: String? = nil) async throws { _ = try await call("/jobs/\(q(id))/confirm", method: "POST", body: answerBody(question)) }
     public func cancel(_ id: String) async throws { _ = try await call("/jobs/\(q(id))/cancel", method: "POST", body: "{}") }
     public func delete(_ id: String) async throws { _ = try await call("/jobs/\(q(id))", method: "DELETE") }
     /// Holds a running G-code job, and lets a held one (or one that goes on after a stop) go on.
     public func pause(_ id: String) async throws { _ = try await call("/jobs/\(q(id))/pause", method: "POST", body: "{}") }
-    public func resume(_ id: String) async throws { _ = try await call("/jobs/\(q(id))/resume", method: "POST", body: "{}") }
+    public func resume(_ id: String, question: String? = nil) async throws { _ = try await call("/jobs/\(q(id))/resume", method: "POST", body: answerBody(question)) }
+    private func answerBody(_ question: String?) -> String {
+        guard let question, let data = try? JSONSerialization.data(withJSONObject: ["question": question]) else { return "{}" }
+        return String(decoding: data, as: UTF8.self)
+    }
 
     /// Makes a new job, ready and not started, from the request the server kept for a cancelled or failed one, with the work already done left out: the file is not asked for again.
     public func resumeFrom(_ id: String) async throws -> Job { try parseJob(try await call("/jobs/\(q(id))/resume-from", method: "POST", body: "{}")) }

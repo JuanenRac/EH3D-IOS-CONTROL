@@ -31,7 +31,7 @@
 |---|---|
 | Versione | `0.1.7` |
 | Maturità | Impalcatura |
-| Test | 498 test del pacchetto Swift |
+| Test | 499 test del pacchetto Swift |
 | Stack tecnologico | Swift, SwiftUI |
 | Su hardware reale | Non ancora: l'app non è stata eseguita su un iPhone, contro un server reale né con una macchina; la prima cosa da provare è accedere all'EH3D-SERVER dell'officina. |
 
