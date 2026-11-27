@@ -7,6 +7,7 @@ public struct Pause: Equatable, Sendable {
     public let kind: String
     public let tool: Int?
     public var question: String? = nil
+    public var powerOn: Bool = false
 }
 
 public enum JobStates {
@@ -87,7 +88,7 @@ private func str(_ j: JSON, _ k: String, _ d: String = "") -> String { (j[k] as?
 private func int(_ j: JSON, _ k: String, _ d: Int = 0) -> Int { (j[k] as? NSNumber)?.intValue ?? d }
 private func dbl(_ j: JSON, _ k: String) -> Double? { (j[k] as? NSNumber)?.doubleValue }
 private func doubles(_ any: Any?) -> [Double] { ((any as? [NSNumber]) ?? []).map { $0.doubleValue } }
-private func pauseOf(_ j: JSON?) -> Pause? { j.map { Pause(kind: str($0, "kind"), tool: ($0["tool"] as? NSNumber)?.intValue, question: ($0["question"] as? String).flatMap { $0.isEmpty ? nil : $0 }) } }
+private func pauseOf(_ j: JSON?) -> Pause? { j.map { Pause(kind: str($0, "kind"), tool: ($0["tool"] as? NSNumber)?.intValue, question: ($0["question"] as? String).flatMap { $0.isEmpty ? nil : $0 }, powerOn: ($0["power_on"] as? Bool) ?? false) } }
 
 public func parseFleet(_ text: String) throws -> Fleet {
     let root = try object(text)
