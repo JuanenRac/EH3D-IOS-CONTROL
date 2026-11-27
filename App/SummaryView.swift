@@ -21,7 +21,7 @@ extension AppModel {
         case "far": return trf("El trabajo empieza a %s mm de la esquina de la mesa: revise el desplazamiento y la unidad", a[0])
         case "scale": return trf("El archivo de la máquina estira el trabajo (escala %s x %s, no 1)", a[0], a[1])
         case "out_of_course": return trf("El plan lleva el eje %s %s mm más allá de su recorrido", a[0], a[1])
-        case "units_supposed": return tr("El archivo no indica su unidad; los números se leen como milésimas de pulgada")
+        case "units_supposed": return tr("El archivo no declara cómo están escritos sus números; se leyeron con el formato elegido")
         default: return trf("Aviso del servidor: %s", a[0])
         }
     }
