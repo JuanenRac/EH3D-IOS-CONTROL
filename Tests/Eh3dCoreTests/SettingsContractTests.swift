@@ -107,10 +107,10 @@ final class SettingsContractTests: XCTestCase {
 
     // ---- the copy of the app
 
-    func testTheCopyIsTheContractOfTheServerWith106SettingsInSeventeenGroups() throws {
+    func testTheCopyIsTheContractOfTheServerWith109SettingsInSeventeenGroups() throws {
         let contract = try contractCopy()
         XCTAssertEqual(contract.schema, "eh3d.settings.contract/1")
-        XCTAssertEqual(contract.settings.count, 107)
+        XCTAssertEqual(contract.settings.count, 109)
         XCTAssertEqual(contract.groups.count, 17)
         XCTAssertEqual(contract.languages, contractLanguages)
         XCTAssertEqual(Set(contract.settings.map { $0.key }).count, contract.settings.count)
@@ -145,12 +145,12 @@ final class SettingsContractTests: XCTestCase {
         for g in contract.groups { for lang in contractLanguages { XCTAssertFalse((g.label[lang] ?? "").isEmpty, "group \(g.id) \(lang)") } }
     }
 
-    func testTheNineteenKeysOfThePolicyHaveTheirRouteAndTheOthersAreSetInTheFile() throws {
+    func testTheTwentyKeysOfThePolicyHaveTheirRouteAndTheOthersAreSetInTheFile() throws {
         let contract = try contractCopy()
         let policy = contract.settings.filter { $0.write.via == "policy" }
         let file = contract.settings.filter { $0.write.via == "file" }
-        XCTAssertEqual(policy.count, 19)
-        XCTAssertEqual(file.count, 88)
+        XCTAssertEqual(policy.count, 20)
+        XCTAssertEqual(file.count, 89)
         XCTAssertTrue(policy.allSatisfy { $0.write.method == "PUT" && writePath($0) == "/auth/policy" && $0.role == "admin" })
         XCTAssertTrue(file.allSatisfy { $0.write.path == nil && $0.write.file == "server.cfg" })
     }
@@ -174,7 +174,7 @@ final class SettingsContractTests: XCTestCase {
         SettingsTexts.ensureBundled()
         XCTAssertTrue(EmbeddedContract.loaded)
         XCTAssertTrue(SettingsTexts.loaded)
-        XCTAssertEqual(EmbeddedContract.get().settings.count, 107)
+        XCTAssertEqual(EmbeddedContract.get().settings.count, 109)
     }
 
     // ---- the groups
