@@ -15,6 +15,12 @@ public enum JobStates {
     public static func finished(_ state: String) -> Bool { state == "done" || state == "cancelled" || state == "failed" }
 }
 
+/// The reason of the server when it does not go on with a stopped job by itself (`422 bad_request` of `resume-from`), or nil for any other refusal.
+public func resumeRefusal(status: Int, code: String, detail: String) -> String? {
+    let reason = detail.trimmingCharacters(in: .whitespacesAndNewlines)
+    return status == 422 && code == "bad_request" && !reason.isEmpty && reason != code ? reason : nil
+}
+
 public struct ActiveJob: Equatable, Sendable {
     public let id: String, name: String, kind: String, state: String, by: String
     public let itemsDone: Int, itemsTotal: Int, holesDone: Int, holesTotal: Int, percent: Int

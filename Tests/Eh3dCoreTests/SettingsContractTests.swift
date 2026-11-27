@@ -107,13 +107,32 @@ final class SettingsContractTests: XCTestCase {
 
     // ---- the copy of the app
 
-    func testTheCopyIsTheContractOfTheServerWith100SettingsInSeventeenGroups() throws {
+    func testTheCopyIsTheContractOfTheServerWith105SettingsInSeventeenGroups() throws {
         let contract = try contractCopy()
         XCTAssertEqual(contract.schema, "eh3d.settings.contract/1")
-        XCTAssertEqual(contract.settings.count, 100)
+        XCTAssertEqual(contract.settings.count, 105)
         XCTAssertEqual(contract.groups.count, 17)
         XCTAssertEqual(contract.languages, contractLanguages)
         XCTAssertEqual(Set(contract.settings.map { $0.key }).count, contract.settings.count)
+    }
+
+    func testTheSettingsOfTheStopAndTheResumeAreInTheCopyAndEveryUnitCanBeWritten() throws {
+        let contract = try contractCopy()
+        let keys = Set(contract.settings.map { $0.key })
+        for key in ["grbl_stop_wait_s", "resume_safe_z_mm", "resume_spindle_wait_s", "resume_plunge_feed_mm_min", "resume_position_tolerance_um"] { XCTAssertTrue(keys.contains(key), key) }
+        let written: Set<String> = ["", "days", "gigabytes", "hours", "kilobytes", "lines", "megabytes", "mm", "\u{00b5}m", "mm/min", "places", "seconds"]
+        for s in contract.settings { XCTAssertTrue(written.contains(unitText(s.unit)), "\(s.key) \(s.unit ?? "")") }
+        XCTAssertEqual(unitText("millimetres"), "mm")
+        XCTAssertEqual(unitText("micrometres"), "\u{00b5}m")
+        XCTAssertEqual(unitText(nil), "")
+    }
+
+    func testOnlyAResumeTheServerDoesNotDoByItselfKeepsItsReason() {
+        XCTAssertEqual(resumeRefusal(status: 422, code: "bad_request", detail: " the stop was not confirmed "), "the stop was not confirmed")
+        XCTAssertNil(resumeRefusal(status: 422, code: "bad_request", detail: "  "))
+        XCTAssertNil(resumeRefusal(status: 422, code: "bad_request", detail: "bad_request"))
+        XCTAssertNil(resumeRefusal(status: 422, code: "no_work", detail: "every hole is done"))
+        XCTAssertNil(resumeRefusal(status: 409, code: "not_stopped", detail: "the job is running"))
     }
 
     func testEveryTextOfTheCopyIsInTheEightLanguages() throws {
@@ -131,7 +150,7 @@ final class SettingsContractTests: XCTestCase {
         let policy = contract.settings.filter { $0.write.via == "policy" }
         let file = contract.settings.filter { $0.write.via == "file" }
         XCTAssertEqual(policy.count, 19)
-        XCTAssertEqual(file.count, 81)
+        XCTAssertEqual(file.count, 86)
         XCTAssertTrue(policy.allSatisfy { $0.write.method == "PUT" && writePath($0) == "/auth/policy" && $0.role == "admin" })
         XCTAssertTrue(file.allSatisfy { $0.write.path == nil && $0.write.file == "server.cfg" })
     }
@@ -155,7 +174,7 @@ final class SettingsContractTests: XCTestCase {
         SettingsTexts.ensureBundled()
         XCTAssertTrue(EmbeddedContract.loaded)
         XCTAssertTrue(SettingsTexts.loaded)
-        XCTAssertEqual(EmbeddedContract.get().settings.count, 100)
+        XCTAssertEqual(EmbeddedContract.get().settings.count, 105)
     }
 
     // ---- the groups

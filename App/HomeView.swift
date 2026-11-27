@@ -123,7 +123,7 @@ func jobKindText(_ kind: String, _ tr: (String) -> String) -> String {
 func pauseText(_ p: Pause, _ model: AppModel) -> String {
     switch p.kind {
     case "hold": return model.tr("Trabajo en pausa: pulse Reanudar para que siga.")
-    case "resume": return model.tr("El trabajo sigue tras una parada: compruebe la máquina y pulse Reanudar antes del primer movimiento.")
+    case "resume": return model.tr("El trabajo sigue tras una parada: compruebe la máquina, el cero de trabajo y la herramienta, y apártese. Al pulsar Reanudar, la máquina vuelve sola al punto donde se paró y arranca el husillo si el programa lo tenía encendido.")
     case "tool_change": return model.trf("Ponga la herramienta %d y confirme.", p.tool ?? 0)
     case "spindle_start": return model.tr("Compruebe que el husillo gira y confirme.")
     default: return model.tr("La máquina espera una confirmación.")
@@ -355,6 +355,7 @@ struct JobDetailView: View {
                         if !JobStates.active(s.state) { Button(model.tr("Borrar")) { askDelete = true }.buttonStyle(.bordered).disabled(!model.canOperate) }
                     }
                     if let p = s.pause { Text(pauseText(p, model)).foregroundColor(Forge.orange) }
+                    if let refused = model.resumeRefused, refused.id == s.id { Text(model.trf("El servidor no continúa este trabajo por sí solo: %s. Deje la máquina en condiciones, prepare de nuevo el trabajo e indique por dónde empezar.", refused.reason)).foregroundColor(Forge.danger) }
                     if JobStates.canGoOn(s.state) { Text(model.tr("El servidor guardó lo que se pidió: se crea un trabajo nuevo que deja fuera lo ya hecho, sin elegir el archivo otra vez. Espera a que lo empiece y nada se mueve solo.")).font(.caption).foregroundColor(Forge.dim) }
                     if !s.resumedFrom.isEmpty { Text(model.trf("Continúa el trabajo %s", s.resumedFrom)).font(.caption).foregroundColor(Forge.dim) }
                     if !s.startedBy.isEmpty { Text(model.trf("Lanzado por %s", s.startedBy)).font(.caption).foregroundColor(Forge.dim) }

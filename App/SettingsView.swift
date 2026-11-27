@@ -148,7 +148,7 @@ struct ServerSettingsView: View {
             if isHighRisk(s) { Pill(text: "▲ " + st("ssc_risk_high"), color: Forge.danger) }
             if notInCopy { Pill(text: st("ssc_unknown"), color: Forge.dim) }
             if kind == .number, let low = s.min, let high = s.max {
-                Text("\(low)–\(high)" + ((s.unit ?? "").isEmpty ? "" : " " + (s.unit ?? ""))).font(.caption).foregroundColor(Forge.dim)
+                Text("\(low)–\(high)" + (unitText(s.unit).isEmpty ? "" : " " + unitText(s.unit))).font(.caption).foregroundColor(Forge.dim)
             }
             if kind == .list { Text(st("ssc_list_hint")).font(.caption).foregroundColor(Forge.dim) }
             if s.secret || serverSecret {
@@ -181,7 +181,7 @@ struct ServerSettingsView: View {
             Toggle(said(SettingValue.bool(isOn)), isOn: Binding(get: { isOn }, set: { ask(s, .bool($0)) })).foregroundColor(Forge.text).disabled(busy)
         case .number, .text, .list:
             HStack {
-                TextField(s.unit ?? "", text: Binding(get: { draft ?? shownValue(kind == .list ? current : (current ?? s.defaultValue)) }, set: { drafts[s.key] = $0 }))
+                TextField(unitText(s.unit), text: Binding(get: { draft ?? shownValue(kind == .list ? current : (current ?? s.defaultValue)) }, set: { drafts[s.key] = $0 }))
                     .textFieldStyle(.roundedBorder)
                     .keyboardType(kind == .number ? .numbersAndPunctuation : .default)
                     .autocorrectionDisabled()

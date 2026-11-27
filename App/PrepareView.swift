@@ -172,8 +172,8 @@ struct PrepareView: View {
                 Text(model.trf("El programa tiene %d líneas. Con una línea mayor que 0 la máquina espera su confirmación antes del primer movimiento.", Prepare.lineCount(p.gcode))).font(.caption).foregroundColor(Forge.dim)
                 Toggle(isOn: Binding(get: { model.prepare.restoreOutputs }, set: { model.setRestoreOutputs($0) })) {
                     VStack(alignment: .leading) {
-                        Text(model.tr("Volver a poner en marcha el husillo y el refrigerante")).foregroundColor(Forge.text)
-                        Text(model.tr("Desactivado por seguridad: el husillo y el refrigerante no se encienden al continuar.")).font(.caption).foregroundColor(Forge.dim)
+                        Text(model.tr("Volver a activar el refrigerante")).foregroundColor(Forge.text)
+                        Text(model.tr("Este interruptor es solo para el refrigerante. El husillo no depende de él: si el programa lo tenía encendido, cuente con que ARRANCA de nuevo al confirmar la reanudación. Apártese de la máquina y compruebe que gira antes de que la herramienta llegue a la pieza.")).font(.caption).foregroundColor(Forge.dim)
                     }
                 }.disabled(!model.canOperate)
             }

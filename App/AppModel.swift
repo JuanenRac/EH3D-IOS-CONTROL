@@ -56,6 +56,8 @@ final class AppModel: ObservableObject {
     /// Whether the summary of a job is shown before it starts (on by default; the person can turn it off in the settings).
     @Published var confirmStart = true
     @Published var message: String?
+    /// The job the server did not go on with by itself, and its reason: the page of that job keeps it, a message that goes away is not enough.
+    @Published var resumeRefused: (id: String, reason: String)?
     @Published var rememberMe = false
     @Published var jobs: [JobSummary] = []
     @Published var job: Job?
@@ -523,13 +525,23 @@ final class AppModel: ObservableObject {
 
     /// Goes on from a job that failed or was cancelled: the server made a new job from the request it kept (no file is asked for again), and it waits ready for a person to start it.
     func goOn(_ summary: JobSummary) {
+        resumeRefused = nil
         Task {
             do {
                 let next = try await api.resumeFrom(summary.id)
                 message = tr("Se creó un trabajo nuevo a partir de este. Empiécelo cuando la máquina esté lista.")
                 await refresh()
                 open(.job(next.summary.id))
-            } catch let e as ApiError { if e.unauthorized { signOut() } else { message = text(e) } } catch { message = error.localizedDescription }
+            } catch let e as ApiError {
+                if e.unauthorized {
+                    signOut()
+                } else if let reason = resumeRefusal(status: e.status, code: e.code, detail: e.detail) {
+                    resumeRefused = (summary.id, reason)
+                    message = trf("El servidor no continúa este trabajo por sí solo: %s. Deje la máquina en condiciones, prepare de nuevo el trabajo e indique por dónde empezar.", reason)
+                } else {
+                    message = text(e)
+                }
+            } catch { message = error.localizedDescription }
         }
     }
 

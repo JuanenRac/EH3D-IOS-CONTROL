@@ -437,3 +437,12 @@ public enum EmbeddedContract {
     /// The copy, or an empty contract when it could not be read: the page then shows nothing but says why.
     public static func get() -> SettingsContract { store.get() ?? SettingsContract(schema: contractSchema, languages: contractLanguages, groups: [], settings: []) }
 }
+
+/// The unit of a setting as it is written next to a number: a length is shown with its international symbol; any other unit as the contract writes it.
+public func unitText(_ unit: String?) -> String {
+    switch unit {
+    case "millimetres": return "mm"
+    case "micrometres": return "\u{00b5}m"
+    default: return unit ?? ""
+    }
+}
