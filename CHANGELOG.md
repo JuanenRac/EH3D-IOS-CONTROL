@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- **A difference with the Android app is written down:** Android can listen to the server while a job runs; the iPhone cannot. No other change.
+
 - **The contract of the settings of the server is the current one:** it has `push_enabled` (notices on a phone, off by default) and `push_service_account_file`. No other change.
 
 - **The contract of the settings of the server is the current one:** it has `push_enabled` (notices on a phone, off by default) and `push_service_account_file`. No other change.
