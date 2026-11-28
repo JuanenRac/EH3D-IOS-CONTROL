@@ -38,6 +38,7 @@ This app is a port of the Android app (EH3D-ANDROID-CONTROL): whatever one app l
 | Certificate of a secure server | Pinned the first time it is seen; one extra phrase in the 7 tables says so | Not pinned; the phrase is not in its tables |
 | The stream of the head camera | The camera is read with `URLSession` and stops with its screen | Also stops while the app is out of sight and can decode at a smaller size for the grid |
 | Notices through the push service of the system | Not there: it needs a key of a paid Apple developer account | Firebase, off by default, in a build with the owner's project; five phrases only that app has |
+| Listening while a job runs (off by default) | Not there: the system does not let an app go on asking in the background | A foreground service asks the server every few seconds and stops by itself |
 
 ## Not there in either app yet
 
