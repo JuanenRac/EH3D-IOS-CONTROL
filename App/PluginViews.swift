@@ -132,7 +132,7 @@ struct WorkMachineCard: View {
                     .buttonStyle(.borderedProminent).tint(Forge.danger)
             }
             if MachineSafety.canRelease(isAdmin: model.canAdmin, w) {
-                Button { pending = .release } label: { Text(model.tr("Soltar el enclavamiento")).frame(maxWidth: .infinity) }.buttonStyle(.bordered)
+                Button { pending = .release } label: { Text(model.tr("Soltar el enclavamiento")).frame(maxWidth: .infinity) }.buttonStyle(.bordered).disabled(!model.canOrder)
             } else if !w.interlocks.isEmpty && !model.canAdmin {
                 Text(model.tr("Solo un administrador puede soltar el enclavamiento de una máquina.")).font(.caption).foregroundColor(Forge.dim)
             }
@@ -152,8 +152,8 @@ struct WorkMachineCard: View {
                             }
                         }
                         Spacer()
-                        if MachineSafety.canAuthorize(isOperator: model.canOperate, job) { Button(model.tr("Autorizar")) { pending = .authorize(job) } }
-                        if !w.latched && MachineSafety.canStartJob(isOperator: model.canOperate, job) { Button(model.tr("Empezar")) { pending = .start(job) } }
+                        if MachineSafety.canAuthorize(isOperator: model.canOperate, job) { Button(model.tr("Autorizar")) { pending = .authorize(job) }.disabled(!model.canOrder) }
+                        if !w.latched && MachineSafety.canStartJob(isOperator: model.canOperate, job) { Button(model.tr("Empezar")) { pending = .start(job) }.disabled(!model.canOrder) }
                         if MachineSafety.canCancelJob(isOperator: model.canOperate, job) { Button(model.tr("Cancelar")) { pending = .cancel(job) } }
                     }
                 }
